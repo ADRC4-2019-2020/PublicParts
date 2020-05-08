@@ -11,6 +11,9 @@ public class ConfigurablePart : Part
 
     public ConfigurablePart NewPart(VoxelGrid grid)
     {
+        //This method does not need to exist, the constructor is enough
+        //Check PPSpace and PPSpaceRequest Json reading methods when implementing new reading method
+        //This is probably creating double the amount of spaces 
         ConfigurablePart p = new ConfigurablePart();
         p.Type = PartType.Configurable;
         p.Orientation = (PartOrientation)System.Enum.Parse(typeof(PartOrientation), OrientationName, false);
@@ -44,12 +47,11 @@ public class ConfigurablePart : Part
 
     public ConfigurablePart (VoxelGrid grid, List<Part> existingParts)
     {
-        //This method creates a random configurable part in the specified grid. 
-        //An overload is reequired to create a configurable part in a specific position
+        //This constructor creates a random configurable part in the specified grid. 
         Type = PartType.Configurable;
         _grid = grid;
         int minimumDistance = 6; //In voxels
-        Size = new Vector2Int(6, 2); //6 x 2 configurable part size
+        Size = new Vector2Int(6, 2); //6 x 2 configurable part size SHOULD NOT BE HARD CODED
         nVoxels = Size.x * Size.y;
         OccupiedIndexes = new Vector3Int[nVoxels];
         IsStatic = false;

@@ -139,7 +139,8 @@ public class PPSpace : IEquatable<PPSpace>
     public PPSpace NewSpace(VoxelGrid grid, string name)
     {
         //Method to create new spaces, read from a JSON file
-        //Still not sure if this is unecessarily creating extra spaces
+        //Still not sure if this is unecessarily creating extra spaces [ IT PROBABLY IS :( ]
+        //Revision to remove this method later is necessary. The constructor will be enough
         PPSpace s = new PPSpace();
         s.OCIndexes = OCIndexes;
         s._grid = grid;
@@ -203,14 +204,19 @@ public class PPSpace : IEquatable<PPSpace>
 
     void ReleaseSpace()
     {
-        EvaluateSpaceArea();
-        EvaluateSpaceConnectivity();
+        EvaluateSpace();
         _occupyingTenant.ReleaseIcon();
         Occupied = false;
         _usedRequest = null;
         _durationLeft = 0;
         _occupyingTenant = null;
         Debug.Log($"{Name} has been released");
+    }
+
+    void EvaluateSpace()
+    {
+        EvaluateSpaceArea();
+        EvaluateSpaceConnectivity();
     }
 
     void EvaluateSpaceArea()

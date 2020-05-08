@@ -25,7 +25,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
     bool _testMode = true;
     
     float _voxelSize = 0.375f;
-    int _spaceMinimumArea = 20; //in voxel ammount
+    int _spaceMinimumArea = 20; //in voxel ammount SHOULD BE SQUARE METERS
     int _ammountOfComponents = 10;
     
     int _day = 0;
@@ -300,6 +300,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
                 int shortestLength = 1_000_000;
                 foreach (var v in targets)
                 {
+                    //GRAPH SHOULD BE CREATED HERE, WITH ONLY THE CURRENT TARGET BEING ANALYSED
                     var end = v;
                     if (!end.IsBoundary)
                     {
