@@ -25,7 +25,8 @@ public class AI_PlanAnalyzer : MonoBehaviour
     bool _testMode = true;
     
     float _voxelSize = 0.375f;
-    int _spaceMinimumArea = 20; //in voxel ammount SHOULD BE SQUARE METERS
+    float _voxelsPerSqrM => 1 / _voxelSize * _voxelSize;
+    float _spaceMinimumArea = 3.0f; //in square meters
     int _ammountOfComponents = 10;
     
     int _day = 0;
@@ -673,14 +674,15 @@ public class AI_PlanAnalyzer : MonoBehaviour
 
     void RequestSpace(PPSpaceRequest request)
     {
-        var requestArea = request.Population * 8; //This considers that 1 person requires 8 voxels (~1m²)
+        var requestArea = request.Population * request.Tenant.AreaPerIndInferred; //Request area assuming the area the tenant prefers per individual
         var availableSpaces = _spaces.Where(s => !s.Occupied && !s.IsSpare);
-        PPSpace bestSuited = availableSpaces.MaxBy(s => s.Area);
+        print($"{availableSpaces.Count()} spaces available");
+        PPSpace bestSuited = availableSpaces.MaxBy(s => s.VoxelCount);
         foreach (var space in availableSpaces)
         {
             var spaceArea = space.Area;
             
-            if (spaceArea >= requestArea && spaceArea < bestSuited.Area)
+            if (spaceArea >= requestArea && spaceArea < bestSuited.VoxelCount)
             {
                 bestSuited = space;
             }  

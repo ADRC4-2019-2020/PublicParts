@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System;
+using System.Globalization;
 
 [System.Serializable]
 public class PPSpace : IEquatable<PPSpace>
-{
+{ 
     //
     //FIELDS AND PROPERTIES
     //
@@ -38,18 +39,19 @@ public class PPSpace : IEquatable<PPSpace>
         || v.GetFaceNeighbours().ToList().Count < 4);
 
     //Size | Scale Parameters
-    public int Area => Voxels.Count; //In voxel units
-   
+    public int VoxelCount => Voxels.Count; //In voxel units
+    public float Area => (_grid.VoxelSize * _grid.VoxelSize) * VoxelCount; //In square meters
+
     //Average dimensions in the X and Z directions. 
     //Does not ignore jagged edges / broken lengths of the space
     //Use is still unclear, might help later
-    
-    public int AverageXWidth => (int) Voxels.GroupBy(v => v.Index.z).Select(r => r.ToList().Count).Average();
-    
-    public int AverageZWidth => (int)Voxels.GroupBy(v => v.Index.x).Select(r => r.ToList().Count).Average();
+
+    public float AverageXWidth => (int) Voxels.GroupBy(v => v.Index.z).Select(r => r.ToList().Count).Average() * _grid.VoxelSize; //In meters
+
+    public float AverageZWidth => (int)Voxels.GroupBy(v => v.Index.x).Select(r => r.ToList().Count).Average() * _grid.VoxelSize; //In meters
 
     //Defines if a space should be regarded as spare given its average widths and area 
-    public bool IsSpare => AverageXWidth < 6 || AverageZWidth < 6 || Area < 32? true : false;
+    public bool IsSpare => AverageXWidth < 2.20f || AverageZWidth < 2.20f || Area < 4.0f? true : false;
     
     //Connectivity Parameters
     //Get from the boundary voxels, the ones that represent connections
@@ -228,12 +230,12 @@ public class PPSpace : IEquatable<PPSpace>
         var tenantAreaMin = tenantAreaPref[0]; //This is voxel units per person
         var tenantAreaMax = tenantAreaPref[1]; //This is voxel units per person
 
-        if (Area < tenantAreaMin * _usedRequest.Population)
+        if (VoxelCount < tenantAreaMin * _usedRequest.Population)
         {
             _areaIncrease++;
             Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too small");
         }
-        else if (Area > tenantAreaMax * _usedRequest.Population)
+        else if (VoxelCount > tenantAreaMax * _usedRequest.Population)
         {
             _areaDecrease++;
             Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too big");
@@ -298,11 +300,17 @@ public class PPSpace : IEquatable<PPSpace>
         string breakLine = "\n";
         
         string nameHeader = $"[{Name}]";
-        
+
+        string spare = "[Not spare]";
+        if (IsSpare)
+        {
+            spare = "[Spare space]";
+        }
+
         string sizeHeader = $"[Size Parameters]";
-        string area = $"Area: {Area} voxels";
-        string averageX = $"Average X Width: {AverageXWidth} voxels";
-        string averageZ = $"Average Z Width: {AverageZWidth} voxels";
+        string area = $"Area: {Area.ToString("F", new CultureInfo("en-US"))} m²";
+        string averageX = $"Average X Width: {AverageXWidth.ToString("F", new CultureInfo("en-US"))} m";
+        string averageZ = $"Average Z Width: {AverageZWidth.ToString("F", new CultureInfo("en-US"))} m";
 
         string connectivityHeader = $"[Connectivity Parameters]";
         string connections = $"Connections: {NumberOfConnections} voxels";
@@ -364,6 +372,7 @@ public class PPSpace : IEquatable<PPSpace>
         }
 
         output = nameHeader + breakLine +
+            spare + breakLine +
             sizeHeader + breakLine +
             tab + area + breakLine +
             tab + averageX + breakLine +

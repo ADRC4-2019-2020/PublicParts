@@ -15,8 +15,14 @@ public class Tenant : IEquatable<Tenant>
     VoxelGrid _grid;
 
     //Area preferences are stored in a linear, 2 instances array. [0] = min, [1] = max
-    //This represents the ammount of voxel units per person in the population occupying the space
-    public Dictionary<SpaceFunction, int[]> AreaPreferences = new Dictionary<SpaceFunction, int[]>();
+    //This represents the area in square meters per person in the population occupying the space
+    //public Dictionary<SpaceFunction, int[]> AreaPreferences = new Dictionary<SpaceFunction, int[]>();
+    public Dictionary<SpaceFunction, float[]> AreaPreferences = new Dictionary<SpaceFunction, float[]>();
+
+    //The preferred area per individual in a population in square meters
+    //Inferred by program, to be updated over time
+    //Only one parameter, disregarding multiple functions
+    public float AreaPerIndInferred = 1f; 
 
     //Connectivity preferences are stored in a linear, 2 instances array. [0] = min, [1] = max
     //This represents the preffered Connectivity ratio of the space per function
