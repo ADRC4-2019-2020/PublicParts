@@ -72,7 +72,7 @@ public static class JSONReader
             tenant.ConnectivityPreferences = new Dictionary<SpaceFunction, float[]>();
             var connecWorkPref = tenant.ConnectivityPrefWork_S.Split('_').Select(p => float.Parse(p) / 100.00f).ToArray();
             var connecLeisurePref = tenant.ConnectivityPrefLeisure_S.Split('_').Select(p => float.Parse(p) / 100.00f).ToArray();
-            Debug.Log($"{tenant.Name} min work con {connecLeisurePref[0]}");
+            //Debug.Log($"{tenant.Name} min work con {connecLeisurePref[0]}");
             tenant.ConnectivityPreferences.Add(SpaceFunction.Work, connecWorkPref);
             tenant.ConnectivityPreferences.Add(SpaceFunction.Leisure, connecLeisurePref);
             tenant.CreateUserIcon();

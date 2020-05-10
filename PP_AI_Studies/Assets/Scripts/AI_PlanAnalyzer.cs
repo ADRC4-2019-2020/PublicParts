@@ -6,6 +6,7 @@ using System.Diagnostics;
 using QuickGraph;
 using QuickGraph.Algorithms;
 
+
 public class AI_PlanAnalyzer : MonoBehaviour
 {
     //
@@ -20,6 +21,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
     string _structureFile;
     Vector3Int _gridSize;
 
+    
     int _frame = 0;
 
     bool _testMode = true;
@@ -126,7 +128,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
         ReadStructure(_structureFile);
 
         //Start the daily progression coroutine
-        StartCoroutine(DailyProgression());
+        if (_testMode) StartCoroutine(DailyProgression());      
     }
 
     void Update()
@@ -168,15 +170,32 @@ public class AI_PlanAnalyzer : MonoBehaviour
     //
     //METHODS AND FUNCTIONS
     //    
-    void PopulateRandomConfigurable(int amt)
+    void PopulateRandomConfigurable(int amt, int seed)
     {
         for (int i = 0; i < amt; i++)
         {
-            ConfigurablePart p = new ConfigurablePart(_grid, _existingParts);
+            ConfigurablePart p = new ConfigurablePart(_grid, _existingParts, seed);
             _existingParts.Add(p);
         }
     }
-    
+    void PopulateRandomConfigurableAndSave(int amt, int variations)
+    {
+        for (int n = 0; n < variations; n++)
+        {
+            _populated = true;
+            _grid.ClearGrid();
+            _existingParts = new List<Part>();
+            if (_bigGrid) ReadStructure("StructureParts_BigSlab");
+            for (int i = 0; i < amt; i++)
+            {
+                ConfigurablePart p = new ConfigurablePart(_grid, _existingParts, n);
+                _existingParts.Add(p);
+            }
+            ImageReadWrite.WriteGrid2Image(_grid, n);
+        }
+        
+    }
+
     void DefinePartsBoundaries()
     {
         Stopwatch mainStopwatch = new Stopwatch();
@@ -913,6 +932,11 @@ public class AI_PlanAnalyzer : MonoBehaviour
         }
     }
 
+    void WriteImage()
+    {
+        
+    }
+
     //GUI Controls and Settings
     private void OnGUI()
     {
@@ -970,12 +994,13 @@ public class AI_PlanAnalyzer : MonoBehaviour
                 _existingParts = new List<Part>();
                 if (_bigGrid) ReadStructure("StructureParts_BigSlab");
 
-                PopulateRandomConfigurable(_ammountOfComponents);
+                PopulateRandomConfigurable(_ammountOfComponents, 5);
 
                 _boudaryVoxels = _grid.ActiveVoxelsAsList().Where(v => v.IsBoundary).ToList();
                 _outputMessage = $"{_ammountOfComponents} parts created! " +
                     $"\n \nClick populate again to generate a different layout or Make Spaces to proceed" +
                     $"\n \nYou can press T to visualize type of each part";
+                //ImageReadWrite.WriteGrid2Image(_grid);
             }
             //Make Button
             if (_populated && !_analyzed)
@@ -990,6 +1015,14 @@ public class AI_PlanAnalyzer : MonoBehaviour
                     _analyzed = true;
                     _outputMessage = $"{_spaces.Count} Spaces created!";
                 }
+            }
+
+            //Populate Button and save several
+            if (GUI.Button(new Rect(leftPad, topPad + ((fieldHeight + 10) * i++), (fieldTitleWidth + leftPad + textFieldWidth), fieldHeight), "Populate Parts and Export"))
+            {
+                PopulateRandomConfigurableAndSave(_ammountOfComponents, 500);
+                _boudaryVoxels = _grid.ActiveVoxelsAsList().Where(v => v.IsBoundary).ToList();
+
             }
         }
         else

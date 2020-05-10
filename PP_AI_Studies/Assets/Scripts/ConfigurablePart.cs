@@ -45,7 +45,7 @@ public class ConfigurablePart : Part
     }
 
 
-    public ConfigurablePart (VoxelGrid grid, List<Part> existingParts)
+    public ConfigurablePart (VoxelGrid grid, List<Part> existingParts, int seed)
     {
         //This constructor creates a random configurable part in the specified grid. 
         Type = PartType.Configurable;
@@ -57,7 +57,7 @@ public class ConfigurablePart : Part
         IsStatic = false;
         Height = 6;
 
-        Random.InitState(5);
+        Random.InitState(seed);
         bool validPart = false;
         while (!validPart)
         {
