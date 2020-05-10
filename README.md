@@ -1,2 +1,2 @@
-# PP_AI_Main
+# Public Parts
 Project for Public Parts' adventures in artificial intelligence-land.
