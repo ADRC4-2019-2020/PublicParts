@@ -21,7 +21,6 @@ public class AI_PlanAnalyzer : MonoBehaviour
     string _structureFile;
     Vector3Int _gridSize;
 
-    
     int _frame = 0;
 
     bool _testMode = true;
@@ -113,8 +112,10 @@ public class AI_PlanAnalyzer : MonoBehaviour
             _structureFile = "Input Data/TestingData/Structure";
             string configurablesFile = "Input Data/TestingData/Configurables";
             string spacesFile = "Input Data/TestingData/Spaces";
+            //string knotsFile =  "Input Data/TestingData/Knots";
             ReadConfigurables(configurablesFile);
             ReadSpaces(spacesFile);
+            //ReadKnots(knotsFile);
         }
 
         _tenants = JSONReader.ReadTenantsWithPreferences("Input Data/U_TenantPreferences", _grid);
@@ -589,6 +590,15 @@ public class AI_PlanAnalyzer : MonoBehaviour
         foreach (var item in newParts)
         {
             _spaces.Add(item);
+        }
+    }
+
+    void ReadKnots(string file)
+    {
+        var newKnots = JSONReader.ReadKnotsAsList(_grid, file);
+        foreach (var knot in newKnots)
+        {
+            _existingParts.Add(knot);
         }
     }
 

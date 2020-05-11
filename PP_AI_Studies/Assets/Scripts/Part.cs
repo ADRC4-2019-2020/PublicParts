@@ -6,7 +6,7 @@ using System.Linq;
 [System.Serializable]
 public class Part : System.IEquatable<Part>
 {
-    protected VoxelGrid _grid;
+    protected VoxelGrid Grid;
 
     public string Name;
     public PartType Type;
@@ -23,7 +23,7 @@ public class Part : System.IEquatable<Part>
     public string OrientationName;
     public string OCIndexes;
 
-    public Voxel OriginVoxel => _grid.Voxels[ReferenceIndex.x, ReferenceIndex.y, ReferenceIndex.z];
+    public Voxel OriginVoxel => Grid.Voxels[ReferenceIndex.x, ReferenceIndex.y, ReferenceIndex.z];
 
     protected void OccupyVoxels()
     {
@@ -31,7 +31,7 @@ public class Part : System.IEquatable<Part>
         for (int i = 0; i < nVoxels; i++)
         {
             var index = OccupiedIndexes[i];
-            Voxel voxel = _grid.Voxels[index.x, index.y, index.z];
+            Voxel voxel = Grid.Voxels[index.x, index.y, index.z];
             voxel.IsOccupied = true;
             voxel.Part = this;
             OccupiedVoxels[i] = voxel;
@@ -70,4 +70,9 @@ public class CPartCollection
 public class SPartCollection
 {
     public StructuralPart[] Parts;
+}
+
+public class KnotCollection
+{
+    public Knot[] Parts;
 }

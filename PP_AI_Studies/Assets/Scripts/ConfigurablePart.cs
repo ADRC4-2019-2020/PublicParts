@@ -17,7 +17,7 @@ public class ConfigurablePart : Part
         ConfigurablePart p = new ConfigurablePart();
         p.Type = PartType.Configurable;
         p.Orientation = (PartOrientation)System.Enum.Parse(typeof(PartOrientation), OrientationName, false);
-        p._grid = grid;
+        p.Grid = grid;
         p.IsStatic = false;
         p.Height = Height;
 
@@ -49,7 +49,7 @@ public class ConfigurablePart : Part
     {
         //This constructor creates a random configurable part in the specified grid. 
         Type = PartType.Configurable;
-        _grid = grid;
+        Grid = grid;
         int minimumDistance = 6; //In voxels
         Size = new Vector2Int(6, 2); //6 x 2 configurable part size SHOULD NOT BE HARD CODED
         nVoxels = Size.x * Size.y;
@@ -62,9 +62,9 @@ public class ConfigurablePart : Part
         while (!validPart)
         {
             Orientation = (PartOrientation)Random.Range(0, 2);
-            int randomX = Random.Range(0, _grid.Size.x - 1);
-            int randomY = Random.Range(0, _grid.Size.y - 1);
-            int randomZ = Random.Range(0, _grid.Size.z - 1);
+            int randomX = Random.Range(0, Grid.Size.x - 1);
+            int randomY = Random.Range(0, Grid.Size.y - 1);
+            int randomZ = Random.Range(0, Grid.Size.z - 1);
             ReferenceIndex = new Vector3Int(randomX, randomY, randomZ);
 
             bool allInside = true;
@@ -74,12 +74,12 @@ public class ConfigurablePart : Part
 
             foreach (var index in OccupiedIndexes)
             {
-                if (index.x >= _grid.Size.x || index.y >= _grid.Size.y || index.z >= _grid.Size.z)
+                if (index.x >= Grid.Size.x || index.y >= Grid.Size.y || index.z >= Grid.Size.z)
                 {
                     allInside = false;
                     break;
                 }
-                else if (_grid.Voxels[index.x, index.y, index.z].IsOccupied || !_grid.Voxels[index.x, index.y, index.z].IsActive)
+                else if (Grid.Voxels[index.x, index.y, index.z].IsOccupied || !Grid.Voxels[index.x, index.y, index.z].IsActive)
                 {
                     allInside = false;
                     break;

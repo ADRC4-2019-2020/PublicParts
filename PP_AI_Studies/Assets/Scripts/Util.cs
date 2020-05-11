@@ -8,7 +8,7 @@ using UnityEngine;
 public enum Axis { X, Y, Z };
 public enum BoundaryType { Inside = 0, Left = -1, Right = 1, Outside = 2 }
 public enum BuildingZone { Northwest, Northeast, Southeast, Southwest };
-public enum PartType { Structure, Shower, WCSink, Toilet, Laundry, Dumb, Bedroom, KitchenOven, KitchenStove, KitchenSink, KitchenTop, Configurable };
+public enum PartType { Structure, Shower, WCSink, Toilet, Laundry, Dumb, Bedroom, KitchenOven, KitchenStove, KitchenSink, KitchenTop, Configurable, Knot };
 public enum PartOrientation { Vertical, Horizontal, Agnostic };
 public enum SpaceFunction { Work, Leisure };
 

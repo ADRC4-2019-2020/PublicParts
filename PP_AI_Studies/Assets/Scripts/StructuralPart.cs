@@ -10,7 +10,7 @@ public class StructuralPart : Part
         StructuralPart p = new StructuralPart();
         p.Type = PartType.Structure;
         p.Orientation = (PartOrientation)System.Enum.Parse(typeof(PartOrientation), OrientationName, false);
-        p._grid = grid;
+        p.Grid = grid;
         p.IsStatic = true;
         p.Height = 6;
 

@@ -100,6 +100,20 @@ public static class JSONReader
         return outList;
     }
 
+    public static List<Knot> ReadKnotsAsList(VoxelGrid grid, string file)
+    {
+        List<Knot> outList = new List<Knot>();
+        string  jsonString = Resources.Load<TextAsset>(file).text;
+        KnotCollection knotsList = JsonUtility.FromJson<KnotCollection>(jsonString);
+        foreach (var knot in knotsList.Parts)
+        {
+            knot.ValidadeKnot(grid);
+            outList.Add(knot);
+        }
+
+        return outList;
+    }
+
     public static List<ConfigurablePart> ReadConfigurablesAsList(VoxelGrid grid, string file)
     {
         List<ConfigurablePart> outList = new List<ConfigurablePart>();

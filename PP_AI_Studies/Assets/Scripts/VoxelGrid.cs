@@ -107,7 +107,7 @@ public class VoxelGrid
                 for (int z = 0; z < Size.z; z++)
                 {
                     var v = Voxels[x, y, z];
-                    if (v.IsActive && v.IsOccupied && v.Part.Type != PartType.Structure)
+                    if (v.IsActive && v.IsOccupied && v.Part.Type != PartType.Structure && v.Part.Type != PartType.Knot)
                     {
                         v.IsOccupied = false;
                         v.Part = null;
