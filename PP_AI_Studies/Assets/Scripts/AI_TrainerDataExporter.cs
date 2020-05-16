@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 public class AI_TrainerDataExporter : MonoBehaviour
@@ -59,8 +60,9 @@ public class AI_TrainerDataExporter : MonoBehaviour
 
                 //populate configurables
                 string prefix = set.Name + "_" +type ;
-                PopulateRandomConfigurableAndSave(_ammountOfComponents, 10, prefix);
-
+                int componentCount = _grid.ActiveVoxelsAsList().Count(v => !v.IsOccupied) / 120;
+                print($"Grid {xSize} x {zSize} with {componentCount}");
+                PopulateRandomConfigurableAndSave(componentCount, 20, prefix);
             }
         }
     }

@@ -70,8 +70,7 @@ public class ConfigurablePart : Part
             bool allInside = true;
 
             GetOccupiedIndexes();
-            if (!OnMinDistance(existingParts, minimumDistance)) continue;
-
+            //Validate itself
             foreach (var index in OccupiedIndexes)
             {
                 if (index.x >= Grid.Size.x || index.y >= Grid.Size.y || index.z >= Grid.Size.z)
@@ -85,39 +84,87 @@ public class ConfigurablePart : Part
                     break;
                 }
             }
-            if (allInside) validPart = true;
-            else continue;
+
+            //Validate on plan
+            if (allInside)
+            {
+                if (!CheckValidDistance()) continue;
+                else validPart = true;
+            }
         }
         OccupyVoxels();
     }
-    bool OnMinDistance(List<Part> existingParts, int minimumDistance)
+    bool CheckValidDistance()
     {
-        if (existingParts.Count > 0)
-        {
-            foreach (var ePart in existingParts)
-            {
-                if (Orientation == ePart.Orientation)
-                {
-                    if (Orientation == PartOrientation.Horizontal)
-                    {
-                        foreach (var x in OccupiedIndexes.Select(i => i.x))
-                        {
-                            if (ePart.OccupiedIndexes.Any(e => e.x == x))
-                            {
-                                if (Mathf.Abs(ReferenceIndex.z - ePart.ReferenceIndex.z) <= minimumDistance) return false;
-                            }
-                        }
-                    }
-                    else if (Orientation == PartOrientation.Vertical)
-                    {
-                        foreach (var z in OccupiedIndexes.Select(i => i.z))
-                        {
-                            if (ePart.OccupiedIndexes.Any(ee => ee.z == z))
-                            {
-                                if (Mathf.Abs(ReferenceIndex.x - ePart.ReferenceIndex.x) <= minimumDistance) return false;
-                            }
-                        }
+        //Set the search sides according to index parity, even = negative, odd = positive
+        Vector3Int[] evenSide = OccupiedIndexes.Where((x, i) => i % 2 == 0).ToArray();
+        Vector3Int[] oddSide = OccupiedIndexes.Where((x, i) => i % 2 != 0).ToArray();
 
+        //Set the search ranges according to part orientation, for boundary and for parallel parts and agnostic parts
+        int boundaryRange = 4;
+        int partsRange = 6;
+
+        //Check, for both sides and both ranges if there is any impediment
+        if (Orientation == PartOrientation.Horizontal)
+        {
+            //Try checking on both, starting from the even side, avoiding duplicates
+            int[] pRange = new int[] { evenSide[0].z - partsRange, evenSide[0].z + partsRange + 1 };
+            int[] bRange = new int[] { evenSide[0].z - boundaryRange - 1, evenSide[0].z + boundaryRange + 2 };
+            foreach (var index in evenSide)
+            {
+                for (int z = pRange[0]; z <= pRange[1]; z++)
+                {
+                    //Skip its own indexes
+                    if (z == index.z || z == index.z + 1) continue;
+                    
+                    //Return false if outside the grid
+                    if (z < 0 || z > Grid.Size.z - 1) return false;
+                    
+                    Voxel checkVoxel = Grid.Voxels[index.x, index.y, z];
+                    
+                    //Return false if, within boundary search range, the voxel is not active (avoid perpendicular boundary)
+                    if (z >= bRange[0] && z <= bRange[1])
+                    {
+                        if (!checkVoxel.IsActive) return false;
+                    }
+
+                    //Return false if a part is found and is not perpendicular
+                    if (checkVoxel.IsOccupied && checkVoxel.Part.Orientation != PartOrientation.Vertical)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        if (Orientation == PartOrientation.Vertical)
+        {
+            //Try checking on both, starting from the even side, avoiding duplicates
+            int[] pRange = new int[] { evenSide[0].x - partsRange, evenSide[0].x + partsRange + 1 };
+            int[] bRange = new int[] { evenSide[0].x - boundaryRange - 1, evenSide[0].x + boundaryRange + 2 };
+            
+            foreach (var index in evenSide)
+            {
+                for (int x = pRange[0]; x <= pRange[1]; x++)
+                {
+                    //Skip its own indexes
+                    if (x == index.x || x == index.x + 1) continue;
+                    
+                    //Return false if outside the grid
+                    if (x < 0 || x > Grid.Size.x - 1) return false;
+                    
+                    Voxel checkVoxel = Grid.Voxels[x, index.y, index.z];
+
+                    //Return false if, within boundary search range, the voxel is not active (avoid perpendicular boundary)
+                    if (x >= bRange[0] && x <= bRange[1])
+                    {
+                        if (!checkVoxel.IsActive) return false;
+                    }
+
+                    //Return false if a part is found and is not perpendicular
+                    if (checkVoxel.IsOccupied && checkVoxel.Part.Orientation != PartOrientation.Horizontal)
+                    {
+                        return false;
                     }
                 }
             }
@@ -125,10 +172,11 @@ public class ConfigurablePart : Part
         return true;
     }
 
-    
-
     void GetOccupiedIndexes()
     {
+        //This can be refactored
+        //Check orientation and switch Size.x and Size.y as 
+        //Longitudinal and transversal accordingly
         if (Orientation == PartOrientation.Horizontal)
         {
             int i = 0;

@@ -23,7 +23,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
 
     int _frame = 0;
 
-    bool _testMode = true;
+    bool _testMode = false;
     
     float _voxelSize = 0.375f;
     float _voxelsPerSqrM => 1 / _voxelSize * _voxelSize;
