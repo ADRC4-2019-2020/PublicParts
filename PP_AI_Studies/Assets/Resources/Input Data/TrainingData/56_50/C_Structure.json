@@ -1,0 +1,15 @@
+{ 
+"Parts": [{
+"OCIndexes": "46_0_47;47_0_47;46_0_48;47_0_48",
+"Height": 6,
+"OrientationName": "Vertical"
+},{
+"OCIndexes": "46_0_11;47_0_11;46_0_12;47_0_12",
+"Height": 6,
+"OrientationName": "Vertical"
+},{
+"OCIndexes": "15_0_31;16_0_31;15_0_32;16_0_32",
+"Height": 6,
+"OrientationName": "Vertical"
+}]
+}

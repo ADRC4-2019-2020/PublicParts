@@ -1,0 +1,19 @@
+{ 
+"Parts": [{
+"OCIndexes": "18_0_18;19_0_18;18_0_19;19_0_19",
+"Height": 6,
+"OrientationName": "Vertical"
+},{
+"OCIndexes": "3_0_32;4_0_32;3_0_33;4_0_33",
+"Height": 6,
+"OrientationName": "Vertical"
+},{
+"OCIndexes": "30_0_1;31_0_1;30_0_2;31_0_2",
+"Height": 6,
+"OrientationName": "Vertical"
+},{
+"OCIndexes": "2_0_1;3_0_1;2_0_2;3_0_2",
+"Height": 6,
+"OrientationName": "Vertical"
+}]
+}

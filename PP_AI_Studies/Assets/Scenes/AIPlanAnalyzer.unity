@@ -253,6 +253,7 @@ GameObject:
   - component: {fileID: 1179278431}
   - component: {fileID: 1179278432}
   - component: {fileID: 1179278429}
+  - component: {fileID: 1179278433}
   m_Layer: 0
   m_Name: PlanAnalyzer
   m_TagString: Untagged
@@ -312,6 +313,20 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 44d970f1749ad0a4b9a146d730229715, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _skin: {fileID: 11400000, guid: ecbe29542ad82cd4193ccaa49156b029, type: 2}
+  _cameraPivot: {fileID: 1813104866}
+--- !u!114 &1179278433
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1179278428}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39867c532e350484d883fad74f7d7690, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   _skin: {fileID: 11400000, guid: ecbe29542ad82cd4193ccaa49156b029, type: 2}

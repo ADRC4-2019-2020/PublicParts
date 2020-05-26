@@ -39,7 +39,7 @@ public class AI_TrainerDataExporter : MonoBehaviour
             _ammountOfComponents = (xSize * zSize) / 144;
             
             //iterate through the type of each set
-            string[] slabType = { "A", "B", "C" };
+            string[] slabType = { "A", "B", "C", "D" };
             foreach (var type in slabType)
             {
                 _gridSize = new Vector3Int(xSize, 1, zSize);
@@ -55,14 +55,14 @@ public class AI_TrainerDataExporter : MonoBehaviour
                 ReadStructure(structureFile);
                 
                 //populate knots
-                string knotsFile = "Input Data/TrainingData/" + set.Name + "/" + type + "_Knots";
-                ReadKnots(knotsFile);
+                //string knotsFile = "Input Data/TrainingData/" + set.Name + "/" + type + "_Knots";
+                //ReadKnots(knotsFile);
 
                 //populate configurables
                 string prefix = set.Name + "_" +type ;
                 int componentCount = _grid.ActiveVoxelsAsList().Count(v => !v.IsOccupied) / 120;
                 print($"Grid {xSize} x {zSize} with {componentCount}");
-                PopulateRandomConfigurableAndSave(componentCount, 20, prefix);
+                PopulateRandomConfigurableAndSave(componentCount, 10, prefix);
             }
         }
     }
