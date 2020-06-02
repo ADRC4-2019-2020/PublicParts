@@ -2,45 +2,45 @@
   "Tenants": [
     {
       "Name": "David Doria",
-      "AreaPrefWork_S": "4.5_14.0",
-      "AreaPrefLeisure_S": "4.5_14.0",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
       "ConnectivityPrefWork_S": "1_10",
-      "ConnectivityPrefLeisure_S": "1_50"
-    },
-    {
-      "Name": "Keshav Ramaswami",
-      "AreaPrefWork_S": "4.5_14.0",
-      "AreaPrefLeisure_S": "4.5_14.0",
-      "ConnectivityPrefWork_S": "1_5",
       "ConnectivityPrefLeisure_S": "1_10"
     },
     {
-      "Name": "Shan Guo",
-      "AreaPrefWork_S": "4.5_14.0",
-      "AreaPrefLeisure_S": "4.5_14.0",
-      "ConnectivityPrefWork_S": "10_30",
-      "ConnectivityPrefLeisure_S": "10_70"
+      "Name": "Keshav Ramaswami",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
+    },
+    {
+      "Name": "George Floyd",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
     },
     {
       "Name": "Xuan Kiko Zhang",
-      "AreaPrefWork_S": "4.5_14.0",
-      "AreaPrefLeisure_S": "4.5_14.0",
-      "ConnectivityPrefWork_S": "8_15",
-      "ConnectivityPrefLeisure_S": "5_20"
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
     },
     {
       "Name": "Albus Dumbledore",
-      "AreaPrefWork_S": "4.5_14.0",
-      "AreaPrefLeisure_S": "4.5_14.0",
-      "ConnectivityPrefWork_S": "1_5",
-      "ConnectivityPrefLeisure_S": "20_70"
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
     },
     {
       "Name": "Severus Snape",
-      "AreaPrefWork_S": "4.5_14.0",
-      "AreaPrefLeisure_S": "4.5_14.0",
-      "ConnectivityPrefWork_S": "1_5",
-      "ConnectivityPrefLeisure_S": "1_5"
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
     }
   ]
 }

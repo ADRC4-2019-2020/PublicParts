@@ -7,6 +7,7 @@ using System.Linq;
 [System.Serializable]
 public class ConfigurablePart : Part
 {
+    GameObject _gameObject;
     public ConfigurablePart() { }
 
     public ConfigurablePart NewPart(VoxelGrid grid)
@@ -44,20 +45,19 @@ public class ConfigurablePart : Part
         return p;
     }
 
-
-    public ConfigurablePart (VoxelGrid grid, List<Part> existingParts, int seed)
+    public ConfigurablePart (VoxelGrid grid, bool goVisibility, int seed)
     {
         //This constructor creates a random configurable part in the specified grid. 
         Type = PartType.Configurable;
         Grid = grid;
-        int minimumDistance = 6; //In voxels
+        /*int minimumDistance = 6;*/ //In voxels
         Size = new Vector2Int(6, 2); //6 x 2 configurable part size SHOULD NOT BE HARD CODED
         nVoxels = Size.x * Size.y;
         OccupiedIndexes = new Vector3Int[nVoxels];
         IsStatic = false;
         Height = 6;
 
-        Random.InitState(seed);
+        //Random.InitState(seed);
         bool validPart = false;
         while (!validPart)
         {
@@ -93,7 +93,52 @@ public class ConfigurablePart : Part
             }
         }
         OccupyVoxels();
+        CreateGameObject();
+        SetGOVisibility(goVisibility);
     }
+    
+    public void SetGOVisibility(bool visible)
+    {
+        _gameObject.SetActive(visible);
+    }
+
+    private void CreateGameObject()
+    {
+        var voxelSize = Grid.VoxelSize;
+        GameObject reference = Resources.Load<GameObject>("GameObjects/ConfigurableComponent_prefab");
+        _gameObject = GameObject.Instantiate(reference);
+        _gameObject.transform.position = new Vector3(ReferenceIndex.x, ReferenceIndex.y + voxelSize, ReferenceIndex.z) * voxelSize;
+        _gameObject.transform.localScale = new Vector3(voxelSize, voxelSize, voxelSize);
+
+        if (Orientation == PartOrientation.Vertical)
+        {
+            _gameObject.transform.rotation = Quaternion.Euler(0, 90, 0);
+            _gameObject.transform.position += new Vector3(0, 0, 6 * voxelSize);
+        }
+
+        if(Random.Range(0, 2) == 1)
+        {
+            _gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
+            if (Orientation == PartOrientation.Horizontal)
+            {
+                _gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
+                _gameObject.transform.position += new Vector3(6 * voxelSize, 0, 2*voxelSize);
+            }
+            else
+            {
+                _gameObject.transform.rotation = Quaternion.Euler(0, 270, 0);
+                _gameObject.transform.position += new Vector3(2 * voxelSize, 0, -6 * voxelSize);
+            }
+            
+        }
+        _gameObject.GetComponent<ComponentGO>().SetPart(this);
+    }
+
+    public void DestroyGO()
+    {
+        _gameObject.GetComponent<ComponentGO>().SelfDestroy();
+    }
+
     bool CheckValidDistance()
     {
         //Set the search sides according to index parity, even = negative, odd = positive

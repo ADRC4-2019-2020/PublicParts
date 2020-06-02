@@ -75,7 +75,7 @@ public class AI_TrainerDataExporter : MonoBehaviour
             _existingParts = new List<Part>();
             for (int i = 0; i < amt; i++)
             {
-                ConfigurablePart p = new ConfigurablePart(_grid, _existingParts, n);
+                ConfigurablePart p = new ConfigurablePart(_grid, false, n);
                 _existingParts.Add(p);
             }
             ImageReadWrite.WriteGrid2Image(_grid, n, prefix);

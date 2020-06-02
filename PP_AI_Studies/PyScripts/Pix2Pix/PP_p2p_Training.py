@@ -5,17 +5,20 @@ import tensorflow as tf
 import os
 import time 
 from matplotlib import pyplot as plt
+from PIL import Image as pimg
+import numpy as np
 
 BUFFER_SIZE = 400
 BATCH_SIZE = 1
 IMG_WIDTH = 256
 IMG_HEIGHT = 256
 
-EPOCHS = 5
+EPOCHS = 1
 
 #Path for the dataset
 PATH = os.path.dirname(__file__) + '/plans/'
-print("THE PATH IS" + PATH)
+
+output_dir = PATH + '/output/'
 
 checkpoint_dir = './training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
@@ -82,7 +85,7 @@ def random_jitter(input_image, real_image):
 
 def load_image_train(image_file):
     input_image, real_image = load(image_file)
-    input_image, real_image = random_jitter(input_image, real_image)
+    # input_image, real_image = random_jitter(input_image, real_image)
     input_image, real_image = normalize(input_image, real_image)
 
     return input_image, real_image
@@ -283,6 +286,12 @@ def generate_images(model, test_input, tar):
     plt.axis('off')
   plt.show()
 
+def generate_image_save(model, test_input, count):
+    prediction = model(test_input, training=True)
+    i1 = prediction[0] * 65535.0
+    i1 = tf.cast(i1, tf.uint16)
+    i1 = tf.image.encode_png(i1)
+    tf.io.write_file(output_dir+'/Test_'+ str(count) +'.png', i1)
 
 import datetime
 log_dir="logs/"
@@ -337,6 +346,8 @@ def fit(train_ds, epochs, test_ds):
         # Saving (checkpoint) the model every 20 epochs
         if (epoch + 1) % 20 == 0:
             checkpoint.save(file_prefix = checkpoint_prefix)
+            for inp, tar in test_dataset.take(1):
+                generate_image_save(generator, inp, epoch + 1)
 
         print('Time taken for epoch {} is {} sec\n'.format(
             epoch + 1, time.time()-start
@@ -353,5 +364,7 @@ fit(train_dataset, EPOCHS, test_dataset)
 
 # Restore the latest checkpoint and generate examples
 # checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
-# for inp, tar in test_dataset.take(5):
-#     generate_images(generator, inp, tar)
+# nCount = 1
+# for inp, tar in test_dataset.take(20):
+#     generate_image_save(generator, inp, nCount)
+#     nCount = nCount+1

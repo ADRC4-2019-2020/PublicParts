@@ -10,6 +10,29 @@
 [Ll]ogs/
 [Mm]emoryCaptures/
 [Ss]avedFrames/
+[Pp]lans/
+[Pp]lans_2/
+[Pp]lans_3/
+[Pp]lans_LR/
+[Tt]raining_checkpoints/
+[Tt]raining_checkpoints_2/
+[Tt]raining_checkpoints_3/
+[Tt]raining_checkpoints_LR/
+[Bb]ackup_tc3/
+[Cc]kpt_bkp/
+[Pp]rem_test/
+[Vv]ariables/
+
+#Ignore plans
+38_26_C.obj
+38_26_C.obj.meta
+44_32_C.obj
+44_32_C.obj.meta
+44_44_A.obj
+44_44_A.obj.meta
+50_32_C.obj
+50_32_C.obj.meta
+
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta

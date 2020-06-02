@@ -122,6 +122,8 @@ public class PPSpace : IEquatable<PPSpace>
     private float _connectivityRating = 0.00f;
     private int _connectivityIncrease = 0;
     private int _connectivityDecrease = 0;
+
+    private string _operationMessage;
     
     //
     //CONSTRUCTORS
@@ -191,16 +193,18 @@ public class PPSpace : IEquatable<PPSpace>
         _occupyingTenant.SetSpaceToIcon(this, _grid);
     }
 
-    public void UseSpace()
+    public string UseSpace()
     {
         if (_durationLeft == 0)
         {
             TimesUsed++;
             ReleaseSpace();
+            return _operationMessage;
         }
         else
         {
             _durationLeft--;
+            return "IGNORE";
         }
     }
 
@@ -212,7 +216,7 @@ public class PPSpace : IEquatable<PPSpace>
         _usedRequest = null;
         _durationLeft = 0;
         _occupyingTenant = null;
-        Debug.Log($"{Name} has been released");
+        //Debug.Log($"{Name} has been released");
     }
 
     void EvaluateSpace()
@@ -233,17 +237,20 @@ public class PPSpace : IEquatable<PPSpace>
         if (VoxelCount < tenantAreaMin * _usedRequest.Population)
         {
             _areaIncrease++;
-            Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too small");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too small");
+            _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too small";
         }
         else if (VoxelCount > tenantAreaMax * _usedRequest.Population)
         {
             _areaDecrease++;
-            Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too big");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too big");
+            _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too big";
         }
         else
         {
             _areaRating += 1.00f;
-            Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough");
+            _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} good enough";
         }
 
         //Update area score
@@ -261,17 +268,20 @@ public class PPSpace : IEquatable<PPSpace>
         if (ConnectionRatio < tenantConnectMin)
         {
             _connectivityIncrease++;
-            Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin}, was {ConnectionRatio}");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin}, was {ConnectionRatio}");
+            _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin}, was {ConnectionRatio}";
         }
         else if (ConnectionRatio > tenantConnectMax)
         {
             _connectivityDecrease++;
-            Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} not private enough");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} not private enough");
+            _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} not private enough";
         }
         else
         {
             _connectivityRating += 1.00f;
-            Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough");
+            _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} good enough";
         }
 
         //Update connectivity score
@@ -284,6 +294,7 @@ public class PPSpace : IEquatable<PPSpace>
         //and sets this space to be referenced by the arrow
         _infoArrow = GameObject.Instantiate(Resources.Load<GameObject>("GameObjects/InfoArrow"));
         _infoArrow.transform.position = _center + new Vector3(0,1.75f,0);
+        _infoArrow.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
         _infoArrow.GetComponent<InfoArrow>().SetSpace(this);
     }
 

@@ -175,7 +175,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
     {
         for (int i = 0; i < amt; i++)
         {
-            ConfigurablePart p = new ConfigurablePart(_grid, _existingParts, seed);
+            ConfigurablePart p = new ConfigurablePart(_grid, false, seed);
             _existingParts.Add(p);
         }
     }
@@ -189,7 +189,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
             if (_bigGrid) ReadStructure("StructureParts_BigSlab");
             for (int i = 0; i < amt; i++)
             {
-                ConfigurablePart p = new ConfigurablePart(_grid, _existingParts, n);
+                ConfigurablePart p = new ConfigurablePart(_grid, false, n);
                 _existingParts.Add(p);
             }
             ImageReadWrite.WriteGrid2Image(_grid, n);
@@ -940,11 +940,6 @@ public class AI_PlanAnalyzer : MonoBehaviour
                 GUI.Box(new Rect(tagPos, tagSize), spaceName, "spaceTag");
             }
         }
-    }
-
-    void WriteImage()
-    {
-        
     }
 
     //GUI Controls and Settings
