@@ -19,7 +19,7 @@ MonoBehaviour:
     width: 1920
     height: 997
   m_ShowMode: 4
-  m_Title: Game
+  m_Title: Project
   m_RootView: {fileID: 2}
   m_MinSize: {x: 875, y: 542}
   m_MaxSize: {x: 10000, y: 10000}
@@ -46,7 +46,7 @@ MonoBehaviour:
     y: 0
     width: 1920
     height: 997
-  m_MinSize: {x: 875, y: 542}
+  m_MinSize: {x: 875, y: 300}
   m_MaxSize: {x: 10000, y: 10000}
 --- !u!114 &3
 MonoBehaviour:
@@ -115,10 +115,10 @@ MonoBehaviour:
     y: 30
     width: 1920
     height: 947
-  m_MinSize: {x: 880, y: 492}
-  m_MaxSize: {x: 18003, y: 14042}
+  m_MinSize: {x: 881, y: 492}
+  m_MaxSize: {x: 18004, y: 14042}
   vertical: 0
-  controlID: 2242
+  controlID: 2418
 --- !u!114 &6
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -143,7 +143,7 @@ MonoBehaviour:
   m_MinSize: {x: 605, y: 492}
   m_MaxSize: {x: 14003, y: 14042}
   vertical: 1
-  controlID: 2243
+  controlID: 2423
 --- !u!114 &7
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -169,7 +169,7 @@ MonoBehaviour:
   m_MinSize: {x: 605, y: 221}
   m_MaxSize: {x: 12005, y: 4021}
   vertical: 0
-  controlID: 2222
+  controlID: 2424
 --- !u!114 &8
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -272,7 +272,7 @@ MonoBehaviour:
   m_MinSize: {x: 333, y: 271}
   m_MaxSize: {x: 14003, y: 10021}
   vertical: 0
-  controlID: 2244
+  controlID: 2445
 --- !u!114 &12
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -336,7 +336,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 1
   m_Script: {fileID: 12006, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: 
+  m_Name: InspectorWindow
   m_EditorClassIdentifier: 
   m_Children: []
   m_Position:
@@ -471,9 +471,9 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: 0c3c0000
+      m_SelectedIDs: 
       m_LastClickedID: 0
-      m_ExpandedIDs: 2cfbffff
+      m_ExpandedIDs: b0faffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -534,9 +534,9 @@ MonoBehaviour:
   m_PlayAudio: 0
   m_AudioPlay: 0
   m_Position:
-    m_Target: {x: -1.451118, y: 2.8816512, z: 1.8689256}
+    m_Target: {x: 2.92987, y: 1.7785506, z: 1.1927623}
     speed: 2
-    m_Value: {x: -1.451118, y: 2.8816512, z: 1.8689256}
+    m_Value: {x: 2.92987, y: 1.7785506, z: 1.1927623}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -583,13 +583,13 @@ MonoBehaviour:
     m_GridAxis: 1
     m_gridOpacity: 0.5
   m_Rotation:
-    m_Target: {x: -0.008464906, y: 0.95547813, z: -0.027534446, w: -0.29367954}
+    m_Target: {x: -0.15620597, y: 0.10851075, z: -0.017266804, w: -0.98160404}
     speed: 2
-    m_Value: {x: -0.008464842, y: 0.9554705, z: -0.02753422, w: -0.29367718}
+    m_Value: {x: -0.15620445, y: 0.10850969, z: -0.017266635, w: -0.98159444}
   m_Size:
-    m_Target: 3.0858302
+    m_Target: 5.626981
     speed: 2
-    m_Value: 3.0858302
+    m_Value: 5.626981
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -653,21 +653,21 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/Resources/Input Data
+    - Assets/Resources/Models
     m_Globs: []
   m_ViewMode: 1
   m_StartGridSize: 16
   m_LastFolders:
-  - Assets/Resources/Input Data
+  - Assets/Resources/Models
   m_LastFoldersGridSize: 16
   m_LastProjectPath: D:\GitRepo\PublicParts\PP_AI_Studies
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: 98390000
-    m_LastClickedID: 14744
-    m_ExpandedIDs: 000000008c3900008e3900009039000000ca9a3b
+    m_SelectedIDs: 2a3c0000
+    m_LastClickedID: 15402
+    m_ExpandedIDs: 000000000a3c00000c3c00000e3c0000103c0000123c0000143c0000163c0000183c00001a3c000000ca9a3b
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -695,7 +695,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: 000000008c3900008e3900009039000000ca9a3b
+    m_ExpandedIDs: 000000000a3c00000c3c00000e3c0000103c0000123c0000143c0000163c0000183c00001a3c000000ca9a3b
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -722,7 +722,7 @@ MonoBehaviour:
   m_ListAreaState:
     m_SelectedInstanceIDs: 
     m_LastClickedInstanceID: 0
-    m_HadKeyboardFocusLastEvent: 0
+    m_HadKeyboardFocusLastEvent: 1
     m_ExpandedInstanceIDs: 221e00007ef4ffff20300000623100008e3100000432000024320000186200004c320000283b000000000000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -779,7 +779,7 @@ MonoBehaviour:
   m_ViewDataDictionary: {fileID: 0}
   m_LockTracker:
     m_IsLocked: 0
-  m_LastSelectedObjectID: 14154
+  m_LastSelectedObjectID: 15070
 --- !u!114 &20
 MonoBehaviour:
   m_ObjectHideFlags: 52

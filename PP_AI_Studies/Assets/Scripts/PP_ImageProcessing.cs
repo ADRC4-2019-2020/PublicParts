@@ -11,10 +11,12 @@ using UnityEngine.UI;
 
 public class PP_ImageProcessing
 {
+    static string _imageResize = Path.GetFullPath(Path.Combine(Application.dataPath, @"..\")) + @"PP_Extensions\ImageResize\ImageResize.exe";
     public static void ResizeAndFitCanvas(string filePath, string resizeFactor, string width, string height)
     {
         var psi = new ProcessStartInfo();
-        psi.FileName = @"D:\GitRepo\ImageProcessingUnity\ImageResize\bin\Release\ImageResize.exe";
+        //psi.FileName = @"D:\GitRepo\ImageProcessingUnity\ImageResize\bin\Release\ImageResize.exe";
+        psi.FileName = _imageResize;
 
         //Send the arguments through the process
         string[] args = new string[6];
@@ -113,7 +115,7 @@ public class PP_ImageProcessing
     public static void RestoreOriginalSize(string folder)
     {
         var psi = new ProcessStartInfo();
-        psi.FileName = @"D:\GitRepo\ImageProcessingUnity\ImageResize\bin\Release\ImageResize.exe";
+        psi.FileName = _imageResize;
 
         //Send the arguments through the process
         string[] args = new string[3];
@@ -139,10 +141,307 @@ public class PP_ImageProcessing
             results = process.StandardOutput.ReadToEnd();
         }
 
-        //UnityEngine.Debug.Log($"{errors}, {results}");
+        UnityEngine.Debug.Log($"{errors}, {results}");
     }
 
-    public static Texture2D PostProcessImage(string folder)
+    public static void EncodePNG(string folder)
+    {
+        var psi = new ProcessStartInfo();
+        psi.FileName = _imageResize;
+
+        //Send the arguments through the process
+        string[] args = new string[2];
+        args[0] = "e";
+        args[1] = folder;
+
+        psi.Arguments = string.Format("{0} {1}", args[0], args[1]);
+
+        //Configure the process
+        psi.UseShellExecute = false;
+        psi.CreateNoWindow = true;
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+
+        string errors = "";
+        string results = "";
+
+        using (var process = Process.Start(psi))
+        {
+            process.EnableRaisingEvents = true;
+            errors = process.StandardError.ReadToEnd();
+            results = process.StandardOutput.ReadToEnd();
+        }
+    }
+
+    public static Texture2D PostProcessImageFromTexture(Texture2D image)
+    {
+        UnityEngine.Color red = UnityEngine.Color.red;
+        UnityEngine.Color black = UnityEngine.Color.black;
+        UnityEngine.Color white = UnityEngine.Color.white;
+        UnityEngine.Color green = UnityEngine.Color.green;
+        //string[] sourceImages = Directory.GetFiles(folder, "*.png");
+        //var imageFile = sourceImages[0];
+
+
+        //string fileName = Path.GetFileName(imageFile);
+        //string[] name_noExtension = Path.GetFileNameWithoutExtension(imageFile).Split('_');
+
+        int realWidth = image.width;
+        int realHeight = image.height;
+
+        Vector2Int gridSize = new Vector2Int(realWidth, realHeight);
+
+        //Texture2D image = new Texture2D(realWidth, realHeight);
+
+        //byte[] imageData = File.ReadAllBytes(imageFile);
+        //image.LoadImage(imageData);
+
+        //Normalize image here
+        var pixels = image.GetPixels();
+        var pixelsNormalized = new UnityEngine.Color[pixels.Length];
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            var pixel = pixels[i];
+            float r = Mathf.Round(pixel.r);
+            float g = Mathf.Round(pixel.g);
+            float b = Mathf.Round(pixel.b);
+            float a = Mathf.Round(pixel.a);
+            UnityEngine.Color c = new UnityEngine.Color(r, g, b, a);
+
+            if (c != white && c != black) c = red;
+            pixelsNormalized[i] = c;
+        }
+        image.SetPixels(pixelsNormalized);
+        image.Apply();
+
+
+
+        for (int i = 0; i < realWidth; i++)
+        {
+            for (int j = 0; j < realHeight; j++)
+            {
+                Vector2Int pixel = new Vector2Int(i, j);
+                UnityEngine.Color pixelColor = image.GetPixel(i, j);
+
+                //Collect pixel neighbours
+                var neighbours = PixelNeighboursDouble(pixel, gridSize);
+
+                var top1 = image.GetPixel(neighbours[0, 0].x, neighbours[0, 0].y);
+                var top2 = image.GetPixel(neighbours[0, 1].x, neighbours[0, 1].y);
+
+                var bottom1 = image.GetPixel(neighbours[1, 0].x, neighbours[1, 0].y);
+                var bottom2 = image.GetPixel(neighbours[1, 1].x, neighbours[1, 1].y);
+
+                var left1 = image.GetPixel(neighbours[2, 0].x, neighbours[2, 0].y);
+                var left2 = image.GetPixel(neighbours[2, 1].x, neighbours[2, 1].y);
+
+                var right1 = image.GetPixel(neighbours[3, 0].x, neighbours[3, 0].y);
+                var right2 = image.GetPixel(neighbours[3, 1].x, neighbours[3, 1].y);
+
+                UnityEngine.Color[] layer1 = { top1, bottom1, left1, right1 };
+                UnityEngine.Color[] layer2 = { top2, bottom2, left2, right2 };
+
+                if (pixelColor == white)
+                {
+                    //Clear 01 pixel gap
+                    if (layer1.Count(p => p == black || p == red) == 2)
+                    {
+                        //Vertical
+                        if ((top1 == black || top1 == red) && (bottom1 == black || bottom1 == red))
+                        {
+                            image.SetPixel(i, j, red);
+                            image.Apply();
+                        }
+
+                        //Horizontal
+                        else if ((left1 == black || left1 == red) && (right1 == black || right1 == red))
+                        {
+                            image.SetPixel(i, j, red);
+                            image.Apply();
+                        }
+                    }
+
+                    //Clar 02 pixels gap
+                    else if ((layer1.Count(p => p == black) == 1) && (layer1.Count(n => n == red) == 0))
+                    {
+                        //Index of the black pixel
+                        var n = Array.IndexOf(layer1, black);
+                        //Direction to look at
+                        int d;
+                        if (n == 0) d = 1;
+                        else if (n == 1) d = 0;
+                        else if (n == 2) d = 3;
+                        else d = 2;
+
+                        if (layer1[d] == white && layer2[d] == black)
+                        {
+                            image.SetPixel(i, j, UnityEngine.Color.green);
+
+                            var neighbour = neighbours[d, 0];
+                            image.SetPixel(neighbour.x, neighbour.y, red);
+                            image.Apply();
+                        }
+                    }
+
+
+                }
+                //else if (pixelColor == black)
+                //{
+                //    //Do Nothing
+                //}
+                else if (pixelColor == red)
+                {
+                    //Trace line until it reaches a boundary element, from red
+                    if (layer1.Count(p => p == white) == 3 && layer1.Count(p => p == red) == 1)
+                    {
+                        //Index of the red pixel
+                        var n = Array.IndexOf(layer1, red);
+
+                        //Direction to move towards
+                        int d = 0;
+                        Vector2Int displace = new Vector2Int();
+                        if (n == 0)
+                        {
+                            d = 1;
+                            displace = new Vector2Int(0, -1);
+                        }
+                        else if (n == 1)
+                        {
+                            d = 0;
+                            displace = new Vector2Int(0, 1);
+                        }
+                        else if (n == 2)
+                        {
+                            d = 3;
+                            displace = new Vector2Int(1, 0);
+                        }
+                        else if (n == 3)
+                        {
+                            d = 2;
+                            displace = new Vector2Int(-1, 0);
+                        }
+
+                        bool foundBoundary = false;
+                        List<Vector2Int> newPixels = new List<Vector2Int>();
+                        var currentPixel = pixel + displace;
+                        int maxDistance = 20;
+                        while (!foundBoundary && newPixels.Count <= maxDistance)
+                        {
+                            newPixels.Add(currentPixel);
+                            var cpNeighbours = PixelNeighbours(currentPixel, gridSize);
+                            for (int k = 0; k < cpNeighbours.Length; k++)
+                            {
+                                if (k != n)
+                                {
+                                    var neighbour = cpNeighbours[k];
+                                    var nColor = image.GetPixel(neighbour.x, neighbour.y);
+                                    if (nColor == black || nColor == red || nColor == null)
+                                    {
+                                        foundBoundary = true;
+                                    }
+                                }
+                            }
+                            currentPixel += displace;
+                        }
+                        foreach (var np in newPixels)
+                        {
+                            image.SetPixel(np.x, np.y, green);
+                        }
+                        image.Apply();
+                    }
+                    //Trace line until it reaches a boundary element, from black
+                    else if (layer1.Count(p => p == white) == 3 && layer1.Count(p => p == black) == 1)
+                    {
+                        //Index of the red pixel
+                        var n = Array.IndexOf(layer1, black);
+
+                        //Direction to move towards
+                        int d = 0;
+                        Vector2Int displace = new Vector2Int();
+                        if (n == 0)
+                        {
+                            d = 1;
+                            displace = new Vector2Int(0, -1);
+                        }
+                        else if (n == 1)
+                        {
+                            d = 0;
+                            displace = new Vector2Int(0, 1);
+                        }
+                        else if (n == 2)
+                        {
+                            d = 3;
+                            displace = new Vector2Int(1, 0);
+                        }
+                        else if (n == 3)
+                        {
+                            d = 2;
+                            displace = new Vector2Int(-1, 0);
+                        }
+
+                        bool foundBoundary = false;
+                        List<Vector2Int> newPixels = new List<Vector2Int>();
+                        var currentPixel = pixel + displace;
+                        while (!foundBoundary)
+                        {
+                            newPixels.Add(currentPixel);
+                            var cpNeighbours = PixelNeighbours(currentPixel, gridSize);
+                            for (int k = 0; k < cpNeighbours.Length; k++)
+                            {
+                                if (k != n)
+                                {
+                                    var neighbour = cpNeighbours[k];
+                                    var nColor = image.GetPixel(neighbour.x, neighbour.y);
+                                    if (nColor == black || nColor == red)
+                                    {
+                                        foundBoundary = true;
+                                    }
+                                }
+                            }
+                            currentPixel += displace;
+                        }
+                        foreach (var np in newPixels)
+                        {
+                            image.SetPixel(np.x, np.y, green);
+                        }
+                        image.Apply();
+                    }
+                }
+            }
+        }
+
+        //Fix temp green pixels
+        var preview = image.GetPixels();
+        var pixFixed = new UnityEngine.Color[preview.Length];
+        for (int p = 0; p < preview.Length; p++)
+        {
+            var pix = preview[p];
+            if (pix == green)
+            {
+                pix = red;
+            }
+            pixFixed[p] = pix;
+        }
+        image.SetPixels(pixFixed);
+        image.Apply();
+
+        //Write new file to folder
+        //string path = folder + @"\" + fileName;
+        //using (MemoryStream memory = new MemoryStream())
+        //{
+        //    using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite))
+        //    {
+        //        byte[] data = image.EncodeToPNG();
+        //        fs.Write(data, 0, data.Length);
+        //    }
+        //}
+        //UnityEngine.Debug.Log($"file written to {path}");
+
+        return image;
+
+    }
+
+    public static Texture2D PostProcessImageFromFolder(string folder)
     {
         UnityEngine.Color red = UnityEngine.Color.red;
         UnityEngine.Color black = UnityEngine.Color.black;
@@ -503,4 +802,6 @@ public class PP_ImageProcessing
         }
         return neighbours;
     }
+
+
 }

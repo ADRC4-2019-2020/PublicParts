@@ -59,8 +59,8 @@ def load_image_test(image_file):
 ## Get folder to analyse from Unity
 ##
 # test_dir = models_dir + 'prem_test/input' # Uncomment this to run straight from python
-test_dir = sys.argv[1]
-# test_dir = 'D:\\GitRepo\\PublicParts\\PP_AI_Studies\\temp_sr'
+# test_dir = sys.argv[1]
+test_dir = 'D:\\GitRepo\\PublicParts\\PP_AI_Studies\\temp_sr'
 test_dataset = tf.data.Dataset.list_files(test_dir +'/*.png', shuffle=False)
 test_dataset = test_dataset.map(load_image_test)
 test_dataset = test_dataset.batch(BATCH_SIZE)

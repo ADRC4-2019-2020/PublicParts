@@ -436,17 +436,17 @@ def LoadCheckpoint(checkpoint_name, latest=False):
 #     nCount = nCount+1
 
 # Save the model
-# saved_model_path = os.path.dirname(__file__) + '/saved_models/'
+saved_model_path = os.path.dirname(__file__) + '/saved_models/'
 chosen_checkpoint = "ckpt-41"
 LoadCheckpoint(chosen_checkpoint)
-EvaluateAllTestFolder(chosen_checkpoint)
-# model_name =  "PP_p2p_" + chosen_checkpoint
+# EvaluateAllTestFolder(chosen_checkpoint)
+model_name =  "PP_p2p_" + chosen_checkpoint
 
 
-# # generator.save(saved_model_path + model_name)
+# generator.save(saved_model_path + model_name )
 
-# tf.saved_model.save(generator, saved_model_path + model_name)
-# print("Model {} saved at {}".format(model_name, saved_model_path))
+tf.saved_model.save(generator, saved_model_path + model_name)
+print("Model {} saved at {}".format(model_name, saved_model_path))
 
 # models_dir = os.path.dirname(__file__) + '/saved_models/'
 # model_path = models_dir + "PP_p2p_ckpt-41"

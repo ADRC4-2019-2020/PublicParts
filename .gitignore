@@ -32,6 +32,8 @@
 44_44_A.obj.meta
 50_32_C.obj
 50_32_C.obj.meta
+pp_p2p_k2o.onnx
+pp_p2p_k2o.onnx.meta
 
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
