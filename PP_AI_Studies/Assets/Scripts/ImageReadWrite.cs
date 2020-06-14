@@ -119,7 +119,7 @@ public static class ImageReadWrite
 
         byte[] imageData = File.ReadAllBytes(path);
         image.LoadImage(imageData);
-        UnityEngine.Debug.Log(image.width);
+        //UnityEngine.Debug.Log(image.width);
 
         return image;
     }

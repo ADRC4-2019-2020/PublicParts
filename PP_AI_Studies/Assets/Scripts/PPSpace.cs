@@ -293,7 +293,8 @@ public class PPSpace : IEquatable<PPSpace>
         //Instantiates the InfoArrow GameObject on the average center of the space
         //and sets this space to be referenced by the arrow
         _infoArrow = GameObject.Instantiate(Resources.Load<GameObject>("GameObjects/InfoArrow"));
-        _infoArrow.transform.position = _center + new Vector3(0,1.75f,0);
+        _infoArrow.transform.position = _grid.GridGO.transform.position + _grid.Origin + _center + new Vector3(0,1.75f,0);
+        _infoArrow.transform.SetParent(_grid.GridGO.transform.parent);
         _infoArrow.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
         _infoArrow.GetComponent<InfoArrow>().SetSpace(this);
     }

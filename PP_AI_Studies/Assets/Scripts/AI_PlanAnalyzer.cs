@@ -164,7 +164,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
         //Use D to toggle the visibility of the Debug Window
         if (Input.GetKeyDown(KeyCode.D)) _showDebug = !_showDebug;
 
-        Drawing.DrawVoxelColor(_toDraw, _toColor, _voxelSize);
+        PP_Drawing.DrawVoxelColor(_toDraw, _toColor, _voxelSize);
         //StartCoroutine(SaveScreenshot());
     }
 
@@ -790,7 +790,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
         foreach (var pair in _foundPairs)
         {
             Vector3 height = new Vector3(0, 8f, 0) * _voxelSize;
-            Drawing.DrawBar(pair[0].Center + height, pair[1].Center + height, 0.1f, 1);
+            PP_Drawing.DrawBar(pair[0].Center + height, pair[1].Center + height, 0.1f, 1);
         }
     }
 
@@ -799,7 +799,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
         foreach (var pair in _prospectivePairs)
         {
             Vector3 height = new Vector3(0, 8f, 0) * _voxelSize;
-            Drawing.DrawBar(pair[0].Center + height, pair[1].Center + height, 0.1f, 1);
+            PP_Drawing.DrawBar(pair[0].Center + height, pair[1].Center + height, 0.1f, 1);
         }
     }
 
@@ -830,7 +830,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
                     color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
                 }
             }
-            Drawing.DrawSpace(space, _grid, color);
+            PP_Drawing.DrawSpace(space, _grid, color);
         }
         
     }
@@ -850,11 +850,11 @@ public class AI_PlanAnalyzer : MonoBehaviour
                             var voxel = _grid.Voxels[x, y, z];
                             if (voxel.Part.Type == PartType.Configurable)
                             {
-                                Drawing.DrawConfigurable(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawConfigurable(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
                             else
                             {
-                                Drawing.DrawCube(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawCube(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
                             
                         }
@@ -862,7 +862,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
                     }
                     if (_grid.Voxels[x, y, z].IsActive)
                     {
-                        Drawing.DrawCube(_grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
+                        PP_Drawing.DrawCube(_grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
                     }
                 }
             }
@@ -873,7 +873,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
     {
         foreach (var voxel in _usedWalkables)
         {
-            Drawing.DrawCube(voxel.Center, _grid.VoxelSize, 0.25f);
+            PP_Drawing.DrawCube(voxel.Center, _grid.VoxelSize, 0.25f);
         }
     }
     
@@ -881,7 +881,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
     {
         foreach (var voxel in input)
         {
-            Drawing.DrawCube(voxel.Center + new Vector3(0,0.5f,0), _grid.VoxelSize, 0.25f);
+            PP_Drawing.DrawCube(voxel.Center + new Vector3(0,0.5f,0), _grid.VoxelSize, 0.25f);
         }
     }
     
@@ -889,7 +889,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
     {
         foreach (var voxel in _partsBoundaries)
         {
-            Drawing.DrawCubeTransparent(voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
+            PP_Drawing.DrawCubeTransparent(voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
         }
     }
     
@@ -899,7 +899,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
         {
             foreach (var voxel in origins)
             {
-                Drawing.DrawCube(voxel.Center + new Vector3(0, 7 * _voxelSize, 0), _grid.VoxelSize, 1);
+                PP_Drawing.DrawCube(voxel.Center + new Vector3(0, 7 * _voxelSize, 0), _grid.VoxelSize, 1);
             }
         }
     }

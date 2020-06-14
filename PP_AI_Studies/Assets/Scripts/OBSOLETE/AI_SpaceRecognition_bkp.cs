@@ -888,11 +888,11 @@ public class AI_SpaceRecognition_bkp : MonoBehaviour
                             var voxel = _grid.Voxels[x, y, z];
                             if (voxel.Part.Type == PartType.Configurable)
                             {
-                                Drawing.DrawConfigurable(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawConfigurable(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
                             else
                             {
-                                Drawing.DrawCube(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawCube(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
 
                         }
@@ -900,7 +900,7 @@ public class AI_SpaceRecognition_bkp : MonoBehaviour
                     }
                     if (_grid.Voxels[x, y, z].IsActive)
                     {
-                        Drawing.DrawCube(_grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
+                        PP_Drawing.DrawCube(_grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
                     }
                 }
             }
@@ -911,7 +911,7 @@ public class AI_SpaceRecognition_bkp : MonoBehaviour
     {
         foreach (var voxel in _boundaries)
         {
-            Drawing.DrawCubeTransparent(voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
+            PP_Drawing.DrawCubeTransparent(voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
         }
     }
 
@@ -943,7 +943,7 @@ public class AI_SpaceRecognition_bkp : MonoBehaviour
                     color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
                 }
             }
-            Drawing.DrawSpace(space, _grid, color);
+            PP_Drawing.DrawSpace(space, _grid, color);
         }
 
     }

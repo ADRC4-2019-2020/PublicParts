@@ -115,11 +115,11 @@ public class AI_TrainerDataExporter : MonoBehaviour
                             var voxel = _grid.Voxels[x, y, z];
                             if (voxel.Part.Type == PartType.Configurable)
                             {
-                                Drawing.DrawConfigurable(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawConfigurable(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
                             else
                             {
-                                Drawing.DrawCube(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawCube(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
 
                         }
@@ -127,7 +127,7 @@ public class AI_TrainerDataExporter : MonoBehaviour
                     }
                     if (_grid.Voxels[x, y, z].IsActive)
                     {
-                        Drawing.DrawCube(_grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
+                        PP_Drawing.DrawCube(_grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
                     }
                 }
             }

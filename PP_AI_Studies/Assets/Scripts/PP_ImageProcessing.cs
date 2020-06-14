@@ -802,6 +802,4 @@ public class PP_ImageProcessing
         }
         return neighbours;
     }
-
-
 }

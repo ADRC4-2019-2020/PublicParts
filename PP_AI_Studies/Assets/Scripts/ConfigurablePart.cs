@@ -94,6 +94,7 @@ public class ConfigurablePart : Part
         }
         OccupyVoxels();
         CreateGameObject();
+        
         SetGOVisibility(goVisibility);
     }
     
@@ -107,7 +108,8 @@ public class ConfigurablePart : Part
         var voxelSize = Grid.VoxelSize;
         GameObject reference = Resources.Load<GameObject>("GameObjects/ConfigurableComponent_prefab");
         _gameObject = GameObject.Instantiate(reference);
-        _gameObject.transform.position = new Vector3(ReferenceIndex.x, ReferenceIndex.y + voxelSize, ReferenceIndex.z) * voxelSize;
+        _gameObject.transform.position = Grid.GridGO.transform.position + new Vector3(ReferenceIndex.x, ReferenceIndex.y + voxelSize, ReferenceIndex.z) * voxelSize;
+        _gameObject.transform.SetParent(Grid.GridGO.transform.parent);
         _gameObject.transform.localScale = new Vector3(voxelSize, voxelSize, voxelSize);
 
         if (Orientation == PartOrientation.Vertical)
@@ -134,9 +136,15 @@ public class ConfigurablePart : Part
         _gameObject.GetComponent<ComponentGO>().SetPart(this);
     }
 
+    public void SetGameObjectParent(Transform parent)
+    {
+        _gameObject.transform.SetParent(parent);
+    }
+
     public void DestroyGO()
     {
         _gameObject.GetComponent<ComponentGO>().SelfDestroy();
+        _gameObject = null;
     }
 
     bool CheckValidDistance()

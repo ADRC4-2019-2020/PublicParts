@@ -7,15 +7,13 @@ using System.Diagnostics;
 using QuickGraph;
 using QuickGraph.Algorithms;
 
-
+/// <summary>
+/// Updating class to run save pix2pix directly from unity using Barracuda
+/// This version no longer implements the non-AI method of
+/// space recognition and no longer utilizes the PP_p2p_Generate.py script.
+/// </summary>
 public class AI_SpaceRecognition : MonoBehaviour
 {
-    /// <summary>
-    /// Updating class to run save pix2pix directly from unity using Barracuda
-    /// This version no longer implements the non-AI method of
-    /// space recognition and no longer utilizes the PP_p2p_Generate.py script.
-    /// </summary>
-    
     //
     //Fields and Parameters
     //
@@ -28,7 +26,7 @@ public class AI_SpaceRecognition : MonoBehaviour
     Vector3Int _gridSize;
 
     //Grid setup
-    //Available: 44_44_A, 50_32_C, 38_26_C, 44_32_C
+    //Currently available slabs: 44_44_A, 50_32_C, 38_26_C, 44_32_C
     string _gridName = "44_44";
     string _gridType = "A";
     GameObject _gridGO;
@@ -39,8 +37,6 @@ public class AI_SpaceRecognition : MonoBehaviour
 
     //Pix2pix inference object
     PP_pix2pix _pix2pix;
-
-
 
     //Grid data and objects collections
     List<Part> _existingParts = new List<Part>();
@@ -130,6 +126,9 @@ public class AI_SpaceRecognition : MonoBehaviour
     //Architectural functions and methods
     //
 
+    /// <summary>
+    /// Executes the Pix2pix model, infering from the external Python script, and generates the spaces of the building
+    /// </summary>
     void ExecuteAI()
     {
         Stopwatch aiStopwatch = new Stopwatch();
@@ -141,17 +140,29 @@ public class AI_SpaceRecognition : MonoBehaviour
         _activityLog = $"AI Message: Generated {_spaces.Count} Spaces in {t} ms";
     }
 
+    /// <summary>
+    /// Executes the internal Barracuda Pix2pix model, inferring from GPU and generating the respective spaces
+    /// </summary>
     void NewAIAnalysis()
     {
+        Stopwatch aiStopwatch = new Stopwatch();
+        aiStopwatch.Start();
         PopulateAndAnalyseGrid();
+        GenerateSpaces();
+        aiStopwatch.Stop();
+        var t = aiStopwatch.ElapsedMilliseconds;
+        _activityLog = $"AI Message: Generated {_spaces.Count} Spaces in {t} ms";
     }
 
+    /// <summary>
+    /// Generate spaces on the voxels that are not inside the parts boudaries, or space or part
+    /// The method is inspired by a BFS algorithm, continuously checking the neighbours of the
+    /// processed voxels until the minimum area is reached. It is designed to be called in a loop 
+    /// that feeds the numbering / naming of the spaces
+    /// </summary>
+    /// <param name="number">Current number of the space</param>
     void GenerateSingleSpace(int number)
     {
-        //Generate spaces on the voxels that are not inside the parts boudaries, or space or part
-        //The method is inspired by a BFS algorithm, continuously checking the neighbours of the
-        //processed voxels until the minimum area is reached
-
         int maximumArea = 1000; //in voxel ammount
         var availableVoxels = _grid.ActiveVoxelsAsList().Where(v => !_boundaries.Contains(v) && !v.IsOccupied && !v.InSpace).ToList();
         if (availableVoxels.Count == 0) return;
@@ -202,6 +213,10 @@ public class AI_SpaceRecognition : MonoBehaviour
         _spaces.Add(space);
     }
 
+    /// <summary>
+    /// Generate spaces by looping <see cref="GenerateSingleSpace(int)"/> until all voxels are 
+    /// assigned a space
+    /// </summary>
     void GenerateSpaces()
     {
         //Destroy existing spaces
@@ -227,9 +242,13 @@ public class AI_SpaceRecognition : MonoBehaviour
         _activityLog = $"AI Message: Generated {_spaces.Count} Spaces";
     }
 
+    /// <summary>
+    /// Adds orphan voxels to the smallest neighbouring space
+    /// </summary>
+    /// <param name="voxels2Allocate">The voxels to be alocated</param>
     void Voxels2SmallestNeighbour(IEnumerable<Voxel> voxels2Allocate)
     {
-        //This method tries to allocate the voxels in a list 
+        //This method allocates the voxels in a list 
         //to the smallest neighbouring space
         var boundaryNonAllocated = voxels2Allocate;
         foreach (var voxel in boundaryNonAllocated)
@@ -248,6 +267,9 @@ public class AI_SpaceRecognition : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Creates a grid from a file, reading its size, voxel states and structural elements from a given file
+    /// </summary>
     void CreateGridFromFile()
     {
         //Read one state from folder
@@ -274,6 +296,9 @@ public class AI_SpaceRecognition : MonoBehaviour
         InstantiateGridGO();
     }
 
+    /// <summary>
+    /// Instanciates the GameObject that represents the grid
+    /// </summary>
     void InstantiateGridGO()
     {
         //instantiate grid GO
@@ -284,11 +309,12 @@ public class AI_SpaceRecognition : MonoBehaviour
         _gridGO.SetActive(!_showVoxels);
     }
 
+    /// <summary>
+    /// Condensed method to populate the grid with configurable parts and analyse it with
+    /// the Pix2Pix model
+    /// </summary>
     void PopulateAndAnalyseGrid()
     {
-        //Save folder
-        string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_sr\";
-
         //Clean the boundaries
         _boundaries = new List<Voxel>();
 
@@ -297,18 +323,29 @@ public class AI_SpaceRecognition : MonoBehaviour
         
         //Populate grid and get resulting texture, already upscaled
         var gridImage = PopulateRandomConfigurableGetImage(componentCount);
-        //ImageReadWrite.SaveImage2Path(gridImage, folder + "01_gridImage");
 
         //Analyse grid with Pix2pix
         var analysisResult = _pix2pix.GeneratePrediction(gridImage);
-        //ImageReadWrite.SaveImage2Path(analysisResult, folder + "02_analysisResult");
-        
-        //Downsize the analysis result
+
+        //Post-process the analysis result texture
+        var resultTexture = ProcessAnalysisResult(analysisResult);
+
+        //Assign result pixels to voxel data, populating the boundaries list
+        PassBoundaryToList(resultTexture);
+        _activityLog = $"AI Message: Generated {componentCount} components";
+    }
+
+    /// <summary>
+    /// Process analysis result, downscaling and post-processing it, preparing the texture to be written to the grid
+    /// </summary>
+    /// <param name="analysisResult">Analysis result texture</param>
+    /// <returns></returns>
+    private Texture2D ProcessAnalysisResult(Texture2D analysisResult)
+    {
+        //Downscale the analysis result
         TextureScale.Point(analysisResult, 64, 64);
-        //ImageReadWrite.SaveImage2Path(analysisResult, folder + "03_analysisResultDownscaled");
 
-
-        //Create new grid texture
+        //Create new texture with the same size as the original grid
         Texture2D resultGridTexture = new Texture2D(_gridSize.x, _gridSize.z);
 
         //Write result to texture
@@ -322,17 +359,15 @@ public class AI_SpaceRecognition : MonoBehaviour
             }
         }
         resultGridTexture.Apply();
-        //ImageReadWrite.SaveImage2Path(resultGridTexture, folder + "04_resultGridTexture");
 
-        Texture2D postProcessedImage = PP_ImageProcessing.PostProcessImageFromTexture(resultGridTexture);
-        //ImageReadWrite.SaveImage2Path(postProcessedImage, folder + "05_postProcessedImage");
-        //string tempFolder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_sr";
-        //PP_ImageProcessing.RestoreOriginalSize(tempFolder);
-
-        PassBoundaryToList(postProcessedImage);
-        _activityLog = $"AI Message: Generated {componentCount} components";
+        //Return post-processed texture
+        return PP_ImageProcessing.PostProcessImageFromTexture(resultGridTexture);
     }
 
+    /// <summary>
+    /// Translates the pixel data from the texture to the boundary list
+    /// </summary>
+    /// <param name="texture">The input texture</param>
     void PassBoundaryToList(Texture2D texture)
     {
         Vector2Int gridSize = new Vector2Int(_grid.Size.x, _grid.Size.z);
@@ -353,6 +388,11 @@ public class AI_SpaceRecognition : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clears the grid and populate a given amount of new configurable parts on the grid
+    /// </summary>
+    /// <param name="amt">The amount of parts to populate</param>
+    /// <returns>The Texture that represents the grid state</returns>
     Texture2D PopulateRandomConfigurableGetImage(int amt)
     {
         _grid.ClearGrid();
@@ -368,6 +408,10 @@ public class AI_SpaceRecognition : MonoBehaviour
         return ImageReadWrite.TextureFromGrid(_grid);
     }
 
+    /// <summary>
+    /// Reads a structre file and creates the parts, feeding them into the _existingParts list
+    /// </summary>
+    /// <param name="file">The file to be read</param>
     void ReadStructure(string file)
     {
         var newParts = JSONReader.ReadStructureAsList(_grid, file);
@@ -377,6 +421,10 @@ public class AI_SpaceRecognition : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Gets the space that the Arrow object represents
+    /// </summary>
+    /// <returns>The PPSpace object</returns>
     PPSpace GetSpaceFromArrow()
     {
         //This method allows clicking on the InfoArrow
@@ -410,6 +458,10 @@ public class AI_SpaceRecognition : MonoBehaviour
     // Space utilization functions and methods
     //
 
+    /// <summary>
+    /// IEnumerator to run the daily progression of the occupation simulation
+    /// </summary>
+    /// <returns></returns>
     IEnumerator DailyProgression()
     {
         while (_day < 365)
@@ -455,9 +507,11 @@ public class AI_SpaceRecognition : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Check if spaces need to be reconfigured
+    /// </summary>
     void CheckSpaces()
     {
-        //Checking spaces for reconfiguration
         foreach (var space in _spaces)
         {
             if (space.TimesUsed > 10)
@@ -483,19 +537,27 @@ public class AI_SpaceRecognition : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Check if there are enough reconfiguration requests to reconfigure the whole plan
+    /// NOTE: TEMPORARY METHOD
+    /// </summary>
     void CheckForReconfiguration()
     {
         if (_spaces.Count(s => s.Reconfigure) >= 2)
         {
-            ExecuteAI();
+            //ExecuteAI();
         }
     }
 
+    /// <summary>
+    /// Attempts to assign a space to a request made by a Tenant
+    /// </summary>
+    /// <param name="request">The Request object</param>
     void RequestSpace(PPSpaceRequest request)
     {
         var requestArea = request.Population * request.Tenant.AreaPerIndInferred; //Request area assuming the area the tenant prefers per individual
         var availableSpaces = _spaces.Where(s => !s.Occupied && !s.IsSpare);
-        //print($"{availableSpaces.Count()} spaces available");
+
         PPSpace bestSuited = availableSpaces.MaxBy(s => s.VoxelCount);
         foreach (var space in availableSpaces)
         {
@@ -508,9 +570,11 @@ public class AI_SpaceRecognition : MonoBehaviour
         }
         bestSuited.OccupySpace(request);
         _activityLog = $"Assinged {bestSuited.Name} to {request.Tenant.Name} at {_dateTimeNow}";
-        //print($"Assinged {bestSuited.Name} to {request.Tenant.Name} at {_dateTimeNow}");
     }
 
+    /// <summary>
+    /// Move simulation to next hour, keeping track of time, day number and weekday
+    /// </summary>
     void NextHour()
     {
         _hour++;
@@ -539,6 +603,11 @@ public class AI_SpaceRecognition : MonoBehaviour
     //Drawing and Visualizing
     //
 
+    /// <summary>
+    /// Change the visibility of the scene's GameObjects, iterating between 
+    /// voxel and GameObject visualization
+    /// </summary>
+    /// <param name="visible">The boolean trigger</param>
     void SetGameObjectsVisibility(bool visible)
     {
         var configurables = _existingParts.OfType<ConfigurablePart>().ToArray();
@@ -552,6 +621,9 @@ public class AI_SpaceRecognition : MonoBehaviour
         _gridGO.SetActive(!visible);
     }
 
+    /// <summary>
+    /// Draws the current VoxelGrid state with mesh voxels
+    /// </summary>
     void DrawState()
     {
         for (int x = 0; x < _gridSize.x; x++)
@@ -567,11 +639,11 @@ public class AI_SpaceRecognition : MonoBehaviour
                             var voxel = _grid.Voxels[x, y, z];
                             if (voxel.Part.Type == PartType.Configurable)
                             {
-                                Drawing.DrawConfigurable(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawConfigurable(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
                             else
                             {
-                                Drawing.DrawCube(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawCube(_grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
 
                         }
@@ -579,21 +651,27 @@ public class AI_SpaceRecognition : MonoBehaviour
                     }
                     if (_grid.Voxels[x, y, z].IsActive)
                     {
-                        Drawing.DrawCube(_grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
+                        PP_Drawing.DrawCube(_grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
                     }
                 }
             }
         }
     }
 
+    /// <summary>
+    /// Draws the boundary voxels with meshes
+    /// </summary>
     void DrawBoundaries()
     {
         foreach (var voxel in _boundaries)
         {
-            Drawing.DrawCubeTransparent(voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
+            PP_Drawing.DrawCubeTransparent(voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
         }
     }
 
+    /// <summary>
+    /// Represents the spaces with voxel meshes
+    /// </summary>
     void DrawSpaces()
     {
         foreach (var space in _spaces)
@@ -622,11 +700,14 @@ public class AI_SpaceRecognition : MonoBehaviour
                     color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
                 }
             }
-            Drawing.DrawSpace(space, _grid, color);
+            PP_Drawing.DrawSpace(space, _grid, color);
         }
 
     }
 
+    /// <summary>
+    /// Draws the space tags
+    /// </summary>
     void DrawSpaceTags()
     {
         if (_showSpaces)

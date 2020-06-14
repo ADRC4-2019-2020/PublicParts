@@ -3,19 +3,22 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Barracuda;
 
+/// <summary>
+/// Responsible for doing inferences
+/// from the pix2pix model saved from Tensorflow
+/// inside Unity, through Barracuda
+/// </summary>
 public class PP_pix2pix
 {
-    /// <summary>
-    /// This is the class responsible for doing inferences
-    /// from the pix2pix model saved from Tensorflow
-    /// inside Unity, through Barracuda
-    /// </summary>
-
     //Fields and parameters
     NNModel _modelAsset;
     Model _loadedModel;
     IWorker _worker;
 
+    /// <summary>
+    /// Constructs the PP_pix2pix engine, loading the model and creating the Worker responsible for
+    /// inferring results
+    /// </summary>
     public PP_pix2pix()
     {
         //Class constructor, loads model and creates worker
@@ -26,34 +29,38 @@ public class PP_pix2pix
 
 
     //Main methods
+
+    /// <summary>
+    /// Generates a prediction from an input Texture2D obeject
+    /// </summary>
+    /// <param name="inputTexture">The input texture to be transformed</param>
+    /// <returns></returns>
     public Texture2D GeneratePrediction(Texture2D inputTexture)
     {
-        Debug.Log(inputTexture.format);
         //Create input tensor
         var tensor = new Tensor(inputTexture, channels: 3);
         //Normalize the tensor into [-1,1]
         var normalizedTensor = NormalizeTensor(tensor);
+        
         //Execute the worker on the normalized tensor
         _worker.Execute(normalizedTensor);
+        
         //Pull the output tensor from the worker
         var outputTensor = _worker.PeekOutput();
+        
         //Normalize the output tensor
         var outputNormalized = NormalizeTensorUp(outputTensor);
-        //Apply output tensor to a temp RenderTexture
-        var tempRT = new RenderTexture(256, 256, 32);
-        outputNormalized.ToRenderTexture(tempRT);
-        RenderTexture.active = tempRT;
-        //Assign temp RenderTexture to a new Texture2D
-        var resultTexture = new Texture2D(inputTexture.width, inputTexture.height);
-        resultTexture.ReadPixels(new Rect(0, 0, tempRT.width, tempRT.height), 0, 0);
-        resultTexture.Apply();
-        //Destroy temp RenderTexture
-        RenderTexture.active = null;
-        tempRT.DiscardContents();
-        return resultTexture;
+
+        return Tensor2Image(outputNormalized, inputTexture);
     }
 
     //Auxiliary methods
+
+    /// <summary>
+    /// Normalizes an input tensor from (0, 1) to (-1, 1) to be processed by the Pix2Pix worker
+    /// </summary>
+    /// <param name="inputTensor">The input tensor, formated as (0, 1)</param>
+    /// <returns>The output tensor, formated as (-1, 1)</returns>
     Tensor NormalizeTensor(Tensor inputTensor)
     {
         //Prepare tensor data to be passed to pix2pix
@@ -68,6 +75,11 @@ public class PP_pix2pix
         return new Tensor(inputTensor.shape, normalized);
     }
 
+    /// <summary>
+    /// Undo the normalization step, formating the tensor from (-1, 1) to (0, 1)
+    /// </summary>
+    /// <param name="inputTensor">The input tensor, formated as (-1, 1)</param>
+    /// <returns>The output tensor, formated as (0, 1)</returns>
     Tensor NormalizeTensorUp(Tensor inputTensor)
     {
         //Reverse the normalization of the tensor,
@@ -84,14 +96,14 @@ public class PP_pix2pix
         return new Tensor(inputTensor.shape, normalized);
     }
 
-    float Normalize(float v, float a1, float a2, float b1, float b2)
+    private float Normalize(float v, float a1, float a2, float b1, float b2)
     {
         float result = b1 + (v - a1) * (b2 - b1) / (a2 - a1);
 
         return result;
     }
 
-    float Normalize(float v)
+    private float Normalize(float v)
     {
         float a1 = 0f;
         float a2 = 1f;
@@ -102,23 +114,28 @@ public class PP_pix2pix
         return result;
     }
 
-    Texture2D Tensor2Image(Tensor input)
+    /// <summary>
+    /// Translates a Tensor into a Texture2D
+    /// </summary>
+    /// <param name="inputTensor">The Tensor to be translated</param>
+    /// <param name="inputTexture">A reference Texture2D for formatting</param>
+    /// <returns></returns>
+    Texture2D Tensor2Image(Tensor inputTensor, Texture2D inputTexture)
     {
-        //var data = input.data.Download(input.shape);
-        var data = input.AsFloats();
-        Color[] resultColors = new Color[256 * 256];
-        for (int i = 0; i < resultColors.Length; i++)
-        {
-            var r = data[i * 3 + 0];
-            var g = data[i * 3 + 1];
-            var b = data[i * 3 + 2];
+        //Apply output tensor to a temp RenderTexture
+        var tempRT = new RenderTexture(256, 256, 32);
+        inputTensor.ToRenderTexture(tempRT);
+        RenderTexture.active = tempRT;
 
-            Color c = new Color(r, g, b);
-            resultColors[i] = c;
-        }
-        var result = new Texture2D(256, 256);
-        result.SetPixels(resultColors);
-        result.Apply();
-        return result;
+        //Assign temp RenderTexture to a new Texture2D
+        var resultTexture = new Texture2D(inputTexture.width, inputTexture.height);
+        resultTexture.ReadPixels(new Rect(0, 0, tempRT.width, tempRT.height), 0, 0);
+        resultTexture.Apply();
+
+        //Destroy temp RenderTexture
+        RenderTexture.active = null;
+        tempRT.DiscardContents();
+
+        return resultTexture;
     }
 }

@@ -23,6 +23,10 @@
 [Pp]rem_test/
 [Vv]ariables/
 
+#Igonre ML packages
+[Mm]icrosoft.ML*
+
+
 #Ignore plans
 38_26_C.obj
 38_26_C.obj.meta
