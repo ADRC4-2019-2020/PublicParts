@@ -87,9 +87,6 @@ public class PP_Environment : MonoBehaviour
         _tenants = JSONReader.ReadTenantsWithPreferences("Input Data/U_TenantPreferences", _grid);
         _spaceRequests = JSONReader.ReadSpaceRequests("Input Data/U_SpaceRequests", _tenants);
         _cameraPivot.position = new Vector3(_grid.Size.x / 2, 0, _grid.Size.z / 2) * _voxelSize;
-
-        //Create the pix2pix object
-        //_pix2pix = new PP_pix2pix();
     }
 
 
@@ -121,6 +118,7 @@ public class PP_Environment : MonoBehaviour
             SetGameObjectsVisibility(_showVoxels);
         }
 
+        //DrawPartPivot();
         //StartCoroutine(SaveScreenshot());
     }
 
@@ -128,6 +126,9 @@ public class PP_Environment : MonoBehaviour
     //Architectural functions and methods
     //
 
+    /// <summary>
+    /// Runs the populate and analyze method from the <see cref="VoxelGrid"/> 
+    /// </summary>
     void ExecutePopAndAnalysisOnGrid()
     {
         _grid.RunPopulationAndAnalysis();
@@ -348,6 +349,8 @@ public class PP_Environment : MonoBehaviour
             {
                 for (int z = 0; z < _gridSize.z; z++)
                 {
+                    Vector3 index = new Vector3(x + 0.5f, y + 0.5f, z + 0.5f) * _voxelSize;
+                    //Vector3 index = new Vector3(x , y , z) * _voxelSize;
                     if (_grid.Voxels[x, y, z].IsOccupied)
                     {
                         for (int i = 0; i < 6; i++)
@@ -355,11 +358,13 @@ public class PP_Environment : MonoBehaviour
                             var voxel = _grid.Voxels[x, y, z];
                             if (voxel.Part.Type == PartType.Configurable)
                             {
-                                PP_Drawing.DrawConfigurable(transform.position + _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                //PP_Drawing.DrawConfigurable(transform.position + _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawConfigurable(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
                             else
                             {
-                                PP_Drawing.DrawCube(transform.position +  _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                //PP_Drawing.DrawCube(transform.position +  _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawCube(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
                             }
 
                         }
@@ -367,7 +372,8 @@ public class PP_Environment : MonoBehaviour
                     }
                     if (_grid.Voxels[x, y, z].IsActive)
                     {
-                        PP_Drawing.DrawCube(transform.position + _grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
+                        //PP_Drawing.DrawCube(transform.position + _grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
+                        PP_Drawing.DrawCube(transform.position + index, _grid.VoxelSize, 0);
                     }
                 }
             }
@@ -381,7 +387,10 @@ public class PP_Environment : MonoBehaviour
     {
         foreach (var voxel in _boundaries)
         {
-            PP_Drawing.DrawCubeTransparent(transform.position + voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
+            //Vector3 index = new Vector3(voxel.Index.x, voxel.Index.y, voxel.Index.z) * _voxelSize;
+            Vector3 index = new Vector3(voxel.Index.x + 0.5f, voxel.Index.y + 0.5f, voxel.Index.z + 0.5f) * _voxelSize;
+            //PP_Drawing.DrawCubeTransparent(transform.position + voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
+            PP_Drawing.DrawCubeTransparent(transform.position + index + new Vector3(0f, _voxelSize, 0f), _voxelSize);
         }
     }
 
@@ -440,6 +449,21 @@ public class PP_Environment : MonoBehaviour
 
                 GUI.Box(new Rect(tagPos, tagSize), spaceName, "spaceTag");
             }
+        }
+    }
+
+    /// <summary>
+    /// Draws a box in the pivot point of the voxel configurable part
+    /// </summary>
+    void DrawPartPivot()
+    {
+        foreach (var part in _existingParts)
+        {
+            float x = part.ReferenceIndex.x  * _voxelSize;
+            float y = part.ReferenceIndex.y * _voxelSize;
+            float z = part.ReferenceIndex.z * _voxelSize;
+            Vector3 origin = new Vector3(x, y + 7*_voxelSize, z) ;
+            PP_Drawing.DrawCube(origin, _voxelSize * 1.1f, 0.2f);
         }
     }
 

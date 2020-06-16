@@ -93,6 +93,7 @@ public class ConfigurablePart : Part
             int randomY = Random.Range(0, Grid.Size.y - 1);
             int randomZ = Random.Range(0, Grid.Size.z - 1);
             ReferenceIndex = new Vector3Int(randomX, randomY, randomZ);
+            SetPivot();
 
             GetOccupiedIndexes();
             bool allInside = true;
@@ -127,7 +128,7 @@ public class ConfigurablePart : Part
             {
                 //Rotate index
                 var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
-                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - ReferenceIndex) + ReferenceIndex;
+                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - PartPivot) + PartPivot;
 
                 //Resulting coordinates
                 int x = Mathf.RoundToInt(rotatedIndex.x);
@@ -165,7 +166,14 @@ public class ConfigurablePart : Part
         
         SetGOVisibility(goVisibility);
     }
-
+    
+    /// <summary>
+    /// Sets the value of the PartPivot of the Configurable Part
+    /// </summary>
+    private void SetPivot()
+    {
+        PartPivot = new Vector3(ReferenceIndex.x - 0.5f, ReferenceIndex.y, ReferenceIndex.z - 0.5f);
+    }
     
 
     /// <summary>
@@ -297,40 +305,26 @@ public class ConfigurablePart : Part
         //CPGameObject.transform.SetParent(Grid.GridGO.transform.parent);
 
         //SetGOPosition();
-        SetGORotationAndPosition(rotation);
+        SetGOTransformations(rotation);
 
         CPAgent = CPGameObject.GetComponent<ConfigurablePartAgent>();
         CPAgent.SetPart(this);
     }
 
-    private void SetGORotationAndPosition(int rotation)
+    /// <summary>
+    /// Sets the Transform of the <see cref="ConfigurablePart"/> GameObject that has been initialized
+    /// </summary>
+    /// <param name="rotation">The rotation set to the part</param>
+    private void SetGOTransformations(int rotation)
     {
         var voxelSize = Grid.VoxelSize;
         var xPos = ReferenceIndex.x;
         var yPos = ReferenceIndex.y + 1;
         var zPos = ReferenceIndex.z;
 
-        if (rotation == 1)
-        {
-            //xPos += 1;
-            zPos += 1;
-        }
-        else if (rotation == 2)
-        {
-            xPos += 1;
-            zPos += 1;
-        }
-
-        else if (rotation == 3)
-        {
-            xPos += 1;
-        }
-
         CPGameObject.transform.localPosition = new Vector3(xPos, yPos, zPos) * voxelSize;
         CPGameObject.transform.localScale = new Vector3(voxelSize, voxelSize, voxelSize);
         CPGameObject.transform.localRotation = Quaternion.Euler(0, rotation * 90f, 0);
-        
-        
     }
     
     /// <summary>
@@ -444,9 +438,11 @@ public class ConfigurablePart : Part
 
             OccupiedIndexes[i] = newIndex;
         }
-        //Move reference index
+        //Move reference index and Pivot
         ReferenceIndex += new Vector3Int(distance, 0, 0);
-        
+        SetPivot();
+
+
         return validMovement;
     }
 
@@ -511,8 +507,9 @@ public class ConfigurablePart : Part
             OccupiedIndexes[i] = newIndex;
         }
 
-        //Move reference index
+        //Move reference index and Pivot
         ReferenceIndex += new Vector3Int(0, 0, distance);
+        SetPivot();
 
         return validMovement;
     }
@@ -655,7 +652,7 @@ public class ConfigurablePart : Part
             {
                 //Rotate index
                 var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
-                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - ReferenceIndex) + ReferenceIndex;
+                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - PartPivot) + PartPivot;
                 
                 //Resulting coordinates
                 int x = Mathf.RoundToInt(rotatedIndex.x);

@@ -162,38 +162,38 @@ class PP_Drawing : MonoBehaviour
         
     }
 
-    public static void DrawSpacesColour(List<PPSpace> spaces, VoxelGrid grid)
-    {
-        var voxelSize = grid.VoxelSize;
-        for (int i = 0; i < spaces.Count; i++)
-        {
-            UnityEngine.Random.InitState(i);
-            float r = UnityEngine.Random.value;
+    //public static void DrawSpacesColour(List<PPSpace> spaces, VoxelGrid grid)
+    //{
+    //    var voxelSize = grid.VoxelSize;
+    //    for (int i = 0; i < spaces.Count; i++)
+    //    {
+    //        UnityEngine.Random.InitState(i);
+    //        float r = UnityEngine.Random.value;
 
-            UnityEngine.Random.InitState(2*i);
-            float g = UnityEngine.Random.value;
+    //        UnityEngine.Random.InitState(2*i);
+    //        float g = UnityEngine.Random.value;
 
-            UnityEngine.Random.InitState(3*i);
-            float b = UnityEngine.Random.value;
+    //        UnityEngine.Random.InitState(3*i);
+    //        float b = UnityEngine.Random.value;
 
 
-            var color = new Color(r, g, b, 0.70f);
-            _properties.SetColor("_Color", color);
-            var space = spaces[i];
+    //        var color = new Color(r, g, b, 0.70f);
+    //        _properties.SetColor("_Color", color);
+    //        var space = spaces[i];
             
-            foreach (var voxel in space.Voxels)
-            {
-                var center = voxel.Center + (Vector3.up*voxelSize);
-                var matrix = Matrix4x4.TRS(
-                center,
-                Quaternion.identity,
-                Vector3.one * (voxelSize * 0.99f)
-                );
+    //        foreach (var voxel in space.Voxels)
+    //        {
+    //            var center = voxel.Center + (Vector3.up*voxelSize);
+    //            var matrix = Matrix4x4.TRS(
+    //            center,
+    //            Quaternion.identity,
+    //            Vector3.one * (voxelSize * 0.99f)
+    //            );
 
-                Graphics.DrawMesh(_unitBox, matrix, _instance._transparent, 0, null, 0, _properties);
-            }
-        }
-    }
+    //            Graphics.DrawMesh(_unitBox, matrix, _instance._transparent, 0, null, 0, _properties);
+    //        }
+    //    }
+    //}
 
     public static void DrawSpace(PPSpace space, VoxelGrid grid, Color color)
     {
@@ -203,7 +203,8 @@ class PP_Drawing : MonoBehaviour
 
         foreach (var voxel in space.Voxels)
         {
-            var center = grid.GridGO.transform.position + voxel.Center + (Vector3.up * voxelSize);
+            Vector3 index = new Vector3(voxel.Index.x + 0.5f, voxel.Index.y + 0.5f, voxel.Index.z + 0.5f) * voxelSize;
+            var center = grid.GridGO.transform.position + index + (Vector3.up * voxelSize);
             var matrix = Matrix4x4.TRS(
             center,
             Quaternion.identity,

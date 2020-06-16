@@ -336,7 +336,8 @@ public class VoxelGrid : MonoBehaviour
         //instantiate grid GO
         GameObject reference = Resources.Load<GameObject>($"GameObjects/{_gridName}_{_gridType}_prefab");
         GridGO = Instantiate(reference);
-        GridGO.transform.position = Vector3.zero;
+        GridGO.transform.localPosition = Vector3.zero;
+        //GridGO.transform.localPosition = Vector3.one * (-VoxelSize / 2);
         GridGO.transform.localScale = new Vector3(VoxelSize, VoxelSize, VoxelSize);
         //GridGO.SetActive(!_showVoxels);
         //GridGO.GetComponent<MeshRenderer>().enabled = _showVoxels;

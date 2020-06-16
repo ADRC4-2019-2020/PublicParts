@@ -13,6 +13,7 @@ public class Part : System.IEquatable<Part>
     public Vector2Int Size;
     public bool IsStatic;
     public Vector3Int ReferenceIndex;
+    public Vector3 PartPivot;
     public int Height;
     public Vector3 Center;
     public Vector3Int[] OccupiedIndexes;
