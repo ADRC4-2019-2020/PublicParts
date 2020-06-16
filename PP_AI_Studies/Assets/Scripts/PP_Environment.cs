@@ -333,7 +333,8 @@ public class PP_Environment : MonoBehaviour
                 c.SetGOVisibility(!visible);
             }
         }
-        _gridGO.SetActive(!visible);
+        //_gridGO.SetActive(!visible);
+        _grid.SetGOVisibility(!visible);
     }
 
     /// <summary>

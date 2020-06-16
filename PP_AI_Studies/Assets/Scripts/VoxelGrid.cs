@@ -334,11 +334,13 @@ public class VoxelGrid : MonoBehaviour
     private void InstantiateGridGO()
     {
         //instantiate grid GO
-        GameObject reference = Resources.Load<GameObject>($"GameObjects/{_gridName}_{_gridType}");
+        GameObject reference = Resources.Load<GameObject>($"GameObjects/{_gridName}_{_gridType}_prefab");
         GridGO = Instantiate(reference);
         GridGO.transform.position = Vector3.zero;
         GridGO.transform.localScale = new Vector3(VoxelSize, VoxelSize, VoxelSize);
-        GridGO.SetActive(!_showVoxels);
+        //GridGO.SetActive(!_showVoxels);
+        //GridGO.GetComponent<MeshRenderer>().enabled = _showVoxels;
+        SetGOVisibility(!_showVoxels);
     }
 
     /// <summary>
@@ -498,6 +500,20 @@ public class VoxelGrid : MonoBehaviour
                 {
                     Faces[2][x, y, z] = new Face(x, y, z, Axis.Z, this);
                 }
+    }
+
+    /// <summary>
+    /// Sets the visibility of the child gameobjects of the GridGO
+    /// </summary>
+    /// <param name="visibility">The value to set</param>
+    public void SetGOVisibility(bool visibility)
+    {
+        for (int i = 0; i < GridGO.transform.childCount; i++)
+        {
+            var mRenderer = GridGO.transform.GetChild(i).GetComponent<MeshRenderer>();
+            mRenderer.enabled = visibility;
+        }
+        
     }
 
 }

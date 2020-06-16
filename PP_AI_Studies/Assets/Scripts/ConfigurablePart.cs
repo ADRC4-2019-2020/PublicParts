@@ -3,13 +3,29 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-
+/// <summary>
+/// Represents a Configurable Part in the VoxelGrid, its voxels and properties
+/// </summary>
 [System.Serializable]
 public class ConfigurablePart : Part
 {
-    GameObject _gameObject;
+    //The GameObject that represents the configurable part
+    public GameObject CPGameObject { get; private set; }
+
+    //The configurable part agente
+    public ConfigurablePartAgent CPAgent { get; private set; }
+
+    /// <summary>
+    /// A generic empty constructor for the ConfigurablePart, placeholder for
+    /// the <see cref="NewPart(VoxelGrid)"/> method, that should be deprecated
+    /// </summary>
     public ConfigurablePart() { }
 
+    /// <summary>
+    /// Method for creating a new ConfigurablePart on a grid. Should be eventualy removed
+    /// </summary>
+    /// <param name="grid">The grid to create the ConfigurablePart on</param>
+    /// <returns>The resulting ConfigurablePart</returns>
     public ConfigurablePart NewPart(VoxelGrid grid)
     {
         //This method does not need to exist, the constructor is enough
@@ -45,6 +61,13 @@ public class ConfigurablePart : Part
         return p;
     }
 
+    /// <summary>
+    /// Constructor for a ConfigurablePart on the input grid in a randomized position
+    /// and create its GameObject
+    /// </summary>
+    /// <param name="grid">The grid to create the ConfigurablePart on</param>
+    /// <param name="goVisibility">Initial visibility of the GameObject</param>
+    /// <param name="seed">Seed for the randomized creation</param>
     public ConfigurablePart (VoxelGrid grid, bool goVisibility, int seed)
     {
         //This constructor creates a random configurable part in the specified grid. 
@@ -56,24 +79,69 @@ public class ConfigurablePart : Part
         OccupiedIndexes = new Vector3Int[nVoxels];
         IsStatic = false;
         Height = 6;
-
+        int rotation = 0;
         //Random.InitState(seed);
         bool validPart = false;
         while (!validPart)
         {
-            Orientation = (PartOrientation)Random.Range(0, 2);
+            //Start from horizontal position
+            //Orientation = (PartOrientation)Random.Range(0, 2);
+            Orientation = PartOrientation.Horizontal;
+            
+            //Randomize ReferenceIndex
             int randomX = Random.Range(0, Grid.Size.x - 1);
             int randomY = Random.Range(0, Grid.Size.y - 1);
             int randomZ = Random.Range(0, Grid.Size.z - 1);
             ReferenceIndex = new Vector3Int(randomX, randomY, randomZ);
 
+            GetOccupiedIndexes();
             bool allInside = true;
 
-            GetOccupiedIndexes();
-            //Validate itself
+            //Set actual orientation and rotation
+            Matrix4x4 rotationMatrix;
+            rotation = Random.Range(0, 4);
+            if (rotation == 0)
+            {
+                rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 0, 0));
+            }
+            else if (rotation == 1)
+            {
+                //First rotation, 90 degrees clockwise
+                Orientation = PartOrientation.Vertical;
+                rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 90f, 0));
+            }
+            else if (rotation == 2)
+            {
+                //Second rotation, 180 degrees clockwise
+                rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 180f, 0));
+            }
+            else
+            {
+                //Second rotation, 270 degrees clockwise
+                Orientation = PartOrientation.Vertical;
+                rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 270f, 0));
+            }
+
+            //Apply rotation
+            for (int i = 0; i < OccupiedIndexes.Length; i++)
+            {
+                //Rotate index
+                var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
+                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - ReferenceIndex) + ReferenceIndex;
+
+                //Resulting coordinates
+                int x = Mathf.RoundToInt(rotatedIndex.x);
+                int y = Mathf.RoundToInt(rotatedIndex.y);
+                int z = Mathf.RoundToInt(rotatedIndex.z);
+
+                OccupiedIndexes[i] = new Vector3Int(x, y, z);
+            }
+
+            //GetOccupiedIndexes();
+            //Validate part on grid
             foreach (var index in OccupiedIndexes)
             {
-                if (index.x >= Grid.Size.x || index.y >= Grid.Size.y || index.z >= Grid.Size.z)
+                if (index.x >= Grid.Size.x || index.x < 0 || index.y >= Grid.Size.y || index.y < 0 || index.z >= Grid.Size.z || index.z < 0)
                 {
                     allInside = false;
                     break;
@@ -85,7 +153,7 @@ public class ConfigurablePart : Part
                 }
             }
 
-            //Validate on plan
+            //Validate based on existing partes
             if (allInside)
             {
                 if (!CheckValidDistance()) continue;
@@ -93,61 +161,19 @@ public class ConfigurablePart : Part
             }
         }
         OccupyVoxels();
-        CreateGameObject();
+        CreateGameObject(rotation);
         
         SetGOVisibility(goVisibility);
     }
+
     
-    public void SetGOVisibility(bool visible)
-    {
-        _gameObject.SetActive(visible);
-    }
 
-    private void CreateGameObject()
-    {
-        var voxelSize = Grid.VoxelSize;
-        GameObject reference = Resources.Load<GameObject>("GameObjects/ConfigurableComponent_prefab");
-        _gameObject = GameObject.Instantiate(reference);
-        _gameObject.transform.position = Grid.GridGO.transform.position + new Vector3(ReferenceIndex.x, ReferenceIndex.y + voxelSize, ReferenceIndex.z) * voxelSize;
-        _gameObject.transform.SetParent(Grid.GridGO.transform.parent);
-        _gameObject.transform.localScale = new Vector3(voxelSize, voxelSize, voxelSize);
-
-        if (Orientation == PartOrientation.Vertical)
-        {
-            _gameObject.transform.rotation = Quaternion.Euler(0, 90, 0);
-            _gameObject.transform.position += new Vector3(0, 0, 6 * voxelSize);
-        }
-
-        if(Random.Range(0, 2) == 1)
-        {
-            _gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
-            if (Orientation == PartOrientation.Horizontal)
-            {
-                _gameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
-                _gameObject.transform.position += new Vector3(6 * voxelSize, 0, 2*voxelSize);
-            }
-            else
-            {
-                _gameObject.transform.rotation = Quaternion.Euler(0, 270, 0);
-                _gameObject.transform.position += new Vector3(2 * voxelSize, 0, -6 * voxelSize);
-            }
-            
-        }
-        _gameObject.GetComponent<ComponentGO>().SetPart(this);
-    }
-
-    public void SetGameObjectParent(Transform parent)
-    {
-        _gameObject.transform.SetParent(parent);
-    }
-
-    public void DestroyGO()
-    {
-        _gameObject.GetComponent<ComponentGO>().SelfDestroy();
-        _gameObject = null;
-    }
-
-    bool CheckValidDistance()
+    /// <summary>
+    /// Checks if the proposed position for a new ConfigurablePart is valid on its parent Grid.
+    /// Utilized on <see cref="ConfigurablePart()"/>
+    /// </summary>
+    /// <returns>Boolean representing the validity</returns>
+    private bool CheckValidDistance()
     {
         //Set the search sides according to index parity, even = negative, odd = positive
         Vector3Int[] evenSide = OccupiedIndexes.Where((x, i) => i % 2 == 0).ToArray();
@@ -225,7 +251,11 @@ public class ConfigurablePart : Part
         return true;
     }
 
-    void GetOccupiedIndexes()
+    /// <summary>
+    /// Populate the OccupiedIndexes array, a voxel based representation of the
+    /// position of the ConfigurablePart
+    /// </summary>
+    private void GetOccupiedIndexes()
     {
         //This can be refactored
         //Check orientation and switch Size.x and Size.y as 
@@ -253,5 +283,429 @@ public class ConfigurablePart : Part
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Creates the GameObject of the ConfigurablePart
+    /// </summary>
+    private void CreateGameObject(int rotation)
+    {
+        var voxelSize = Grid.VoxelSize;
+        GameObject reference = Resources.Load<GameObject>("GameObjects/ConfigurableComponent_prefab");
+        CPGameObject = GameObject.Instantiate(reference, Grid.GridGO.transform.parent);
+        //CPGameObject.transform.localScale = new Vector3(voxelSize, voxelSize, voxelSize);
+        //CPGameObject.transform.SetParent(Grid.GridGO.transform.parent);
+
+        //SetGOPosition();
+        SetGORotationAndPosition(rotation);
+
+        CPAgent = CPGameObject.GetComponent<ConfigurablePartAgent>();
+        CPAgent.SetPart(this);
+    }
+
+    private void SetGORotationAndPosition(int rotation)
+    {
+        var voxelSize = Grid.VoxelSize;
+        var xPos = ReferenceIndex.x;
+        var yPos = ReferenceIndex.y + 1;
+        var zPos = ReferenceIndex.z;
+
+        if (rotation == 1)
+        {
+            //xPos += 1;
+            zPos += 1;
+        }
+        else if (rotation == 2)
+        {
+            xPos += 1;
+            zPos += 1;
+        }
+
+        else if (rotation == 3)
+        {
+            xPos += 1;
+        }
+
+        CPGameObject.transform.localPosition = new Vector3(xPos, yPos, zPos) * voxelSize;
+        CPGameObject.transform.localScale = new Vector3(voxelSize, voxelSize, voxelSize);
+        CPGameObject.transform.localRotation = Quaternion.Euler(0, rotation * 90f, 0);
+        
+        
+    }
+    
+    /// <summary>
+    /// Assigns the position of the voxels to GameObject
+    /// </summary>
+    private void SetGOPosition()
+    {
+        var voxelSize = Grid.VoxelSize;
+        CPGameObject.transform.localPosition = new Vector3(ReferenceIndex.x, ReferenceIndex.y + 1, ReferenceIndex.z) * voxelSize;
+
+        if (Orientation == PartOrientation.Vertical)
+        {
+            CPGameObject.transform.rotation = Quaternion.Euler(0, 90, 0);
+            CPGameObject.transform.position += new Vector3(0, 0, 6 * voxelSize);
+        }
+
+        if (Random.Range(0, 2) == 1)
+        {
+            CPGameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
+            if (Orientation == PartOrientation.Horizontal)
+            {
+                CPGameObject.transform.rotation = Quaternion.Euler(0, 180, 0);
+                CPGameObject.transform.position += new Vector3(6 * voxelSize, 0, 2 * voxelSize);
+            }
+            else
+            {
+                CPGameObject.transform.rotation = Quaternion.Euler(0, 270, 0);
+                CPGameObject.transform.position += new Vector3(2 * voxelSize, 0, -6 * voxelSize);
+            }
+
+        }
+    }
+
+    /// <summary>
+    /// Destroys the GameObject that represents this ConfigurablePart
+    /// </summary>
+    public void DestroyGO()
+    {
+        CPGameObject.GetComponent<ConfigurablePartAgent>().SelfDestroy();
+        CPGameObject = null;
+    }
+
+    /// <summary>
+    /// Modifies the visibility state of the GameObject
+    /// </summary>
+    /// <param name="visible">Boolean to set</param>
+    public void SetGOVisibility(bool visible)
+    {
+        //CPGameObject.SetActive(visible);
+        CPAgent.SetVisibility(visible);
+    }
+
+    /// <summary>
+    /// Tries to move the ConfigurablePart object in the X direction on the Grid
+    /// </summary>
+    /// <param name="distance">The distance to be moved</param>
+    /// <returns>The boolean representing if movement was successful</returns>
+    public bool MoveInX(int distance)
+    {
+        //Boolean to evalute the validity of the movement
+        bool validMovement = true;
+        Vector3Int[] tempIndexes = new Vector3Int[OccupiedIndexes.Length];
+        if (distance == 1 || distance == -1)
+        {
+            //Temporarily store the position of the new indexes
+            //While checking their validity
+            
+            for (int i = 0; i < OccupiedIndexes.Length; i++)
+            {
+                int x = OccupiedIndexes[i].x + distance;
+                // If new x position is beyond grid, return false
+                if (x < 0 || x > Grid.Size.x) return false;
+
+                int y = OccupiedIndexes[i].y;
+                int z = OccupiedIndexes[i].z;
+                var voxel = Grid.Voxels[x, y, z];
+                
+                //If the movement includes a voxel that is not active or
+                //is occupied by a part that isn't this, return false
+                if (!voxel.IsActive || (voxel.IsOccupied && voxel.Part != this))
+                {
+                    validMovement = false;
+                    return validMovement;
+                }
+                //If everything is ok, add new index to temporary array
+                tempIndexes[i] = new Vector3Int(x, y, z);
+            }
+        }
+        else
+        {
+            //If distance is not +1 or -1, return false
+            validMovement = false;
+            return validMovement;
+        }
+        
+        //Apply movement to grid
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            var preVoxel = Grid.Voxels[OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z];
+            preVoxel.IsOccupied = false;
+            preVoxel.Part = null;
+
+        }
+
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            var newIndex = tempIndexes[i];
+            var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
+            newVoxel.IsOccupied = true;
+            newVoxel.Part = this;
+
+            OccupiedIndexes[i] = newIndex;
+        }
+        //Move reference index
+        ReferenceIndex += new Vector3Int(distance, 0, 0);
+        
+        return validMovement;
+    }
+
+    /// <summary>
+    /// Tries to move the ConfigurablePart object in the X direction on the Grid
+    /// </summary>
+    /// <param name="distance">The distance to be moved</param>
+    /// <returns>The boolean representing if movement was successful</returns>
+    public bool MoveInZ(int distance)
+    {
+        //Boolean to evalute the validity of the movement
+        bool validMovement = true;
+        Vector3Int[] tempIndexes = new Vector3Int[OccupiedIndexes.Length];
+        if (distance == 1 || distance == -1)
+        {
+            //Temporarily store the position of the new indexes
+            //While checking their validity
+
+            for (int i = 0; i < OccupiedIndexes.Length; i++)
+            {
+                int x = OccupiedIndexes[i].x;
+                int y = OccupiedIndexes[i].y;
+                int z = OccupiedIndexes[i].z + distance;
+                // If new z position is beyond grid, return false
+                if (z < 0 || z > Grid.Size.z) return false;
+                var voxel = Grid.Voxels[x, y, z];
+
+                //If the movement includes a voxel that is not active or
+                //is occupied by a part that isn't this, return false
+                if (!voxel.IsActive || (voxel.IsOccupied && voxel.Part != this))
+                {
+                    validMovement = false;
+                    return validMovement;
+                }
+                //If everything is ok, add new index to temporary array
+                tempIndexes[i] = new Vector3Int(x, y, z);
+            }
+        }
+        else
+        {
+            //If distance is not +1 or -1, return false
+            validMovement = false;
+            return validMovement;
+        }
+
+        //Apply movement to grid
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            var preVoxel = Grid.Voxels[OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z];
+            preVoxel.IsOccupied = false;
+            preVoxel.Part = null;
+
+        }
+
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            var newIndex = tempIndexes[i];
+            var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
+            newVoxel.IsOccupied = true;
+            newVoxel.Part = this;
+
+            OccupiedIndexes[i] = newIndex;
+        }
+
+        //Move reference index
+        ReferenceIndex += new Vector3Int(0, 0, distance);
+
+        return validMovement;
+    }
+
+    /// <summary>
+    /// Tries to flip the component between horizontal and vertical position
+    /// </summary>
+    /// <returns>The boolean representing if the flipping was successful</returns>
+    public bool FlipComponent()
+    {
+        //Boolean to evalute the validity of the rotation
+        bool validRotation = true;
+        PartOrientation newOrientation = PartOrientation.Horizontal;
+        if (Orientation == PartOrientation.Horizontal) newOrientation = PartOrientation.Vertical;
+
+        Vector3Int[] tempIndexes = new Vector3Int[OccupiedIndexes.Length];
+        if (newOrientation == PartOrientation.Horizontal)
+        {
+            int i = 0;
+            for (int x = 0; x < Size.x; x++)
+            {
+                for (int z = 0; z < Size.y; z++)
+                {
+                    int nX = ReferenceIndex.x + x;
+                    int nY = ReferenceIndex.y;
+                    int nZ = ReferenceIndex.z + z;
+                    if (nX < 0 || nX > Grid.Size.x)
+                    {
+                        validRotation = false;
+                        return validRotation;
+                    }
+                    else if (nZ < 0 || nZ > Grid.Size.z)
+                    {
+                        validRotation = false;
+                        return validRotation;
+                    }
+
+                    var newIndex = new Vector3Int(nX, nY, nZ);
+                    var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
+
+                    if (!newVoxel.IsActive || (newVoxel.IsOccupied && newVoxel.Part != this))
+                    {
+                        validRotation = false;
+                        return validRotation;
+                    }
+
+                    tempIndexes[i++] = newIndex;
+                }
+            }
+        }
+        else if (newOrientation == PartOrientation.Vertical)
+        {
+            int i = 0;
+            for (int x = 0; x < Size.y; x++)
+            {
+                for (int z = 0; z < Size.x; z++)
+                {
+                    int nX = ReferenceIndex.x + x;
+                    int nY = ReferenceIndex.y;
+                    int nZ = ReferenceIndex.z + z;
+                    if (nX < 0 || nX > Grid.Size.x)
+                    {
+                        validRotation = false;
+                        return validRotation;
+                    }
+                    else if (nZ < 0 || nZ > Grid.Size.z)
+                    {
+                        validRotation = false;
+                        return validRotation;
+                    }
+
+                    var newIndex = new Vector3Int(nX, nY, nZ);
+                    var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
+
+                    if (!newVoxel.IsActive || (newVoxel.IsOccupied && newVoxel.Part != this))
+                    {
+                        validRotation = false;
+                        return validRotation;
+                    }
+
+                    tempIndexes[i++] = newIndex;
+                }
+            }
+        }
+
+        //Apply Flipping to grid
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            var preVoxel = Grid.Voxels[OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z];
+            preVoxel.IsOccupied = false;
+            preVoxel.Part = null;
+
+        }
+
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            var newIndex = tempIndexes[i];
+            var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
+            newVoxel.IsOccupied = true;
+            newVoxel.Part = this;
+
+            OccupiedIndexes[i] = newIndex;
+        }
+        Orientation = newOrientation;
+
+        return validRotation;
+    }
+    
+    /// <summary>
+    /// Tries to rotate the component around its ReferenceIndex.
+    /// A direction of +1 rotetes clockwise and -1 anticlockwise.
+    /// </summary>
+    /// <param name="direction">The direction to rotate </param>
+    /// <returns>The boolean representing if the rotation was successful</returns>
+    public bool RotateComponent(int direction)
+    {
+        //Boolean to evalute the validity of the rotation
+        bool validRotation = true;
+        
+        //New orientation
+        PartOrientation newOrientation = PartOrientation.Horizontal;
+        if (Orientation == PartOrientation.Horizontal) newOrientation = PartOrientation.Vertical;
+        
+        //Temporary store new indexes
+        Vector3Int[] tempIndexes = new Vector3Int[OccupiedIndexes.Length];
+        if (direction == 1 || direction == -1)
+        {
+            //Define the rotation matrix
+            Matrix4x4 rotationMatrix;
+            if (direction == 1)
+            {
+                rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 90f, 0));
+            }
+            else
+            {
+                rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, -90f, 0));
+            }
+            
+            for (int i = 0; i < OccupiedIndexes.Length; i++)
+            {
+                //Rotate index
+                var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
+                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - ReferenceIndex) + ReferenceIndex;
+                
+                //Resulting coordinates
+                int x = Mathf.RoundToInt(rotatedIndex.x);
+                int y = Mathf.RoundToInt(rotatedIndex.y);
+                int z = Mathf.RoundToInt(rotatedIndex.z);
+
+                // If new x position is beyond grid, return false
+                if (x < 0 || x > Grid.Size.x - 1) return false;
+
+                // If new z position is beyond grid, return false
+                if (z < 0 || z > Grid.Size.z - 1) return false;
+                var voxel = Grid.Voxels[x, y, z];
+
+                //If the movement includes a voxel that is not active or
+                //is occupied by a part that isn't this, return false
+                if (!voxel.IsActive || (voxel.IsOccupied && voxel.Part != this))
+                {
+                    validRotation = false;
+                    return validRotation;
+                }
+                //If everything is ok, add new index to temporary array
+                tempIndexes[i] = new Vector3Int(x, y, z);
+            }
+        }
+        else
+        {
+            validRotation = false;
+            return validRotation;
+        }
+
+        //Apply Flipping to grid
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            var preVoxel = Grid.Voxels[OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z];
+            preVoxel.IsOccupied = false;
+            preVoxel.Part = null;
+
+        }
+
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            var newIndex = tempIndexes[i];
+            var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
+            newVoxel.IsOccupied = true;
+            newVoxel.Part = this;
+
+            OccupiedIndexes[i] = newIndex;
+        }
+        Orientation = newOrientation;
+
+        return validRotation;
     }
 }

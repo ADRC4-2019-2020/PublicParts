@@ -6,7 +6,7 @@ using System.Linq;
 [System.Serializable]
 public class Part : System.IEquatable<Part>
 {
-    protected VoxelGrid Grid;
+    public VoxelGrid Grid;
 
     public string Name;
     public PartType Type;
