@@ -24,7 +24,7 @@ public class VoxelGrid : MonoBehaviour
     //Migration Parameters
 
     //Grid setup
-    //Currently available slabs: 44_44_A, 50_32_C, 38_26_C, 44_32_C
+    //Currently available slabs: 44_44_A
     string _gridName = "44_44";
     string _gridType = "A";
     public GameObject GridGO { get; private set; }
@@ -48,12 +48,12 @@ public class VoxelGrid : MonoBehaviour
     // Original methods and Functions (AVOID CHANGING)
     
     /// <summary>
-    /// Original Grid constructor
+    /// Creates a rectangular VoxelGrid, with or without a slab GameObject
     /// </summary>
     /// <param name="size">The vector representing the size of the grid</param>
     /// <param name="voxelSize">The size of the voxel in metres</param>
     /// <param name="origin">The origin of the grid to be created</param>
-    public VoxelGrid(Vector3Int size, float voxelSize, Vector3 origin)
+    public VoxelGrid(Vector3Int size, float voxelSize, Vector3 origin, bool createGO = false)
     {
         Size = size;
         VoxelSize = voxelSize;
@@ -62,9 +62,13 @@ public class VoxelGrid : MonoBehaviour
         ExistingParts = new List<Part>();
         Spaces = new List<PPSpace>();
         Boundaries = new List<Voxel>();
-
+        _pix2pix = new PP_pix2pix();
         SetupVoxels();
 
+        if (createGO)
+        {
+            InstantiateGenericGO();
+        }
     }
 
     /// <summary>
@@ -159,7 +163,7 @@ public class VoxelGrid : MonoBehaviour
     //Migration methods and Functions
 
     /// <summary>
-    /// Creates a VoxelGrid instance from a file with its configurations
+    /// Constructor for a  VoxelGrid instance from a file with its configurations
     /// </summary>
     /// <param name="gridName">The name of the grid file</param>
     /// <param name="gridType">The name of the grid type</param>
@@ -216,21 +220,100 @@ public class VoxelGrid : MonoBehaviour
     }
 
     /// <summary>
+    /// Executes a new analysis and generates new spaces
+    /// </summary>
+    public void RunAnalysisCreateNewSpaces()
+    {
+        //Stopwatch aiStopwatch = new Stopwatch();
+        //aiStopwatch.Start();
+        Boundaries = new List<Voxel>();
+        var gridImage = GetImage();
+        var analysisResult = _pix2pix.GeneratePrediction(gridImage);
+        var resultTexture = ProcessAnalysisResult(analysisResult);
+        PassBoundaryToList(resultTexture);
+        Spaces = GenerateSpaces();
+        //aiStopwatch.Stop();
+        //var t = aiStopwatch.ElapsedMilliseconds;
+    }
+
+    /// <summary>
+    /// Runs the Pix2pix analysis on the current state of the grid, while
+    /// updating the spaces that can be understood as the same
+    /// </summary>
+    public void RunAnalysisUpdateSpaces()
+    {
+        //Stopwatch aiStopwatch = new Stopwatch();
+        //aiStopwatch.Start();
+
+        //Copy the existing spaces
+        List<PPSpace> existingSpaces = Spaces;
+        //Copy the existing indices
+        List<HashSet<Vector3Int>> existingIndices = new List<HashSet<Vector3Int>>();
+        foreach (var space in Spaces)
+        {
+            HashSet<Vector3Int> temp = new HashSet<Vector3Int>();
+            foreach (var index in space.Indices)
+            {
+                temp.Add(new Vector3Int(index.x, index.y, index.z));
+            }
+            existingIndices.Add(temp);
+        }
+
+        //Generate new spaces
+        Boundaries = new List<Voxel>();
+        var gridImage = GetImage();
+        var analysisResult = _pix2pix.GeneratePrediction(gridImage);
+        var resultTexture = ProcessAnalysisResult(analysisResult);
+        PassBoundaryToList(resultTexture);
+        List<PPSpace> newSpaces = GenerateSpaces();
+        foreach (var nSpace in newSpaces)
+        {
+            for (int i = 0; i < existingSpaces.Count; i++)
+            {
+                var eSpace = existingSpaces[i];
+                var eIndices = existingIndices[i];
+
+                if (nSpace.CompareSpaces(eSpace, eIndices))
+                {
+                    //The existing space parameters should be evaluated here
+                    nSpace.Name = "Existing";
+                    existingSpaces.Remove(eSpace);
+                    print($"Found existing Space");
+                    break;
+                }
+            }
+            foreach (var eSpace in existingSpaces)
+            {
+                
+            }
+        }
+        Spaces = newSpaces;
+        //aiStopwatch.Stop();
+        //var t = aiStopwatch.ElapsedMilliseconds;
+        //print($"Took {t} ms to update");
+    }
+
+    /// <summary>
     /// Generate spaces on the voxels that are not inside the parts boudaries, or space or part
     /// The method is inspired by a BFS algorithm, continuously checking the neighbours of the
     /// processed voxels until the minimum area is reached. It is designed to be called in a loop 
     /// that feeds the numbering / naming of the spaces
     /// </summary>
     /// <param name="number">Current number of the space</param>
-    private void GenerateSingleSpace(int number)
+    private PPSpace GenerateSingleSpace(int number, out bool result)
     {
         int maximumArea = 1000; //in voxel ammount
         var availableVoxels = ActiveVoxelsAsList().Where(v => !Boundaries.Contains(v) && !v.IsOccupied && !v.InSpace).ToList();
-        if (availableVoxels.Count == 0) return;
-        Voxel originVoxel = availableVoxels[0];
-
         //Initiate a new space
         PPSpace space = new PPSpace(this);
+        result = true;
+        if (availableVoxels.Count == 0)
+        {
+            result = false;
+            return space;
+        }
+        Voxel originVoxel = availableVoxels[0];
+
         originVoxel.InSpace = true;
         originVoxel.ParentSpace = space;
         space.Voxels.Add(originVoxel);
@@ -271,26 +354,33 @@ public class VoxelGrid : MonoBehaviour
         }
         space.Name = $"Space_{number.ToString()}";
         space.CreateArrow();
-        Spaces.Add(space);
+        return space;
+        //Spaces.Add(space);
     }
 
     /// <summary>
     /// Generate spaces by looping <see cref="GenerateSingleSpace(int)"/> until all voxels are 
     /// assigned a space
     /// </summary>
-    private void GenerateSpaces()
+    private List<PPSpace> GenerateSpaces()
     {
+        //New spaces list
+        List<PPSpace> newSpaces = new List<PPSpace>();
         //Destroy existing spaces
         foreach (var space in Spaces) space.DestroySpace();
 
         //Clear spaces list
-        Spaces = new List<PPSpace>();
+        //Spaces = new List<PPSpace>();
 
         int i = 0;
         //Generate spaces on vacant voxels inside boundaries
         while (ActiveVoxelsAsList().Any(v => !Boundaries.Contains(v) && !v.IsOccupied && !v.InSpace))
         {
-            GenerateSingleSpace(i++);
+            var space = GenerateSingleSpace(i++, out bool result);
+            if (result)
+            {
+                newSpaces.Add(space);
+            }
         }
 
 
@@ -300,6 +390,7 @@ public class VoxelGrid : MonoBehaviour
             Voxels2SmallestNeighbour(Boundaries.Where(b => !b.InSpace));
         }
 
+        return newSpaces;
         //_activityLog = $"AI Message: Generated {Spaces.Count} Spaces";
     }
 
@@ -337,10 +428,19 @@ public class VoxelGrid : MonoBehaviour
         GameObject reference = Resources.Load<GameObject>($"GameObjects/{_gridName}_{_gridType}_prefab");
         GridGO = Instantiate(reference);
         GridGO.transform.localPosition = Vector3.zero;
-        //GridGO.transform.localPosition = Vector3.one * (-VoxelSize / 2);
         GridGO.transform.localScale = new Vector3(VoxelSize, VoxelSize, VoxelSize);
-        //GridGO.SetActive(!_showVoxels);
-        //GridGO.GetComponent<MeshRenderer>().enabled = _showVoxels;
+        SetGOVisibility(!_showVoxels);
+    }
+
+    /// <summary>
+    /// Creates a generic rectangular slab GameObject
+    /// </summary>
+    private void InstantiateGenericGO()
+    {
+        GameObject reference = Resources.Load<GameObject>($"GameObjects/GenericSlab");
+        GridGO = Instantiate(reference);
+        GridGO.transform.localScale = new Vector3(Size.x, Size.y, Size.z) * VoxelSize;
+        GridGO.transform.localPosition = Origin + (GridGO.transform.localScale / 2f);
         SetGOVisibility(!_showVoxels);
     }
 
@@ -444,6 +544,15 @@ public class VoxelGrid : MonoBehaviour
     }
 
     /// <summary>
+    /// Gets the image from the grid
+    /// </summary>
+    /// <returns></returns>
+    private Texture2D GetImage()
+    {
+        return ImageReadWrite.TextureFromGrid(this);
+    }
+
+    /// <summary>
     /// Reads a structre file and creates the parts, feeding them into the _existingParts list
     /// </summary>
     /// <param name="file">The file to be read</param>
@@ -509,12 +618,20 @@ public class VoxelGrid : MonoBehaviour
     /// <param name="visibility">The value to set</param>
     public void SetGOVisibility(bool visibility)
     {
-        for (int i = 0; i < GridGO.transform.childCount; i++)
+        if (GridGO.transform.childCount > 0)
         {
-            var mRenderer = GridGO.transform.GetChild(i).GetComponent<MeshRenderer>();
+            for (int i = 0; i < GridGO.transform.childCount; i++)
+            {
+                var mRenderer = GridGO.transform.GetChild(i).GetComponent<MeshRenderer>();
+                mRenderer.enabled = visibility;
+            }
+        }
+
+        else
+        {
+            var mRenderer = GridGO.transform.GetComponent<MeshRenderer>();
             mRenderer.enabled = visibility;
         }
-        
     }
 
 }

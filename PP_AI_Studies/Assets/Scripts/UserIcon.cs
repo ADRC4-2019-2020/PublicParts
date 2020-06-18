@@ -15,7 +15,7 @@ public class UserIcon : MonoBehaviour
     public void SetSpace(PPSpace space, VoxelGrid grid)
     {
         _space = space;
-        transform.position = _space.GetCenter() + (new Vector3(0, 1.5f, 0) * grid.VoxelSize);
+        transform.localPosition = _space.GetCenter() + (new Vector3(0, 1.5f, 0) * grid.VoxelSize);
     }
 
     public void ReleaseSpace()

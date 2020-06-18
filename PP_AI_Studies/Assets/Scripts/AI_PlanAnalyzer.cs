@@ -830,7 +830,7 @@ public class AI_PlanAnalyzer : MonoBehaviour
                     color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
                 }
             }
-            PP_Drawing.DrawSpace(space, _grid, color);
+            PP_Drawing.DrawSpace(space, _grid, color, Vector3.zero);
         }
         
     }

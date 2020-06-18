@@ -106,7 +106,7 @@ class PP_Drawing : MonoBehaviour
     {
         var color = _gradient.Evaluate(t);
         //var color = new Color(0.9f, 0.9f, 0.9f);
-        _properties.SetColor("_Color", color);
+        _properties.SetColor("_BaseColor", color);
 
         var matrix = Matrix4x4.TRS(
                 center,
@@ -130,7 +130,7 @@ class PP_Drawing : MonoBehaviour
     public static void DrawCubeTransparent(Vector3 center, float size)
     {
         var color = new Color(0.9f, 0.25f, 0.25f, 0.70f);
-        _properties.SetColor("_Color", color);
+        _properties.SetColor("_BaseColor", color);
 
         var matrix = Matrix4x4.TRS(
                 center,
@@ -148,7 +148,7 @@ class PP_Drawing : MonoBehaviour
         {
             var voxel = voxels[i];
             var color = colors[i];
-            _properties.SetColor("_Color", color);
+            _properties.SetColor("_BaseColor", color);
 
             var center = voxel.Center + (Vector3.up * size);
             var matrix = Matrix4x4.TRS(
@@ -180,7 +180,7 @@ class PP_Drawing : MonoBehaviour
     //        var color = new Color(r, g, b, 0.70f);
     //        _properties.SetColor("_Color", color);
     //        var space = spaces[i];
-            
+
     //        foreach (var voxel in space.Voxels)
     //        {
     //            var center = voxel.Center + (Vector3.up*voxelSize);
@@ -195,16 +195,16 @@ class PP_Drawing : MonoBehaviour
     //    }
     //}
 
-    public static void DrawSpace(PPSpace space, VoxelGrid grid, Color color)
+    public static void DrawSpace(PPSpace space, VoxelGrid grid, Color color, Vector3 origin)
     {
         var voxelSize = grid.VoxelSize;
 
-        _properties.SetColor("_Color", color);
+        _properties.SetColor("_BaseColor", color);
 
         foreach (var voxel in space.Voxels)
         {
-            Vector3 index = new Vector3(voxel.Index.x + 0.5f, voxel.Index.y + 0.5f, voxel.Index.z + 0.5f) * voxelSize;
-            var center = grid.GridGO.transform.position + index + (Vector3.up * voxelSize);
+            Vector3 index = origin + (new Vector3(voxel.Index.x + 0.5f, voxel.Index.y + 0.5f, voxel.Index.z + 0.5f) * voxelSize);
+            var center = index + (Vector3.up * voxelSize);
             var matrix = Matrix4x4.TRS(
             center,
             Quaternion.identity,
@@ -248,7 +248,7 @@ class PP_Drawing : MonoBehaviour
     public static void DrawBar(Vector3 start, Vector3 end, float radius, float t)
     {
         var color = _gradient.Evaluate(t);
-        _properties.SetColor("_Color", color);
+        _properties.SetColor("_BaseColor", color);
 
         var vector = end - start;
 

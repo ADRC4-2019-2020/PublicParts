@@ -22,7 +22,7 @@ public class PP_Environment : MonoBehaviour
     Vector3Int _gridSize;
 
     //Grid setup
-    //Currently available slabs: 44_44_A, 50_32_C, 38_26_C, 44_32_C
+    //Currently available slabs: 44_44_A
     string _gridName = "44_44";
     string _gridType = "A";
     GameObject _gridGO;
@@ -72,13 +72,19 @@ public class PP_Environment : MonoBehaviour
 
     PPSpace _selectedSpace;
 
+    //
+    // Unity Methods
+    //
+
     void Start()
     {
         _cam = Camera.main;
 
         //CreateGridFromFile();
-        _grid = new VoxelGrid(_gridName, _gridType, _voxelSize, transform.position);
-        _gridSize = _grid.Size;
+        //_grid = new VoxelGrid(_gridName, _gridType, _voxelSize, transform.position);
+        //_gridSize = _grid.Size;
+        _gridSize = new Vector3Int(24, 1, 12);
+        _grid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true);
         _boundaries = _grid.Boundaries;
         _gridGO = _grid.GridGO;
         _gridGO.transform.SetParent(transform);
@@ -87,8 +93,13 @@ public class PP_Environment : MonoBehaviour
         _tenants = JSONReader.ReadTenantsWithPreferences("Input Data/U_TenantPreferences", _grid);
         _spaceRequests = JSONReader.ReadSpaceRequests("Input Data/U_SpaceRequests", _tenants);
         _cameraPivot.position = new Vector3(_grid.Size.x / 2, 0, _grid.Size.z / 2) * _voxelSize;
-    }
 
+        //Create Configurable Parts
+        CreateConfigurable(new Vector3Int(8, 0, 8), 1);
+        CreateConfigurable(new Vector3Int(18, 0, 1), 3);
+        AnalyzeGridCreateNewSpaces();
+        
+    }
 
     void Update()
     {
@@ -129,19 +140,55 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Runs the populate and analyze method from the <see cref="VoxelGrid"/> 
     /// </summary>
-    void ExecutePopAndAnalysisOnGrid()
+    private void ExecutePopAndAnalysisOnGrid()
     {
         _grid.RunPopulationAndAnalysis();
         _existingParts = _grid.ExistingParts;
+        _boundaries = _grid.Boundaries;
+        _spaces = _grid.Spaces;
         //SetParentForNewConfigurables();
     }
 
+    /// <summary>
+    /// Runs the analyze, creating new spaces
+    /// </summary>
+    public void AnalyzeGridCreateNewSpaces()
+    {
+        _grid.RunAnalysisCreateNewSpaces();
+        _boundaries = _grid.Boundaries;
+        _spaces = _grid.Spaces;
+    }
+
+    /// <summary>
+    /// Analyzes the current state of the grid, attempting to keep and update the spaces
+    /// that can be understood as the same
+    /// </summary>
+    public void AnalyzeGridUpdateSpaces()
+    {
+        _grid.RunAnalysisUpdateSpaces();
+        _boundaries = _grid.Boundaries;
+        _spaces = _grid.Spaces;
+    }
+
+    /// <summary>
+    /// Creates a configurable part in the selected origin with the set rotation
+    /// </summary>
+    /// <param name="origin">Origin to place the ReferenceIndex</param>
+    /// <param name="rotation">Rotation to be applied</param>
+    private void CreateConfigurable(Vector3Int origin, int rotation)
+    {
+        ConfigurablePart p = new ConfigurablePart(_grid, origin, rotation, !_showVoxels, out bool success);
+        if (success)
+        {
+            _existingParts.Add(p);
+        }
+    }
 
     /// <summary>
     /// UPDATE THIS TO RUN ON EVIRONMENT Gets the space that the Arrow object represents 
     /// </summary>
     /// <returns>The PPSpace object</returns>
-    PPSpace GetSpaceFromArrow()
+    private PPSpace GetSpaceFromArrow()
     {
         //This method allows clicking on the InfoArrow
         //and returns its respective space
@@ -178,7 +225,7 @@ public class PP_Environment : MonoBehaviour
     /// IEnumerator to run the daily progression of the occupation simulation
     /// </summary>
     /// <returns></returns>
-    IEnumerator DailyProgression()
+    private IEnumerator DailyProgression()
     {
         while (_day < 365)
         {
@@ -226,7 +273,7 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Check if spaces need to be reconfigured
     /// </summary>
-    void CheckSpaces()
+    private void CheckSpaces()
     {
         foreach (var space in _spaces)
         {
@@ -257,7 +304,7 @@ public class PP_Environment : MonoBehaviour
     /// Check if there are enough reconfiguration requests to reconfigure the whole plan
     /// NOTE: TEMPORARY METHOD
     /// </summary>
-    void CheckForReconfiguration()
+    private void CheckForReconfiguration()
     {
         if (_spaces.Count(s => s.Reconfigure) >= 2)
         {
@@ -269,7 +316,7 @@ public class PP_Environment : MonoBehaviour
     /// Attempts to assign a space to a request made by a Tenant
     /// </summary>
     /// <param name="request">The Request object</param>
-    void RequestSpace(PPSpaceRequest request)
+    private void RequestSpace(PPSpaceRequest request)
     {
         var requestArea = request.Population * request.Tenant.AreaPerIndInferred; //Request area assuming the area the tenant prefers per individual
         var availableSpaces = _spaces.Where(s => !s.Occupied && !s.IsSpare);
@@ -291,7 +338,7 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Move simulation to next hour, keeping track of time, day number and weekday
     /// </summary>
-    void NextHour()
+    private void NextHour()
     {
         _hour++;
         if (_hour % 24 == 0)
@@ -324,7 +371,7 @@ public class PP_Environment : MonoBehaviour
     /// voxel and GameObject visualization
     /// </summary>
     /// <param name="visible">The boolean trigger</param>
-    void SetGameObjectsVisibility(bool visible)
+    private void SetGameObjectsVisibility(bool visible)
     {
         var configurables = _existingParts.OfType<ConfigurablePart>().ToArray();
         if (configurables.Length > 0)
@@ -341,7 +388,7 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Draws the current VoxelGrid state with mesh voxels
     /// </summary>
-    void DrawState()
+    private void DrawState()
     {
         for (int x = 0; x < _gridSize.x; x++)
         {
@@ -383,7 +430,7 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Draws the boundary voxels with meshes
     /// </summary>
-    void DrawBoundaries()
+    private void DrawBoundaries()
     {
         foreach (var voxel in _boundaries)
         {
@@ -397,7 +444,7 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Represents the spaces with voxel meshes
     /// </summary>
-    void DrawSpaces()
+    private void DrawSpaces()
     {
         foreach (var space in _grid.Spaces)
         {
@@ -425,15 +472,14 @@ public class PP_Environment : MonoBehaviour
                     color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
                 }
             }
-            PP_Drawing.DrawSpace(space, _grid, color);
+            PP_Drawing.DrawSpace(space, _grid, color, transform.position);
         }
-
     }
 
     /// <summary>
     /// Draws the space tags
     /// </summary>
-    void DrawSpaceTags()
+    private void DrawSpaceTags()
     {
         if (_showSpaces)
         {
@@ -455,7 +501,7 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Draws a box in the pivot point of the voxel configurable part
     /// </summary>
-    void DrawPartPivot()
+    private void DrawPartPivot()
     {
         foreach (var part in _existingParts)
         {
@@ -520,9 +566,9 @@ public class PP_Environment : MonoBehaviour
         //Populate Button and save several - AI
         if (GUI.Button(new Rect(leftPad, topPad + ((fieldHeight + 10) * i++),
             (fieldTitleWidth + leftPad + textFieldWidth), fieldHeight),
-            "Populate and Generate Spaces [AI]"))
+            "Update Generate Spaces [AI]"))
         {
-            ExecutePopAndAnalysisOnGrid();
+            AnalyzeGridCreateNewSpaces();
         }
 
         if (_spaces.Any())
@@ -548,8 +594,11 @@ public class PP_Environment : MonoBehaviour
         }
     }
 
-    //Debug Window
-    void DebugWindow(int windowID)
+    /// <summary>
+    /// Debug Window
+    /// </summary>
+    /// <param name="windowID">The Id to be called</param>
+    private void DebugWindow(int windowID)
     {
         GUIStyle style = _skin.GetStyle("debugWindow");
         int leftPad = 10;
@@ -584,7 +633,8 @@ public class PP_Environment : MonoBehaviour
         _debugMessage = "";
         if (_showSpaces && _showSpaceData)
         {
-            _debugMessage = _selectedSpace.GetSpaceInfo();
+            //_debugMessage = _selectedSpace.GetSpaceInfo();
+            _debugMessage = _spaceData;
         }
         else
         {

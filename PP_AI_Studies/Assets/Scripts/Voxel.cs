@@ -7,7 +7,7 @@ using System.Linq;
 public class Voxel : IEquatable<Voxel>
 {
     public Vector3Int Index;
-    public Vector3 Center;
+    public Vector3 Center => _grid.Origin + new Vector3(Index.x + 0.5f, Index.y + 0.5f, Index.z + 0.5f) * _grid.VoxelSize;
     public bool IsOccupied;
     public bool IsActive;
     public List<Face> Faces = new List<Face>(6);
@@ -23,10 +23,13 @@ public class Voxel : IEquatable<Voxel>
     {
         _grid = grid;
         Index = index;
-        Center = _grid.Origin + new Vector3(index.x + 0.5f, index.y + 0.5f, index.z + 0.5f) * _grid.VoxelSize;
         IsOccupied = false;
         IsActive = true;
     }
+    /// <summary>
+    /// Clean slate Constructor
+    /// </summary>
+    public Voxel() { }
 
     public IEnumerable<Voxel> GetFaceNeighbours()
     {
@@ -94,5 +97,18 @@ public class Voxel : IEquatable<Voxel>
     {
         return Index.GetHashCode() + IsActive.GetHashCode() + IsOccupied.GetHashCode();
     }
+
+    //public Voxel DeepCopy()
+    //{
+    //    Voxel newVoxel = new Voxel(new Vector3Int(Index.x, Index.y, Index.z), _grid);
+
+    //    newVoxel.IsOccupied = IsOccupied;
+    //    newVoxel.IsActive = IsActive;
+    //    newVoxel.Faces = Faces;
+    //    newVoxel.Part = Part;
+    //    newVoxel.InSpace = InSpace;
+
+    //    return newVoxel;
+    //}
 
 }

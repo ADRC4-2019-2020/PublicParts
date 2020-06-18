@@ -16,7 +16,6 @@ public class Tenant : IEquatable<Tenant>
 
     //Area preferences are stored in a linear, 2 instances array. [0] = min, [1] = max
     //This represents the area in square meters per person in the population occupying the space
-    //public Dictionary<SpaceFunction, int[]> AreaPreferences = new Dictionary<SpaceFunction, int[]>();
     public Dictionary<SpaceFunction, float[]> AreaPreferences = new Dictionary<SpaceFunction, float[]>();
 
     //The preferred area per individual in a population in square meters
@@ -40,24 +39,31 @@ public class Tenant : IEquatable<Tenant>
     {
         float scale = _grid.VoxelSize;
         _userIcon = GameObject.Instantiate(Resources.Load<GameObject>("GameObjects/UserIcon"));
+        _userIcon.name = Name;
         _userIcon.transform.localScale = _userIcon.transform.localScale * scale;
-        _userIcon.SetActive(false);
+        _userIcon.transform.SetParent(_grid.GridGO.transform.parent);
         _userIcon.GetComponent<UserIcon>().SetTenant(this);
         Color c = new Color(UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value);
-        _userIcon.GetComponentInChildren<MeshRenderer>().material.SetColor("_Color", c);
+        _userIcon.GetComponentInChildren<MeshRenderer>().material.SetColor("_BaseColor", c);
+        SetGOVisibility(false);
     }
 
     public void SetSpaceToIcon(PPSpace space, VoxelGrid grid)
     {
-        _userIcon.SetActive(true);
+        SetGOVisibility(true);
         _userIcon.GetComponent<UserIcon>().SetSpace(space, grid);
-        //_userIcon.SetActive(true);
+    }
+
+    public void SetGOVisibility(bool visible)
+    {
+        MeshRenderer mRenderer = _userIcon.transform.GetChild(0).GetComponent<MeshRenderer>();
+        mRenderer.enabled = visible;
     }
 
     public void ReleaseIcon()
     {
         _userIcon.GetComponent<UserIcon>().ReleaseSpace();
-        _userIcon.SetActive(false);
+        SetGOVisibility(false);
         _userIcon.transform.position = Vector3.zero;
     }
     

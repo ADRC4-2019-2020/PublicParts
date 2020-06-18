@@ -22,7 +22,9 @@ public class PPSpace : IEquatable<PPSpace>
     private PPSpaceRequest _usedRequest;
     private int _durationLeft;
 
-    //The average center of this space, used to create the data exposer
+    /// <summary>
+    /// The average center of this space, used to create the data exposer
+    /// </summary>
     Vector3 _center => new Vector3(
         Indices.Average(i => (float)i.x),
         0,
@@ -31,8 +33,9 @@ public class PPSpace : IEquatable<PPSpace>
     //Game object used to visualize space data
     GameObject _infoArrow;
 
-    //Boudary voxels are voxels which have at least
-    //one face neighbour which isn't part of its ParentSpace
+    /// <summary>
+    /// Boudary voxels are voxels which have at least one face neighbour which isn't part of its ParentSpace
+    /// </summary>
     public IEnumerable<Voxel> BoundaryVoxels => Voxels.Where(v =>
         v.GetFaceNeighbours()
         .Any(n => !Voxels.Contains(n))
@@ -52,24 +55,30 @@ public class PPSpace : IEquatable<PPSpace>
 
     //Defines if a space should be regarded as spare given its average widths and area 
     public bool IsSpare => AverageXWidth < 2.20f || AverageZWidth < 2.20f || Area < 4.0f? true : false;
-    
+
     //Connectivity Parameters
-    //Get from the boundary voxels, the ones that represent connections
-    //to other spaces
+
+    /// <summary>
+    /// Get from the boundary voxels, the ones that represent connections to other spaces
+    /// </summary>
     public IEnumerable<Voxel> ConnectionVoxels => 
         BoundaryVoxels.Where(v => 
         v.GetFaceNeighbours()
         .Any(n => n.ParentSpace != this && n.InSpace));
 
-    //The number of voxels connecting this space to others
+    /// <summary>
+    /// The number of voxels connecting this space to others
+    /// </summary>
     public int NumberOfConnections => ConnectionVoxels.Count();
-    
-    //The ratio (0.00 -> 1.00) between the number of voxels on the 
-    //boundary of the space and the amount of voxels that
-    //are connected to other spaces
+
+    /// <summary>
+    /// The ratio (0.00 -> 1.00) between the number of voxels on the boundary of the space and the amount of voxels that are connected to other spaces
+    /// </summary>
     public float ConnectionRatio => (float)Math.Round((float)NumberOfConnections / BoundaryVoxels.Count(), 2);
-    
-    //The spaces that are connected to this one
+
+    /// <summary>
+    /// The spaces that are connected to this one
+    /// </summary>
     public IEnumerable<PPSpace> NeighbourSpaces
     {
         get
@@ -90,9 +99,10 @@ public class PPSpace : IEquatable<PPSpace>
             return tempSpaces.Distinct().Where(s => s != null);
         }
     }
-    
-    //A Dictionary representing the connection lenght
-    //in voxel units between this space and its neighbours
+
+    /// <summary>
+    /// A Dictionary representing the connection lenght in voxel units between this space and its neighbours
+    /// </summary>
     public Dictionary<PPSpace,int> ConnectionLenghts
     {
         get
@@ -133,10 +143,10 @@ public class PPSpace : IEquatable<PPSpace>
         _grid = grid;
     }
 
-    public PPSpace()
-    {
-        //This is a generic constructor. 
-    }
+    /// <summary>
+    /// Generic constructor
+    /// </summary>
+    public PPSpace() { }
     //
     //METHODS AND FUNCTIONS
     //
@@ -169,6 +179,10 @@ public class PPSpace : IEquatable<PPSpace>
         return s;
     }
 
+    /// <summary>
+    /// Destrous the space by clearing the voxels in the grid
+    /// </summary>
+    /// <returns></returns>
     public List<Voxel> DestroySpace()
     {
         //Destroys a space by removing and cleaning its voxels beforehand
@@ -184,6 +198,10 @@ public class PPSpace : IEquatable<PPSpace>
         return orphans;
     }
 
+    /// <summary>
+    /// Occupies the space by a tenant according to a request
+    /// </summary>
+    /// <param name="request">The request that summoned the space</param>
     public void OccupySpace(PPSpaceRequest request)
     {
         Occupied = true;
@@ -193,6 +211,10 @@ public class PPSpace : IEquatable<PPSpace>
         _occupyingTenant.SetSpaceToIcon(this, _grid);
     }
 
+    /// <summary>
+    /// Iterates the use of the space by a Tenant through time
+    /// </summary>
+    /// <returns>Helper string</returns>
     public string UseSpace()
     {
         if (_durationLeft == 0)
@@ -208,6 +230,9 @@ public class PPSpace : IEquatable<PPSpace>
         }
     }
 
+    /// <summary>
+    /// Releases the space from the tenant and request
+    /// </summary>
     void ReleaseSpace()
     {
         EvaluateSpace();
@@ -219,15 +244,20 @@ public class PPSpace : IEquatable<PPSpace>
         //Debug.Log($"{Name} has been released");
     }
 
+    /// <summary>
+    /// Calls the evaluation of the space's Area and Connectivity
+    /// </summary>
     void EvaluateSpace()
     {
         EvaluateSpaceArea();
         EvaluateSpaceConnectivity();
     }
 
+    /// <summary>
+    /// Evaluates the space area based on the <see cref="Tenant"/>'s preferences
+    /// </summary>
     void EvaluateSpaceArea()
     {
-        //Evaluate for AREA preferences
         //Reading and Evaluation is ok, positive feedback diferentiation / scale still not implemented
         var requestFunction = _usedRequest.Function;
         var tenantAreaPref = _occupyingTenant.AreaPreferences[requestFunction];
@@ -256,10 +286,12 @@ public class PPSpace : IEquatable<PPSpace>
         //Update area score
         AreaScore = _areaRating / TimesUsed;
     }
-    
+
+    /// <summary>
+    /// Evaluates the space connectivity based on the <see cref="Tenant"/>'s preferences
+    /// </summary>
     void EvaluateSpaceConnectivity()
     {
-        //Evaluate for CONNECTIVITY preferences
         var requestFunction = _usedRequest.Function;
         var tenantConnectPref = _occupyingTenant.ConnectivityPreferences[requestFunction];
         var tenantConnectMin = tenantConnectPref[0]; //This is a float (percentage)
@@ -288,23 +320,36 @@ public class PPSpace : IEquatable<PPSpace>
         ConnectivityScore = _connectivityRating / TimesUsed;
     }
 
+    /// <summary>
+    /// Creathes the InfoArrow of the space
+    /// </summary>
     public void CreateArrow()
     {
         //Instantiates the InfoArrow GameObject on the average center of the space
         //and sets this space to be referenced by the arrow
         _infoArrow = GameObject.Instantiate(Resources.Load<GameObject>("GameObjects/InfoArrow"));
-        _infoArrow.transform.position = _grid.GridGO.transform.position + _grid.Origin + _center + new Vector3(0,1.75f,0);
+        _infoArrow.name = "Space_" + Name;
+        //_infoArrow.transform.position = _grid.GridGO.transform.position + _grid.Origin + _center + new Vector3(0,1.75f,0);
         _infoArrow.transform.SetParent(_grid.GridGO.transform.parent);
+        _infoArrow.transform.localPosition = _center + new Vector3(0, 1.75f, 0);
         _infoArrow.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
         _infoArrow.GetComponent<InfoArrow>().SetSpace(this);
     }
 
+    /// <summary>
+    /// Sets the visibility of the InfoArrow GameObject
+    /// </summary>
+    /// <param name="visible"></param>
     public void InfoArrowVisibility(bool visible)
     {
         //Sets the visibility / state of the space's InfoArrow
         _infoArrow.SetActive(visible);
     }
 
+    /// <summary>
+    /// Gets the information from the space
+    /// </summary>
+    /// <returns>The formated infomation</returns>
     public string GetSpaceInfo()
     {
         string output = "";
@@ -409,9 +454,54 @@ public class PPSpace : IEquatable<PPSpace>
         return output;
     }
 
+    /// <summary>
+    /// Gets the averaged center of the space
+    /// </summary>
+    /// <returns>The center <see cref="Vector3"/></returns>
     public Vector3 GetCenter()
     {
         return _center;
+    }
+
+    /// <summary>
+    /// Compare this space to another, given its indexes, to define if they can be regarded as the same
+    /// </summary>
+    /// <param name="other">The other space</param>
+    /// <param name="otherIndexes">The indices of the other space</param>
+    /// <returns>The comparison boolean result</returns>
+    public bool CompareSpaces(PPSpace other, HashSet<Vector3Int> otherIndexes)
+    {
+        float percentCap = 0.8f;
+        int sizeCap = 8;
+        float big;
+        float small;
+        //First check if the size is beyond cap
+        if (VoxelCount >= other.VoxelCount)
+        {
+            big = VoxelCount * 1.00f;
+            small = otherIndexes.Count * 1.00f;
+        }
+        else
+        {
+            big = otherIndexes.Count * 1.00f;
+            small = VoxelCount * 1.00f;
+            
+        }
+        if (small / big < percentCap && big - small > sizeCap)
+        {
+            return false;
+        }
+
+        //Check the intersection
+        int intersection = Indices.Intersect(other.Indices).Count();
+        if (intersection /big < percentCap)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 
     //Equality checking

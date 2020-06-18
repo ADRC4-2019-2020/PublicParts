@@ -12,7 +12,9 @@ public class ConfigurablePart : Part
     //The GameObject that represents the configurable part
     public GameObject CPGameObject { get; private set; }
 
-    //The configurable part agente
+    private PP_Environment _environtment;
+
+    //The configurable part agent
     public ConfigurablePartAgent CPAgent { get; private set; }
 
     /// <summary>
@@ -73,6 +75,7 @@ public class ConfigurablePart : Part
         //This constructor creates a random configurable part in the specified grid. 
         Type = PartType.Configurable;
         Grid = grid;
+        _environtment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
         /*int minimumDistance = 6;*/ //In voxels
         Size = new Vector2Int(6, 2); //6 x 2 configurable part size SHOULD NOT BE HARD CODED
         nVoxels = Size.x * Size.y;
@@ -154,7 +157,7 @@ public class ConfigurablePart : Part
                 }
             }
 
-            //Validate based on existing partes
+            //Validate based on existing parts
             if (allInside)
             {
                 if (!CheckValidDistance()) continue;
@@ -168,13 +171,80 @@ public class ConfigurablePart : Part
     }
     
     /// <summary>
+    /// Creates a ConfigurablePart in the specified index, with the desired rotation. 
+    /// If it tries to create a part in an invalid position, the output boolean will be false and
+    /// neither the GameObject will be created nor the grid will be modified.
+    /// </summary>
+    /// <param name="grid">The <see cref="VoxelGrid"/> to create the <see cref="ConfigurablePart"/> in.</param>
+    /// <param name="originIndex">The origin index on the <see cref="VoxelGrid"/></param>
+    /// <param name="rotation">The rotation to apply to the <see cref="ConfigurablePart"/>, multiplied by 90</param>
+    /// <param name="goVisibility">The initial visibility state of the <see cref="GameObject"/></param>
+    /// <param name="success">The output representing the success of the operation</param>
+    public ConfigurablePart(VoxelGrid grid, Vector3Int originIndex , int rotation, bool goVisibility, out bool success)
+    {
+        //This constructor creates a random configurable part in the specified grid. 
+        Type = PartType.Configurable;
+        Grid = grid;
+        _environtment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
+        Size = new Vector2Int(6, 2); //6 x 2 configurable part size SHOULD NOT BE HARD CODED
+        nVoxels = Size.x * Size.y;
+        OccupiedIndexes = new Vector3Int[nVoxels];
+        IsStatic = false;
+        Height = 6;
+        success = false;
+
+        //Start from horizontal position
+        Orientation = PartOrientation.Horizontal;
+        ReferenceIndex = originIndex;
+        
+        SetPivot();
+        GetOccupiedIndexes();
+
+        //Set actual orientation and rotation
+        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, rotation * 90f, 0)); ;
+
+        //Apply rotation
+        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        {
+            //Rotate index
+            var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
+            Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - PartPivot) + PartPivot;
+
+            //Resulting coordinates
+            int x = Mathf.RoundToInt(rotatedIndex.x);
+            int y = Mathf.RoundToInt(rotatedIndex.y);
+            int z = Mathf.RoundToInt(rotatedIndex.z);
+
+            OccupiedIndexes[i] = new Vector3Int(x, y, z);
+        }
+
+        //Validate part on grid
+        foreach (var index in OccupiedIndexes)
+        {
+            if (index.x >= Grid.Size.x || index.x < 0 || index.y >= Grid.Size.y || index.y < 0 || index.z >= Grid.Size.z || index.z < 0)
+            {
+                return;
+            }
+            else if (Grid.Voxels[index.x, index.y, index.z].IsOccupied || !Grid.Voxels[index.x, index.y, index.z].IsActive)
+            {
+                return;
+            }
+        }
+
+        //Set creation as successful and create the part on grid and create GO
+        success = true;
+        OccupyVoxels();
+        CreateGameObject(rotation);
+        SetGOVisibility(goVisibility);
+    }
+
+    /// <summary>
     /// Sets the value of the PartPivot of the Configurable Part
     /// </summary>
     private void SetPivot()
     {
         PartPivot = new Vector3(ReferenceIndex.x - 0.5f, ReferenceIndex.y, ReferenceIndex.z - 0.5f);
     }
-    
 
     /// <summary>
     /// Checks if the proposed position for a new ConfigurablePart is valid on its parent Grid.
@@ -377,8 +447,14 @@ public class ConfigurablePart : Part
         CPAgent.SetVisibility(visible);
     }
 
+    //
+    // Movement methods
+    //
+
     /// <summary>
-    /// Tries to move the ConfigurablePart object in the X direction on the Grid
+    /// Tries to move the ConfigurablePart object in the X direction on the Grid.
+    /// Calls an update of the <see cref="PPSpace"/>s on the <see cref="VoxelGrid"/>
+    /// on every execution.
     /// </summary>
     /// <param name="distance">The distance to be moved</param>
     /// <returns>The boolean representing if movement was successful</returns>
@@ -396,7 +472,7 @@ public class ConfigurablePart : Part
             {
                 int x = OccupiedIndexes[i].x + distance;
                 // If new x position is beyond grid, return false
-                if (x < 0 || x > Grid.Size.x) return false;
+                if (x < 0 || x > Grid.Size.x -1) return false;
 
                 int y = OccupiedIndexes[i].y;
                 int z = OccupiedIndexes[i].z;
@@ -442,12 +518,16 @@ public class ConfigurablePart : Part
         ReferenceIndex += new Vector3Int(distance, 0, 0);
         SetPivot();
 
+        //Call to Update the slab in the environment
+        _environtment.AnalyzeGridUpdateSpaces();
 
         return validMovement;
     }
 
     /// <summary>
     /// Tries to move the ConfigurablePart object in the X direction on the Grid
+    /// Calls an update of the <see cref="PPSpace"/>s on the <see cref="VoxelGrid"/>
+    /// on every execution.
     /// </summary>
     /// <param name="distance">The distance to be moved</param>
     /// <returns>The boolean representing if movement was successful</returns>
@@ -467,7 +547,7 @@ public class ConfigurablePart : Part
                 int y = OccupiedIndexes[i].y;
                 int z = OccupiedIndexes[i].z + distance;
                 // If new z position is beyond grid, return false
-                if (z < 0 || z > Grid.Size.z) return false;
+                if (z < 0 || z > Grid.Size.z -1) return false;
                 var voxel = Grid.Voxels[x, y, z];
 
                 //If the movement includes a voxel that is not active or
@@ -511,116 +591,17 @@ public class ConfigurablePart : Part
         ReferenceIndex += new Vector3Int(0, 0, distance);
         SetPivot();
 
+        //Call to Update the slab in the environment
+        _environtment.AnalyzeGridUpdateSpaces();
+
         return validMovement;
     }
 
     /// <summary>
-    /// Tries to flip the component between horizontal and vertical position
-    /// </summary>
-    /// <returns>The boolean representing if the flipping was successful</returns>
-    public bool FlipComponent()
-    {
-        //Boolean to evalute the validity of the rotation
-        bool validRotation = true;
-        PartOrientation newOrientation = PartOrientation.Horizontal;
-        if (Orientation == PartOrientation.Horizontal) newOrientation = PartOrientation.Vertical;
-
-        Vector3Int[] tempIndexes = new Vector3Int[OccupiedIndexes.Length];
-        if (newOrientation == PartOrientation.Horizontal)
-        {
-            int i = 0;
-            for (int x = 0; x < Size.x; x++)
-            {
-                for (int z = 0; z < Size.y; z++)
-                {
-                    int nX = ReferenceIndex.x + x;
-                    int nY = ReferenceIndex.y;
-                    int nZ = ReferenceIndex.z + z;
-                    if (nX < 0 || nX > Grid.Size.x)
-                    {
-                        validRotation = false;
-                        return validRotation;
-                    }
-                    else if (nZ < 0 || nZ > Grid.Size.z)
-                    {
-                        validRotation = false;
-                        return validRotation;
-                    }
-
-                    var newIndex = new Vector3Int(nX, nY, nZ);
-                    var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
-
-                    if (!newVoxel.IsActive || (newVoxel.IsOccupied && newVoxel.Part != this))
-                    {
-                        validRotation = false;
-                        return validRotation;
-                    }
-
-                    tempIndexes[i++] = newIndex;
-                }
-            }
-        }
-        else if (newOrientation == PartOrientation.Vertical)
-        {
-            int i = 0;
-            for (int x = 0; x < Size.y; x++)
-            {
-                for (int z = 0; z < Size.x; z++)
-                {
-                    int nX = ReferenceIndex.x + x;
-                    int nY = ReferenceIndex.y;
-                    int nZ = ReferenceIndex.z + z;
-                    if (nX < 0 || nX > Grid.Size.x)
-                    {
-                        validRotation = false;
-                        return validRotation;
-                    }
-                    else if (nZ < 0 || nZ > Grid.Size.z)
-                    {
-                        validRotation = false;
-                        return validRotation;
-                    }
-
-                    var newIndex = new Vector3Int(nX, nY, nZ);
-                    var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
-
-                    if (!newVoxel.IsActive || (newVoxel.IsOccupied && newVoxel.Part != this))
-                    {
-                        validRotation = false;
-                        return validRotation;
-                    }
-
-                    tempIndexes[i++] = newIndex;
-                }
-            }
-        }
-
-        //Apply Flipping to grid
-        for (int i = 0; i < OccupiedIndexes.Length; i++)
-        {
-            var preVoxel = Grid.Voxels[OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z];
-            preVoxel.IsOccupied = false;
-            preVoxel.Part = null;
-
-        }
-
-        for (int i = 0; i < OccupiedIndexes.Length; i++)
-        {
-            var newIndex = tempIndexes[i];
-            var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
-            newVoxel.IsOccupied = true;
-            newVoxel.Part = this;
-
-            OccupiedIndexes[i] = newIndex;
-        }
-        Orientation = newOrientation;
-
-        return validRotation;
-    }
-    
-    /// <summary>
     /// Tries to rotate the component around its ReferenceIndex.
     /// A direction of +1 rotetes clockwise and -1 anticlockwise.
+    /// Calls an update of the <see cref="PPSpace"/>s on the <see cref="VoxelGrid"/>
+    /// on every execution.
     /// </summary>
     /// <param name="direction">The direction to rotate </param>
     /// <returns>The boolean representing if the rotation was successful</returns>
@@ -702,6 +683,9 @@ public class ConfigurablePart : Part
             OccupiedIndexes[i] = newIndex;
         }
         Orientation = newOrientation;
+
+        //Call to Update the slab in the environment
+        _environtment.AnalyzeGridUpdateSpaces();
 
         return validRotation;
     }
