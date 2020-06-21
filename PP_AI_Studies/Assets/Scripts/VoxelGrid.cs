@@ -213,7 +213,7 @@ public class VoxelGrid : MonoBehaviour
         Stopwatch aiStopwatch = new Stopwatch();
         aiStopwatch.Start();
         PopulateAndAnalyseGrid();
-        GenerateSpaces();
+        Spaces = GenerateSpaces();
         aiStopwatch.Stop();
         var t = aiStopwatch.ElapsedMilliseconds;
         //_activityLog = $"AI Message: Generated {_spaces.Count} Spaces in {t} ms";
@@ -231,7 +231,9 @@ public class VoxelGrid : MonoBehaviour
         var analysisResult = _pix2pix.GeneratePrediction(gridImage);
         var resultTexture = ProcessAnalysisResult(analysisResult);
         PassBoundaryToList(resultTexture);
+        DestroySpaces();
         Spaces = GenerateSpaces();
+        SetSpacesToConfigurableParts();
         //aiStopwatch.Stop();
         //var t = aiStopwatch.ElapsedMilliseconds;
     }
@@ -244,9 +246,8 @@ public class VoxelGrid : MonoBehaviour
     {
         //Stopwatch aiStopwatch = new Stopwatch();
         //aiStopwatch.Start();
-
         //Copy the existing spaces
-        List<PPSpace> existingSpaces = Spaces;
+        List<PPSpace> existingSpaces = new List<PPSpace>(Spaces);
         //Copy the existing indices
         List<HashSet<Vector3Int>> existingIndices = new List<HashSet<Vector3Int>>();
         foreach (var space in Spaces)
@@ -266,6 +267,62 @@ public class VoxelGrid : MonoBehaviour
         var resultTexture = ProcessAnalysisResult(analysisResult);
         PassBoundaryToList(resultTexture);
         List<PPSpace> newSpaces = GenerateSpaces();
+        List<PPSpace> resultSpaces = new List<PPSpace>();
+        foreach (var nSpace in newSpaces)
+        {
+            PPSpace outSpace = nSpace;
+            for (int i = 0; i < existingSpaces.Count; i++)
+            {
+                var eSpace = existingSpaces[i];
+                var eIndices = existingIndices[i];
+
+                if (nSpace.CompareSpaces(eSpace, eIndices))
+                {
+                    //The existing space parameters should be evaluated here
+                    //nSpace.Name = "Existing";
+                    nSpace.CopyDataFromSpace(eSpace);
+                    existingSpaces.Remove(eSpace);
+                    break;
+                }
+            }
+            //foreach (var eSpace in existingSpaces)
+            //{
+                
+            //}
+        }
+        //DestroySpaces();
+        Spaces = newSpaces;
+        SetSpacesToConfigurableParts();
+        //aiStopwatch.Stop();
+        //var t = aiStopwatch.ElapsedMilliseconds;
+        //print($"Took {t} ms to update");
+    }
+
+    /// <summary>
+    /// Goes through each ConfigurablePart and find its associated spaces
+    /// </summary>
+    private void SetSpacesToConfigurableParts()
+    {
+        foreach (var part in ExistingParts.OfType<ConfigurablePart>())
+        {
+            part.FindAssociatedSpaces();
+        }
+    }
+
+    private void CompareAndKeepSpaces(List<PPSpace> existingSpaces, List<PPSpace> newSpaces)
+    {
+        //Copy the existing indicies from the 
+        List<HashSet<Vector3Int>> existingIndices = new List<HashSet<Vector3Int>>();
+        foreach (var space in existingSpaces)
+        {
+            HashSet<Vector3Int> temp = new HashSet<Vector3Int>();
+            foreach (var index in space.Indices)
+            {
+                temp.Add(new Vector3Int(index.x, index.y, index.z));
+            }
+            existingIndices.Add(temp);
+        }
+
         foreach (var nSpace in newSpaces)
         {
             for (int i = 0; i < existingSpaces.Count; i++)
@@ -278,19 +335,14 @@ public class VoxelGrid : MonoBehaviour
                     //The existing space parameters should be evaluated here
                     nSpace.Name = "Existing";
                     existingSpaces.Remove(eSpace);
-                    print($"Found existing Space");
                     break;
                 }
             }
             foreach (var eSpace in existingSpaces)
             {
-                
+
             }
         }
-        Spaces = newSpaces;
-        //aiStopwatch.Stop();
-        //var t = aiStopwatch.ElapsedMilliseconds;
-        //print($"Took {t} ms to update");
     }
 
     /// <summary>
@@ -353,7 +405,7 @@ public class VoxelGrid : MonoBehaviour
             }
         }
         space.Name = $"Space_{number.ToString()}";
-        space.CreateArrow();
+        space.ValidadeSpace();
         return space;
         //Spaces.Add(space);
     }
@@ -366,9 +418,7 @@ public class VoxelGrid : MonoBehaviour
     {
         //New spaces list
         List<PPSpace> newSpaces = new List<PPSpace>();
-        //Destroy existing spaces
-        foreach (var space in Spaces) space.DestroySpace();
-
+        DestroySpaces();
         //Clear spaces list
         //Spaces = new List<PPSpace>();
 
@@ -392,6 +442,15 @@ public class VoxelGrid : MonoBehaviour
 
         return newSpaces;
         //_activityLog = $"AI Message: Generated {Spaces.Count} Spaces";
+    }
+
+    /// <summary>
+    /// Destroys the existing spaces and clears the existing Spaces list
+    /// </summary>
+    private void DestroySpaces()
+    {
+        foreach (var space in Spaces) space.DestroySpace();
+        Spaces = new List<PPSpace>();
     }
 
     /// <summary>

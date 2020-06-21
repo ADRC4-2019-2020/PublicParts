@@ -215,6 +215,24 @@ class PP_Drawing : MonoBehaviour
         }
     }
 
+    public static void DrawSpaceBoundary(PPSpace space, VoxelGrid grid, Color color, Vector3 origin)
+    {
+        var voxelSize = grid.VoxelSize;
+        _properties.SetColor("_BaseColor", color);
+        var boundary = space.SortedBoundary;
+        for (int i = 0; i < boundary.Length; i++)
+        {
+            Vector3 start = boundary[i];
+            Vector3 end;
+            if (i + 1 >= boundary.Length) end = boundary[0];
+            else end = boundary[i + 1];
+            start = ((start + new Vector3(0.5f, 1.5f, 0.5f)) * voxelSize) + origin;
+            end = ((end + new Vector3(0.5f, 1.5f, 0.5f)) * voxelSize) + origin;
+
+            DrawBar(start, end, 0.05f, color);
+        }
+    }
+
     public static void DrawFace(Vector3 center, Axis direction, float size)
     {
         Quaternion rotation = Quaternion.identity;
@@ -248,6 +266,22 @@ class PP_Drawing : MonoBehaviour
     public static void DrawBar(Vector3 start, Vector3 end, float radius, float t)
     {
         var color = _gradient.Evaluate(t);
+        _properties.SetColor("_BaseColor", color);
+
+        var vector = end - start;
+
+        var matrix = Matrix4x4.TRS(
+                        start + vector * 0.5f,
+                        Quaternion.LookRotation(vector) * Quaternion.Euler(90, 0, 0),
+                        new Vector3(radius, vector.magnitude * 0.5f, radius)
+                        );
+
+        Graphics.DrawMesh(_cylinder, matrix, _instance._opaque, 0, null, 0, _properties);
+    }
+
+    public static void DrawBar(Vector3 start, Vector3 end, float radius, Color color)
+    {
+        //var color = _gradient.Evaluate(t);
         _properties.SetColor("_BaseColor", color);
 
         var vector = end - start;

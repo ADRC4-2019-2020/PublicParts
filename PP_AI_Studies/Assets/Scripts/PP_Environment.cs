@@ -4,15 +4,14 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using System.Diagnostics;
+using System;
 
 /// <summary>
 /// Class to manage the environment in which a simulation occurs
 /// </summary>
 public class PP_Environment : MonoBehaviour
 {
-    //
-    //Fields and Parameters
-    //
+    #region Fields and Parameters
 
     //Object inputs
     [SerializeField] GUISkin _skin;
@@ -21,7 +20,10 @@ public class PP_Environment : MonoBehaviour
     VoxelGrid _grid;
     Vector3Int _gridSize;
 
-    //Grid setup
+    #endregion
+
+    #region Grid setup
+
     //Currently available slabs: 44_44_A
     string _gridName = "44_44";
     string _gridType = "A";
@@ -31,17 +33,20 @@ public class PP_Environment : MonoBehaviour
 
     float _voxelSize = 0.375f;
 
-    //Pix2pix inference object
-    //PP_pix2pix _pix2pix;
+    #endregion
 
-    //Grid data and objects collections
+    #region Grid data and objects collections
+
     List<Part> _existingParts = new List<Part>();
     List<PPSpace> _spaces = new List<PPSpace>();
     List<Voxel> _boundaries = new List<Voxel>();
     List<Tenant> _tenants = new List<Tenant>();
     List<PPSpaceRequest> _spaceRequests = new List<PPSpaceRequest>();
+    List<ReconfigurationRequest> _reconfigurationRequests = new List<ReconfigurationRequest>();
 
-    //Simulation parameters
+    #endregion
+
+    #region Simulation parameters
     int _frame = 0;
 
     int _day = 0;
@@ -54,7 +59,10 @@ public class PP_Environment : MonoBehaviour
 
     bool _progressionRunning = false;
 
-    //Debugging
+    #endregion
+
+    #region Debugging
+
     bool _showDebug = true;
     string _debugMessage;
     string[] _compiledMessage = new string[2];
@@ -72,9 +80,9 @@ public class PP_Environment : MonoBehaviour
 
     PPSpace _selectedSpace;
 
-    //
-    // Unity Methods
-    //
+    #endregion
+
+    #region Unity Methods
 
     void Start()
     {
@@ -95,8 +103,8 @@ public class PP_Environment : MonoBehaviour
         _cameraPivot.position = new Vector3(_grid.Size.x / 2, 0, _grid.Size.z / 2) * _voxelSize;
 
         //Create Configurable Parts
-        CreateConfigurable(new Vector3Int(8, 0, 8), 1);
-        CreateConfigurable(new Vector3Int(18, 0, 1), 3);
+        CreateConfigurable(new Vector3Int(8, 0, 8), 1, "CP_A");
+        CreateConfigurable(new Vector3Int(18, 0, 1), 3, "CP_B");
         AnalyzeGridCreateNewSpaces();
         
     }
@@ -129,13 +137,19 @@ public class PP_Environment : MonoBehaviour
             SetGameObjectsVisibility(_showVoxels);
         }
 
-        //DrawPartPivot();
-        //StartCoroutine(SaveScreenshot());
+        if (_selectedSpace != null)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                SetSpaceToReconfigure();
+            }
+        }
+
     }
 
-    //
-    //Architectural functions and methods
-    //
+    #endregion
+
+    #region Architectural functions and methods
 
     /// <summary>
     /// Runs the populate and analyze method from the <see cref="VoxelGrid"/> 
@@ -168,6 +182,7 @@ public class PP_Environment : MonoBehaviour
         _grid.RunAnalysisUpdateSpaces();
         _boundaries = _grid.Boundaries;
         _spaces = _grid.Spaces;
+        CheckReconfigurationResults();
     }
 
     /// <summary>
@@ -175,11 +190,12 @@ public class PP_Environment : MonoBehaviour
     /// </summary>
     /// <param name="origin">Origin to place the ReferenceIndex</param>
     /// <param name="rotation">Rotation to be applied</param>
-    private void CreateConfigurable(Vector3Int origin, int rotation)
+    private void CreateConfigurable(Vector3Int origin, int rotation, string name)
     {
-        ConfigurablePart p = new ConfigurablePart(_grid, origin, rotation, !_showVoxels, out bool success);
+        ConfigurablePart p = new ConfigurablePart(_grid, origin, rotation, !_showVoxels, name, out bool success);
         if (success)
         {
+            _grid.ExistingParts.Add(p);
             _existingParts.Add(p);
         }
     }
@@ -217,9 +233,19 @@ public class PP_Environment : MonoBehaviour
         return clicked;
     }
 
-    //
-    // Space utilization functions and methods
-    //
+    #endregion
+
+    #region Space utilization functions and methods
+
+    /// <summary>
+    /// Manually sets a space to be reconfigured
+    /// </summary>
+    private void SetSpaceToReconfigure()
+    {
+        ReconfigurationRequest rr = new ReconfigurationRequest(_selectedSpace, 1, 0);
+        _reconfigurationRequests.Add(rr);
+        _selectedSpace.ArtificialReconfigureRequest(0, 1);
+    }
 
     /// <summary>
     /// IEnumerator to run the daily progression of the occupation simulation
@@ -237,7 +263,7 @@ public class PP_Environment : MonoBehaviour
                     CheckForReconfiguration();
                 }
                 _dateTimeNow = $"Day {_day}, {_weekdaysNames[_currentWeekDay]}, {_hour}:00";
-                float hourProbability = Random.value;
+                float hourProbability = UnityEngine.Random.value;
                 foreach (var request in _spaceRequests)
                 {
                     if (request.StartTime == _hour)
@@ -313,6 +339,47 @@ public class PP_Environment : MonoBehaviour
     }
 
     /// <summary>
+    /// Checks the results of the latest reconfiguration against the requests that were made
+    /// </summary>
+    public void CheckReconfigurationResults()
+    {
+        //foreach (var request in _reconfigurationRequests)
+        for (int i = 0; i < _reconfigurationRequests.Count; i++)
+        {
+            var request = _reconfigurationRequests[i];
+            Guid spaceId = request.SpaceId;
+            PPSpace space = _spaces.First(s => s.SpaceId == spaceId);
+            if (space != null)
+            {
+                bool success = request.ReconfigurationSuccessful(space);
+                if (success)
+                {
+                    print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                    space.Reconfigure_Area = false;
+                    space.Reconfigure_Connectivity = false;
+                    foreach (var part in space.BoundaryParts)
+                    {
+                        part.CPAgent.FreezeAgent();
+                    }
+                    _reconfigurationRequests.Remove(request);
+                }
+                else
+                {
+                    print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                    foreach (var part in space.BoundaryParts)
+                    {
+                        part.CPAgent.UnfreezeAgent();
+                    }
+                }
+            }
+            else
+            {
+                //MUST DO SOMETHING HERE WITH THE SPACE WAS DESTROYED, POSSIBLY FREEZE THE AGENTS THROUGH THE REQUEST
+            }
+        }
+    }
+
+    /// <summary>
     /// Attempts to assign a space to a request made by a Tenant
     /// </summary>
     /// <param name="request">The Request object</param>
@@ -350,21 +417,9 @@ public class PP_Environment : MonoBehaviour
         if (_currentWeekDay > 6) _currentWeekDay = 0;
     }
 
-    //
-    //Animation and saving
-    //
-    IEnumerator SaveScreenshot()
-    {
-        //A SAVER OBJECT AND CLASS SHOULD BE IMPLEMENTED, APART FROM THIS CLASS
-        string file = $"SavedFrames/SpaceAnalysis/Frame_{_frame}.png";
-        ScreenCapture.CaptureScreenshot(file, 2);
-        _frame++;
-        yield return new WaitForEndOfFrame();
-    }
+    #endregion
 
-    //
-    //Drawing and Visualizing
-    //
+    #region Drawing and Visualizing
 
     /// <summary>
     /// Change the visibility of the scene's GameObjects, iterating between 
@@ -472,7 +527,7 @@ public class PP_Environment : MonoBehaviour
                     color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
                 }
             }
-            PP_Drawing.DrawSpace(space, _grid, color, transform.position);
+            PP_Drawing.DrawSpaceBoundary(space, _grid, color, transform.position);
         }
     }
 
@@ -513,7 +568,9 @@ public class PP_Environment : MonoBehaviour
         }
     }
 
-    //GUI Controls and Settings
+    #endregion
+
+    #region GUI Controls and Settings
     private void OnGUI()
     {
         GUI.skin = _skin;
@@ -649,4 +706,6 @@ public class PP_Environment : MonoBehaviour
         }
         GUI.Box(new Rect(leftPad, topPad, fieldWidth, fieldHeight), _debugMessage, "debugMessage");
     }
+
+    #endregion
 }

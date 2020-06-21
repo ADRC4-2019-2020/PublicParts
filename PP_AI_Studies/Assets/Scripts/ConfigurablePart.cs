@@ -9,12 +9,18 @@ using System.Linq;
 [System.Serializable]
 public class ConfigurablePart : Part
 {
-    //The GameObject that represents the configurable part
+    /// <summary>
+    /// The GameObject that represents the configurable part
+    /// </summary>
     public GameObject CPGameObject { get; private set; }
+
+    public HashSet<PPSpace> AssociatedSpaces { get; private set; }
 
     private PP_Environment _environtment;
 
-    //The configurable part agent
+    /// <summary>
+    /// The configurable part agent
+    /// </summary>
     public ConfigurablePartAgent CPAgent { get; private set; }
 
     /// <summary>
@@ -180,11 +186,12 @@ public class ConfigurablePart : Part
     /// <param name="rotation">The rotation to apply to the <see cref="ConfigurablePart"/>, multiplied by 90</param>
     /// <param name="goVisibility">The initial visibility state of the <see cref="GameObject"/></param>
     /// <param name="success">The output representing the success of the operation</param>
-    public ConfigurablePart(VoxelGrid grid, Vector3Int originIndex , int rotation, bool goVisibility, out bool success)
+    public ConfigurablePart(VoxelGrid grid, Vector3Int originIndex , int rotation, bool goVisibility, string name, out bool success)
     {
-        //This constructor creates a random configurable part in the specified grid. 
+        //This constructor creates a random configurable part in the specified grid.
         Type = PartType.Configurable;
         Grid = grid;
+        Name = name;
         _environtment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
         Size = new Vector2Int(6, 2); //6 x 2 configurable part size SHOULD NOT BE HARD CODED
         nVoxels = Size.x * Size.y;
@@ -236,6 +243,7 @@ public class ConfigurablePart : Part
         OccupyVoxels();
         CreateGameObject(rotation);
         SetGOVisibility(goVisibility);
+        Name = $"CP_{ReferenceIndex.x}_{ReferenceIndex.x}_{ReferenceIndex.x}";
     }
 
     /// <summary>
@@ -363,18 +371,34 @@ public class ConfigurablePart : Part
         }
     }
 
+    public void FindAssociatedSpaces()
+    {
+        AssociatedSpaces = new HashSet<PPSpace>();
+        foreach (var voxel in OccupiedVoxels)
+        {
+            var neighbours = voxel.GetFaceNeighbours().Where(n => n.InSpace);
+            foreach (var neighbour in neighbours)
+            {
+                var s = neighbour.ParentSpace;
+                if (!AssociatedSpaces.Contains(s))
+                {
+                    AssociatedSpaces.Add(s);
+                }
+            }
+        }
+    }
+
+    #region GameObject Methods
+
     /// <summary>
     /// Creates the GameObject of the ConfigurablePart
     /// </summary>
     private void CreateGameObject(int rotation)
     {
         var voxelSize = Grid.VoxelSize;
-        GameObject reference = Resources.Load<GameObject>("GameObjects/ConfigurableComponent_prefab");
+        GameObject reference = Resources.Load<GameObject>("GameObjects/ConfigurableComponentAgent");
         CPGameObject = GameObject.Instantiate(reference, Grid.GridGO.transform.parent);
-        //CPGameObject.transform.localScale = new Vector3(voxelSize, voxelSize, voxelSize);
-        //CPGameObject.transform.SetParent(Grid.GridGO.transform.parent);
-
-        //SetGOPosition();
+        CPGameObject.transform.name = Name;
         SetGOTransformations(rotation);
 
         CPAgent = CPGameObject.GetComponent<ConfigurablePartAgent>();
@@ -447,9 +471,9 @@ public class ConfigurablePart : Part
         CPAgent.SetVisibility(visible);
     }
 
-    //
-    // Movement methods
-    //
+    #endregion
+
+    #region Movement methods
 
     /// <summary>
     /// Tries to move the ConfigurablePart object in the X direction on the Grid.
@@ -518,9 +542,10 @@ public class ConfigurablePart : Part
         ReferenceIndex += new Vector3Int(distance, 0, 0);
         SetPivot();
 
+        CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
         _environtment.AnalyzeGridUpdateSpaces();
-
+        
         return validMovement;
     }
 
@@ -591,9 +616,10 @@ public class ConfigurablePart : Part
         ReferenceIndex += new Vector3Int(0, 0, distance);
         SetPivot();
 
+        CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
         _environtment.AnalyzeGridUpdateSpaces();
-
+        
         return validMovement;
     }
 
@@ -684,9 +710,11 @@ public class ConfigurablePart : Part
         }
         Orientation = newOrientation;
 
+        CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
         _environtment.AnalyzeGridUpdateSpaces();
-
         return validRotation;
     }
+
+    #endregion
 }
