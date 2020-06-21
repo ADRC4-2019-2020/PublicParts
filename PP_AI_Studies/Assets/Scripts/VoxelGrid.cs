@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Linq;
 using System.Diagnostics;
 using System.IO;
+using System;
 
 /// <summary>
 /// The Grid / Slab Object that contains all the parts along with the geometry it represents
@@ -693,4 +694,18 @@ public class VoxelGrid : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Tries to get an existing space from a give Guid
+    /// </summary>
+    /// <param name="id">The Guid to be checked for</param>
+    /// <returns>The <see cref="PPSpace"/> if it exists or null</returns>
+    public PPSpace GetSpaceById (Guid id)
+    {
+        foreach (var space in Spaces)
+        {
+            if (space.SpaceId == id) return space;
+        }
+
+        return null;
+    }
 }

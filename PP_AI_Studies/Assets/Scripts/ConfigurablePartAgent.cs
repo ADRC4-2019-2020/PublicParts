@@ -12,7 +12,9 @@ public class ConfigurablePartAgent : Agent
     #region Properties
 
     private ConfigurablePart _part;
+    private PP_Environment _environment;
     private bool _frozen;
+    private ReconfigurationRequest _activeRequest;
 
     #endregion
 
@@ -29,11 +31,13 @@ public class ConfigurablePartAgent : Agent
 
     /// <summary>
     /// Sets the <see cref="ConfigurablePart"/> that should be associated with this agent
+    /// and its <see cref="PP_Environment"/>
     /// </summary>
     /// <param name="part">The <see cref="ConfigurablePart"/></param>
     public void SetPart(ConfigurablePart part)
     {
         _part = part;
+        _environment = _part._environment;
     }
 
     /// <summary>
@@ -55,6 +59,23 @@ public class ConfigurablePartAgent : Agent
     public void SelfDestroy()
     {
         Destroy(this.gameObject);
+    }
+
+    /// <summary>
+    /// Assign a request to this agent
+    /// </summary>
+    /// <param name="request">The <see cref="ReconfigurationRequest"/> to be assigned</param>
+    public void SetRequest(ReconfigurationRequest request)
+    {
+        _activeRequest = request;
+    }
+
+    /// <summary>
+    /// Clears the active request assigned to this agent
+    /// </summary>
+    public void ClearRequest()
+    {
+        _activeRequest = null;
     }
 
     #endregion
@@ -135,9 +156,6 @@ public class ConfigurablePartAgent : Agent
     /// <param name="vectorAction"></param>
     public override void OnActionReceived(float[] vectorAction)
     {
-        //Do nothing if the agent is frozen
-        //if (_frozen) return;
-
         //Parse the vectorAction to int
         int movement = Mathf.RoundToInt(vectorAction[0]);
         
@@ -148,11 +166,21 @@ public class ConfigurablePartAgent : Agent
             //Tries to move +1 in X
             if (_part.MoveInX(1))
             {
-                transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
+                //Check if action didn't destroy the space
+                if (_environment.CheckResultFromRequest(_activeRequest))
+                {
+                    transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
+                }
+                //Space was destroyed, undo action
+                else
+                {
+                    _part.MoveInX(-1);
+                    //apply penalty
+                }
             }
             else
             {
-                //apply penalty
+                //tried an illegal movement, apply penalty
             }
         }
         
@@ -161,11 +189,21 @@ public class ConfigurablePartAgent : Agent
             //Tries to move -1 in X
             if (_part.MoveInX(-1))
             {
-                transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
+                //Check if action didn't destroy the space
+                if (_environment.CheckResultFromRequest(_activeRequest))
+                {
+                    transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
+                }
+                //Space was destroyed, undo action
+                else
+                {
+                    _part.MoveInX(1);
+                    //apply penalty
+                }
             }
             else
             {
-                //apply penalty
+                //tried an illegal movement, apply penalty
             }
         }
         
@@ -174,11 +212,22 @@ public class ConfigurablePartAgent : Agent
             //Tries to move +1 in Z
             if (_part.MoveInZ(1))
             {
-                transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
+                //Check if action didn't destroy the space
+                if (_environment.CheckResultFromRequest(_activeRequest))
+                {
+                    transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
+                }
+                //Space was destroyed, undo action
+                else
+                {
+                    _part.MoveInZ(-1);
+                    //apply penalty
+                }
+
             }
             else
             {
-                //apply penalty
+                //tried an illegal movement, apply penalty
             }
         }
         
@@ -187,11 +236,21 @@ public class ConfigurablePartAgent : Agent
             //Tries to move -1 in Z
             if (_part.MoveInZ(-1))
             {
-                transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
+                //Check if action didn't destroy the space
+                if (_environment.CheckResultFromRequest(_activeRequest))
+                {
+                    transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
+                }
+                //Space was destroyed, undo action
+                else
+                {
+                    _part.MoveInZ(1);
+                    //apply penalty
+                }
             }
             else
             {
-                //apply penalty
+                //tried an illegal movement, apply penalty
             }
         }
         
@@ -200,12 +259,21 @@ public class ConfigurablePartAgent : Agent
             //Tries to rotate component clockwise
             if (_part.RotateComponent(1))
             {
-                var currentRotation = transform.rotation;
-                transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
+                //Check if action didn't destroy the space
+                if (_environment.CheckResultFromRequest(_activeRequest))
+                {
+                    var currentRotation = transform.rotation;
+                    transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
+                }
+                else
+                {
+                    _part.RotateComponent(-1);
+                    //apply penalty
+                }
             }
             else
             {
-                //apply penalty
+                //tried an illegal movement, apply penalty
             }
         }
         
@@ -213,9 +281,15 @@ public class ConfigurablePartAgent : Agent
         {
             if (_part.RotateComponent(-1))
             {
-                var currentRotation = transform.rotation;
-                transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
+                //Check if action didn't destroy the space
+                if (_environment.CheckResultFromRequest(_activeRequest))
+                {
+                    var currentRotation = transform.rotation;
+                    transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
+                }
+                
             }
+            //Space was destroyed, undo action
             else
             {
                 //apply penalty

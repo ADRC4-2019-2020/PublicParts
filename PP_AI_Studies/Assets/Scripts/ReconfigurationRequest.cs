@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -10,6 +11,8 @@ public class ReconfigurationRequest
 {
     //The GUID of the space that needs to be reconfigured
     public Guid SpaceId { get; private set; }
+    //The name of the space that needs to be reconfigured
+    public string SpaceName { get; private set; }
     //The target parameters for the space
     public int TargetArea { get; private set; }
     public int TargetConnections { get; private set; }
@@ -17,7 +20,8 @@ public class ReconfigurationRequest
     private int _areaModifier = 7;
     private int _connectivityModifier = 2;
 
-    //Should store the agents involved in the reconfiguration here!
+    //The components to be reconfigured
+    private ConfigurablePart[] _parts2Reconfigure;
 
     /// <summary>
     /// Constructor for a ReconfigurationRequest for a given space, with instructions for 
@@ -32,6 +36,7 @@ public class ReconfigurationRequest
     public ReconfigurationRequest(PPSpace space, int areaDirection, int connectivityDirection)
     {
         SpaceId = space.SpaceId;
+        SpaceName = space.Name;
         int currentArea = space.VoxelCount;
         int currentConnectivity = space.NumberOfConnections;
 
@@ -47,11 +52,12 @@ public class ReconfigurationRequest
 
         Debug.Log($"Reconfiguration requested for {space.Name}. Area from {currentArea} to {TargetArea}");
 
-        //Set unfreeze the agents so they can make decisions
-        foreach (var part in space.BoundaryParts)
+        _parts2Reconfigure = space.BoundaryParts.ToArray();
+        foreach (var part in _parts2Reconfigure)
         {
-            part.CPAgent.UnfreezeAgent();
+            part.CPAgent.SetRequest(this);
         }
+        UnfreezeAgents();
     }
 
     /// <summary>
@@ -85,8 +91,49 @@ public class ReconfigurationRequest
 
         if (areaSuccessful && connectivitySuccessful)
         {
+            FreezeAgents();
+            foreach (var part in _parts2Reconfigure)
+            {
+                part.CPAgent.ClearRequest();
+            }
             return true;
         }
-        else return false;
+        else
+        {
+            UnfreezeAgents();
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Set the <see cref="ConfigurablePartAgent"/> that should be reconfigured as Unfrozen
+    /// </summary>
+    private void UnfreezeAgents()
+    {
+        foreach (var part in _parts2Reconfigure)
+        {
+            //Unfreeze the agents so they can make decisions
+            part.CPAgent.UnfreezeAgent();
+        }
+    }
+
+    /// <summary>
+    /// Set the <see cref="ConfigurablePartAgent"/> that should be reconfigured as Frozen
+    /// </summary>
+    private void FreezeAgents()
+    {
+        foreach (var part in _parts2Reconfigure)
+        {
+            //Freeze the agents so they stop making decisions
+            part.CPAgent.FreezeAgent();
+        }
+    }
+
+    /// <summary>
+    /// Method to be called if the target space does not exist anymore
+    /// </summary>
+    public void OnSpaceDestruction()
+    {
+        FreezeAgents();
     }
 }

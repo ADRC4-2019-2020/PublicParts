@@ -161,7 +161,7 @@ public class PPSpace : IEquatable<PPSpace>
     #region Constructors
     public PPSpace(VoxelGrid grid)
     {
-        SpaceId = new Guid();
+        SpaceId = Guid.NewGuid();
         _grid = grid;
     }
 

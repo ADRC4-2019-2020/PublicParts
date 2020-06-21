@@ -182,7 +182,7 @@ public class PP_Environment : MonoBehaviour
         _grid.RunAnalysisUpdateSpaces();
         _boundaries = _grid.Boundaries;
         _spaces = _grid.Spaces;
-        CheckReconfigurationResults();
+        //CheckReconfigurationResults(); //This checks the results for every request
     }
 
     /// <summary>
@@ -348,35 +348,71 @@ public class PP_Environment : MonoBehaviour
         {
             var request = _reconfigurationRequests[i];
             Guid spaceId = request.SpaceId;
-            PPSpace space = _spaces.First(s => s.SpaceId == spaceId);
+            PPSpace space = _grid.GetSpaceById(spaceId);
             if (space != null)
             {
                 bool success = request.ReconfigurationSuccessful(space);
                 if (success)
                 {
-                    print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                    //print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
                     space.Reconfigure_Area = false;
                     space.Reconfigure_Connectivity = false;
-                    foreach (var part in space.BoundaryParts)
-                    {
-                        part.CPAgent.FreezeAgent();
-                    }
+                    
                     _reconfigurationRequests.Remove(request);
                 }
                 else
                 {
-                    print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-                    foreach (var part in space.BoundaryParts)
-                    {
-                        part.CPAgent.UnfreezeAgent();
-                    }
+                    //print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                    
                 }
             }
             else
             {
                 //MUST DO SOMETHING HERE WITH THE SPACE WAS DESTROYED, POSSIBLY FREEZE THE AGENTS THROUGH THE REQUEST
+                request.OnSpaceDestruction();
+                _reconfigurationRequests.Remove(request);
+                //print($"{request.SpaceName} was destroyed.");
             }
         }
+    }
+
+    /// <summary>
+    /// Checks if the reconfiguration subject of a request is still valid
+    /// or has been destroyed
+    /// </summary>
+    /// <param name="request">The request to be assessed</param>
+    /// <returns>The validity of the reconfiguration</returns>
+    public bool CheckResultFromRequest(ReconfigurationRequest request)
+    {
+        bool result = true;
+        Guid spaceId = request.SpaceId;
+        PPSpace space = _grid.GetSpaceById(spaceId);
+        if (space != null)
+        {
+            //Space still exists, evaluate if reconfiguration was successful
+            bool success = request.ReconfigurationSuccessful(space);
+            if (success)
+            {
+                print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                space.Reconfigure_Area = false;
+                space.Reconfigure_Connectivity = false;
+
+                _reconfigurationRequests.Remove(request);
+            }
+            else
+            {
+                print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+
+            }
+        }
+        else
+        {
+            //Space was destroyed, return false
+            print($"{request.SpaceName} was destroyed, undoing action.");
+            result = false;
+        }
+
+        return result;
     }
 
     /// <summary>

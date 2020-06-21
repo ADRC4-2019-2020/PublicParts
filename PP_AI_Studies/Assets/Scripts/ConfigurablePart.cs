@@ -9,6 +9,8 @@ using System.Linq;
 [System.Serializable]
 public class ConfigurablePart : Part
 {
+    #region Properties and fields
+
     /// <summary>
     /// The GameObject that represents the configurable part
     /// </summary>
@@ -16,12 +18,16 @@ public class ConfigurablePart : Part
 
     public HashSet<PPSpace> AssociatedSpaces { get; private set; }
 
-    private PP_Environment _environtment;
+    public PP_Environment _environment { get; private set; }
 
     /// <summary>
     /// The configurable part agent
     /// </summary>
     public ConfigurablePartAgent CPAgent { get; private set; }
+
+    #endregion
+
+    #region Constructors and helpers
 
     /// <summary>
     /// A generic empty constructor for the ConfigurablePart, placeholder for
@@ -81,7 +87,7 @@ public class ConfigurablePart : Part
         //This constructor creates a random configurable part in the specified grid. 
         Type = PartType.Configurable;
         Grid = grid;
-        _environtment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
+        _environment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
         /*int minimumDistance = 6;*/ //In voxels
         Size = new Vector2Int(6, 2); //6 x 2 configurable part size SHOULD NOT BE HARD CODED
         nVoxels = Size.x * Size.y;
@@ -192,7 +198,7 @@ public class ConfigurablePart : Part
         Type = PartType.Configurable;
         Grid = grid;
         Name = name;
-        _environtment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
+        _environment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
         Size = new Vector2Int(6, 2); //6 x 2 configurable part size SHOULD NOT BE HARD CODED
         nVoxels = Size.x * Size.y;
         OccupiedIndexes = new Vector3Int[nVoxels];
@@ -245,6 +251,10 @@ public class ConfigurablePart : Part
         SetGOVisibility(goVisibility);
         Name = $"CP_{ReferenceIndex.x}_{ReferenceIndex.x}_{ReferenceIndex.x}";
     }
+
+    #endregion
+
+    #region Voxel and grid Methods
 
     /// <summary>
     /// Sets the value of the PartPivot of the Configurable Part
@@ -371,6 +381,10 @@ public class ConfigurablePart : Part
         }
     }
 
+    /// <summary>
+    /// Finds the spaces associated to this <see cref="ConfigurablePart"/> and
+    /// populates the <see cref="AssociatedSpaces"/> set
+    /// </summary>
     public void FindAssociatedSpaces()
     {
         AssociatedSpaces = new HashSet<PPSpace>();
@@ -387,6 +401,8 @@ public class ConfigurablePart : Part
             }
         }
     }
+
+    #endregion
 
     #region GameObject Methods
 
@@ -544,7 +560,7 @@ public class ConfigurablePart : Part
 
         CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
-        _environtment.AnalyzeGridUpdateSpaces();
+        _environment.AnalyzeGridUpdateSpaces();
         
         return validMovement;
     }
@@ -618,7 +634,7 @@ public class ConfigurablePart : Part
 
         CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
-        _environtment.AnalyzeGridUpdateSpaces();
+        _environment.AnalyzeGridUpdateSpaces();
         
         return validMovement;
     }
@@ -712,7 +728,7 @@ public class ConfigurablePart : Part
 
         CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
-        _environtment.AnalyzeGridUpdateSpaces();
+        _environment.AnalyzeGridUpdateSpaces();
         return validRotation;
     }
 
