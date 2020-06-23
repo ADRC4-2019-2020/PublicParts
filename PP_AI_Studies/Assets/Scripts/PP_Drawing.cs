@@ -219,7 +219,7 @@ class PP_Drawing : MonoBehaviour
     {
         var voxelSize = grid.VoxelSize;
         _properties.SetColor("_BaseColor", color);
-        var boundary = space.SortedBoundary;
+        var boundary = space.SortedBoundaryIndexes;
         for (int i = 0; i < boundary.Length; i++)
         {
             Vector3 start = boundary[i];

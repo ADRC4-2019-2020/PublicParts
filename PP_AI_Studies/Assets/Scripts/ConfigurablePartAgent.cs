@@ -104,7 +104,7 @@ public class ConfigurablePartAgent : Agent
     {
         //Code for heuristic mode
         float command = 10f;
-        if (Input.GetKey(KeyCode.LeftControl))
+        if (Input.GetKeyDown(KeyCode.LeftControl))
         {
             command = 0f;
         }
@@ -186,10 +186,10 @@ public class ConfigurablePartAgent : Agent
                 //Space was destroyed, undo action
                 else
                 {
-                    print("Action destroyed space, undid action.");
-                    _part.MoveInX(-1);
-                    _environment.ForceResetSpaces(existingSpaces);
-                    _activeRequest.UnfreezeRandomAgent();
+                    //print("Action destroyed space, undid action.");
+                    //_part.MoveInX(-1);
+                    //_environment.ForceResetSpaces(existingSpaces);
+                    //_activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -213,10 +213,10 @@ public class ConfigurablePartAgent : Agent
                 //Space was destroyed, undo action
                 else
                 {
-                    print("Action destroyed space, undid action.");
-                    _part.MoveInX(1);
-                    _environment.ForceResetSpaces(existingSpaces);
-                    _activeRequest.UnfreezeRandomAgent();
+                    //print("Action destroyed space, undid action.");
+                    //_part.MoveInX(1);
+                    //_environment.ForceResetSpaces(existingSpaces);
+                    //_activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -240,10 +240,10 @@ public class ConfigurablePartAgent : Agent
                 //Space was destroyed, undo action
                 else
                 {
-                    print("Action destroyed space, undid action.");
-                    _part.MoveInZ(-1);
-                    _environment.ForceResetSpaces(existingSpaces);
-                    _activeRequest.UnfreezeRandomAgent();
+                    //print("Action destroyed space, undid action.");
+                    //_part.MoveInZ(-1);
+                    //_environment.ForceResetSpaces(existingSpaces);
+                    //_activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -267,10 +267,10 @@ public class ConfigurablePartAgent : Agent
                 //Space was destroyed, undo action
                 else
                 {
-                    print("Action destroyed space, undid action.");
-                    _part.MoveInZ(1);
-                    _environment.ForceResetSpaces(existingSpaces);
-                    _activeRequest.UnfreezeRandomAgent();
+                    //print("Action destroyed space, undid action.");
+                    //_part.MoveInZ(1);
+                    //_environment.ForceResetSpaces(existingSpaces);
+                    //_activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -295,10 +295,10 @@ public class ConfigurablePartAgent : Agent
                 //Space was destroyed, undo action
                 else
                 {
-                    print("Action destroyed space, undid action.");
-                    _part.RotateComponent(-1);
-                    _environment.ForceResetSpaces(existingSpaces);
-                    _activeRequest.UnfreezeRandomAgent();
+                    //print("Action destroyed space, undid action.");
+                    //_part.RotateComponent(-1);
+                    //_environment.ForceResetSpaces(existingSpaces);
+                    //_activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -322,10 +322,10 @@ public class ConfigurablePartAgent : Agent
                 //Space was destroyed, undo action
                 else
                 {
-                    print("Action destroyed space, undid action.");
-                    _part.RotateComponent(-1);
-                    _environment.ForceResetSpaces(existingSpaces);
-                    _activeRequest.UnfreezeRandomAgent();
+                    //print("Action destroyed space, undid action.");
+                    //_part.RotateComponent(-1);
+                    //_environment.ForceResetSpaces(existingSpaces);
+                    //_activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -348,6 +348,20 @@ public class ConfigurablePartAgent : Agent
     public void UnfreezeAgent()
     {
         Frozen = false;
+    }
+
+    public void SetAsComplete(bool success)
+    {
+        if (success)
+        {
+            //apply reward
+        }
+        else
+        {
+            //apply destruction penalty
+        }
+        Frozen = true;
+        _activeRequest = null;
     }
 
     #endregion

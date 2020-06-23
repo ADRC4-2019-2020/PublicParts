@@ -22,7 +22,7 @@ public class ReconfigurationRequest
     private int _areaModifier = 8;
     private int _connectivityModifier = 2;
     //The components to be reconfigured
-    private ConfigurablePart[] _parts2Reconfigure;
+    private ConfigurablePartAgent[] _agents2Reconfigure;
 
     #endregion
 
@@ -57,10 +57,10 @@ public class ReconfigurationRequest
 
         Debug.Log($"Reconfiguration requested for {space.Name}. Area from {currentArea} to {TargetArea}");
 
-        _parts2Reconfigure = space.BoundaryParts.ToArray();
-        foreach (var part in _parts2Reconfigure)
+        _agents2Reconfigure = space.BoundaryParts.Select(p => p.CPAgent).ToArray();
+        foreach (var part in _agents2Reconfigure)
         {
-            part.CPAgent.SetRequest(this);
+            part.SetRequest(this);
         }
         UnfreezeRandomAgent();
     }
@@ -105,11 +105,7 @@ public class ReconfigurationRequest
         //Check if the request has been fullfiled
         if (areaSuccessful && connectivitySuccessful)
         {
-            FreezeAgents();
-            foreach (var part in _parts2Reconfigure)
-            {
-                part.CPAgent.ClearRequest();
-            }
+            OnReconfigurationSuccessful();
             return true;
         }
         //If not, continue with request open
@@ -129,10 +125,10 @@ public class ReconfigurationRequest
     /// </summary>
     private void UnfreezeAgents()
     {
-        foreach (var part in _parts2Reconfigure)
+        foreach (var part in _agents2Reconfigure)
         {
             //Unfreeze the agents so they can make decisions
-            part.CPAgent.UnfreezeAgent();
+            part.UnfreezeAgent();
         }
     }
 
@@ -141,10 +137,10 @@ public class ReconfigurationRequest
     /// </summary>
     private void FreezeAgents()
     {
-        foreach (var part in _parts2Reconfigure)
+        foreach (var part in _agents2Reconfigure)
         {
             //Freeze the agents so they stop making decisions
-            part.CPAgent.FreezeAgent();
+            part.FreezeAgent();
         }
     }
 
@@ -153,9 +149,9 @@ public class ReconfigurationRequest
     /// </summary>
     public void UnfreezeRandomAgent()
     {
-        int i = UnityEngine.Random.Range(0, _parts2Reconfigure.Length);
-        _parts2Reconfigure[i].CPAgent.UnfreezeAgent();
-        Debug.Log($"Unfrozen part {_parts2Reconfigure[i].Name}, state is {_parts2Reconfigure[i].CPAgent.Frozen}");
+        int i = UnityEngine.Random.Range(0, _agents2Reconfigure.Length);
+        _agents2Reconfigure[i].UnfreezeAgent();
+        //Debug.Log($"Unfrozen part {_parts2Reconfigure[i].Name}, state is {_parts2Reconfigure[i].CPAgent.Frozen}");
     }
 
     /// <summary>
@@ -164,6 +160,22 @@ public class ReconfigurationRequest
     public void OnSpaceDestruction()
     {
         FreezeAgents();
+        foreach (var agnt in _agents2Reconfigure)
+        {
+            agnt.SetAsComplete(false);
+        }
+    }
+
+    /// <summary>
+    /// Method to be called if the reconfiguration for this request has been successful
+    /// </summary>
+    public void OnReconfigurationSuccessful()
+    {
+        FreezeAgents();
+        foreach (var agnt in _agents2Reconfigure)
+        {
+            agnt.SetAsComplete(true);
+        }
     }
 
     #endregion

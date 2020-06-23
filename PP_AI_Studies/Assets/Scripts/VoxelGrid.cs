@@ -445,13 +445,15 @@ public class VoxelGrid : MonoBehaviour
             }
         }
 
-
         //Allocate boundary voxel to the smallest neighbouring space
         while (Boundaries.Any(b => !b.InSpace))
         {
             Voxels2SmallestNeighbour(Boundaries.Where(b => !b.InSpace));
         }
-
+        foreach (var space  in newSpaces)
+        {
+            space.CalculateSortedBoundary();
+        }
         return newSpaces;
         //_activityLog = $"AI Message: Generated {Spaces.Count} Spaces";
     }

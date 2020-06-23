@@ -43,7 +43,7 @@ public class PPSpace : IEquatable<PPSpace>
         .Any(n => !Voxels.Contains(n))
         || v.GetFaceNeighbours().ToList().Count < 4).ToArray();
 
-    public Vector3Int[] SortedBoundary;
+    public Vector3Int[] SortedBoundaryIndexes;
 
     //Game object used to visualize space data
     public GameObject Arrow { get; private set; }
@@ -245,7 +245,7 @@ public class PPSpace : IEquatable<PPSpace>
     public void CreateArrow()
     {
         Arrow = GameObject.Instantiate(Resources.Load<GameObject>("GameObjects/InfoArrow"));
-        Arrow.name = "Space_" + Name;
+        Arrow.name = "Arrow_" + Name;
         Arrow.transform.SetParent(_grid.GridGO.transform.parent);
         Arrow.transform.localPosition = _center + new Vector3(0, 1.75f, 0);
         Arrow.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
@@ -439,14 +439,34 @@ public class PPSpace : IEquatable<PPSpace>
     /// <returns></returns>
     public void CalculateSortedBoundary()
     {
-        var boundaryIndexes = BoundaryVoxels.Select(v => v.Index).ToArray();
-        Vector3 origin = new Vector3(
-        boundaryIndexes.Average(i => (float)i.x),
-        0,
-        boundaryIndexes.Average(i => (float)i.z));
-        Array.Sort(boundaryIndexes, new ClockwiseComparer(origin));
-        //Array.Sort(boundaryIndexes, new ClockwiseVector3Comparer());
-        SortedBoundary = boundaryIndexes;
+        //var bv = Voxels.Where(v =>
+        //v.GetFaceNeighbours()
+        //.Any(n => !Voxels.Contains(n))
+        //|| v.GetFaceNeighbours().ToList().Count < 4).ToArray();
+
+        var boundaryIndexes = BoundaryVoxels.Select(v => v.Index).ToList();
+        //Vector3 origin = new Vector3(
+        //boundaryIndexes.Average(i => (float)i.x),
+        //0,
+        //boundaryIndexes.Average(i => (float)i.z));
+        //Array.Sort(boundaryIndexes, new ClockwiseComparer(origin));
+        //SortedBoundary = boundaryIndexes;
+
+        Vector3Int[] sortedResult = new Vector3Int[boundaryIndexes.Count];
+        int i = 0;
+        var current = boundaryIndexes[0];
+        sortedResult[0] = current;
+        boundaryIndexes.RemoveAt(0);
+        while (boundaryIndexes.Count > 0)
+        {
+            i++;
+            var next = boundaryIndexes.MinBy(v => Vector3Int.Distance(current, v));
+            sortedResult[i] = next;
+            current = next;
+            boundaryIndexes.Remove(next);
+            //sortedResult.
+        }
+        SortedBoundaryIndexes = sortedResult;
     }
 
     /// <summary>

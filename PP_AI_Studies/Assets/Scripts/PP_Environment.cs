@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEngine;
 using System.Diagnostics;
 using System;
+using System.IO.Abstractions;
 
 /// <summary>
 /// Class to manage the environment in which a simulation occurs
@@ -144,6 +145,7 @@ public class PP_Environment : MonoBehaviour
         }
 
         DrawActiveComponent();
+        //StartCoroutine(SaveScreenshot());
     }
 
     #endregion
@@ -300,29 +302,48 @@ public class PP_Environment : MonoBehaviour
     {
         bool result = true;
         Guid spaceId = request.SpaceId;
-        PPSpace space = _grid.GetSpaceById(spaceId);
-        if (space != null)
+        int checkCount = _spaces.Count(s => s.SpaceId == spaceId);
+        if (checkCount == 1)
         {
-            //Space still exists, evaluate if reconfiguration was successful
-            bool success = request.ReconfigurationSuccessful(space);
-            if (success)
+            PPSpace space = _grid.GetSpaceById(spaceId);
+            if (space != null)
             {
-                print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                //Space still exists, evaluate if reconfiguration was successful
+                bool success = request.ReconfigurationSuccessful(space);
+                if (success)
+                {
+                    print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                    space.Reconfigure_Area = false;
+                    space.Reconfigure_Connectivity = false;
+                    _reconfigurationRequests.Remove(request);
+                }
+                else
+                {
+                    print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+
+                }
+            }
+        }
+        else if (checkCount > 1)
+        {
+            print($"{request.SpaceName} was split.");
+            //Space was destroyed and split into 2 or more. Differentiate new spaces
+            foreach (var space in _spaces.Where(s => s.SpaceId == spaceId))
+            {
+                space.SpaceId = Guid.NewGuid();
                 space.Reconfigure_Area = false;
                 space.Reconfigure_Connectivity = false;
-
-                _reconfigurationRequests.Remove(request);
             }
-            else
-            {
-                print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-
-            }
+            request.OnSpaceDestruction();
+            _reconfigurationRequests.Remove(request);
+            result = false;
         }
         else
         {
             //Space was destroyed, return false
-            print($"{request.SpaceName} was destroyed, undoing action.");
+            print($"{request.SpaceName} was destroyed.");
+            request.OnSpaceDestruction();
+            _reconfigurationRequests.Remove(request);
             result = false;
         }
 
@@ -336,10 +357,10 @@ public class PP_Environment : MonoBehaviour
     public void ForceResetSpaces(List<PPSpace> previousSpaces)
     {
         _spaces = previousSpaces;
-        foreach (var space in _spaces)
-        {
-            space.CreateArrow();
-        }
+        //foreach (var space in _spaces)
+        //{
+        //    space.CreateArrow();
+        //}
         _grid.ForceSpaceReset(previousSpaces);
     }
 
@@ -499,6 +520,14 @@ public class PP_Environment : MonoBehaviour
 
     #region Drawing and Visualizing
 
+    IEnumerator SaveScreenshot()
+    {
+        string file = $"SavedFrames/ReconfigurationTest/Frame_{_frame}.png";
+        ScreenCapture.CaptureScreenshot(file);
+        _frame++;
+        yield return new WaitForEndOfFrame();
+    }
+
     /// <summary>
     /// Change the visibility of the scene's GameObjects, iterating between 
     /// voxel and GameObject visualization
@@ -581,28 +610,34 @@ public class PP_Environment : MonoBehaviour
     {
         foreach (var space in _grid.Spaces)
         {
-            Color color = new Color();
+            Color color;
+            Color black = Color.black;
+            Color white = Color.white;
+            Color acid = new Color(0.85f, 1.0f, 0.0f, 0.70f);
             if (space.Reconfigure)
             {
                 if (space != _selectedSpace)
-
                 {
-                    color = new Color(0.7f, 0.1f, 0.1f, 0.70f);
+                    //color = new Color(0.7f, 0.1f, 0.1f, 0.70f);
+                    color = acid;
                 }
                 else
                 {
-                    color = new Color(0.90f, 0.70f, 0.0f, 0.70f);
+                    //color = new Color(0.90f, 0.70f, 0.0f, 0.70f);
+                    color = acid;
                 }
             }
             else
             {
                 if (space != _selectedSpace)
                 {
-                    color = new Color(0.9f, 0.9f, 0.9f, 0.70f);
+                    //color = new Color(0.9f, 0.9f, 0.9f, 0.70f);
+                    color = black;
                 }
                 else
                 {
-                    color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
+                    //color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
+                    color = black;
                 }
             }
             PP_Drawing.DrawSpaceBoundary(space, _grid, color, transform.position);
