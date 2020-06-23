@@ -60,18 +60,31 @@ public static class ImageReadWrite
         var textureFormat = TextureFormat.RGB24;
         
         Vector2Int size = new Vector2Int(grid.Size.x, grid.Size.z);
-        Texture2D gridImage = new Texture2D(size.x, size.y, textureFormat, true, true);
+        //Image with extra border +1 to avoid the resizing cut problem
+        Texture2D gridImage = new Texture2D(size.x + 1, size.y + 1, textureFormat, true, true);
         //Texture2D gridImage = new Texture2D(size.x, size.y);
-        for (int i = 0; i < size.x; i++)
+        for (int i = 0; i < gridImage.width; i++)
         {
-            for (int j = 0; j < size.y; j++)
+            for (int j = 0; j < gridImage.height; j++)
             {
-                var voxel = grid.Voxels[i, 0, j];
-                Color c = !voxel.IsActive || voxel.IsOccupied ? Color.black : Color.white;
+                Color c;
+                if (i == 0 || j == gridImage.height - 1)
+                {
+                    c = Color.green;
+                }
+                else
+                {
+                    var voxel = grid.Voxels[i - 1, 0, j];
+                    c = !voxel.IsActive || voxel.IsOccupied ? Color.black : Color.white;
+                }
+                
                 gridImage.SetPixel(i, j, c);
             }
         }
         gridImage.Apply();
+
+        
+        
 
 
         ////Construct the resulting resized image
@@ -113,6 +126,7 @@ public static class ImageReadWrite
         }
         //External resize and enlarging
         PP_ImageProcessing.ResizeAndFitCanvas(folder, "4", "256", "256");
+        //ImageReadWrite.SaveImage2Path(gridImage, folder + @"\helpers\firstOutput");
 
         //Read externally resized image
         Texture2D image = new Texture2D(256, 256, textureFormat, true, true);

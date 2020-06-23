@@ -13,7 +13,7 @@ public class ConfigurablePartAgent : Agent
 
     private ConfigurablePart _part;
     private PP_Environment _environment;
-    private bool _frozen;
+    public bool Frozen;
     private ReconfigurationRequest _activeRequest;
 
     #endregion
@@ -80,7 +80,6 @@ public class ConfigurablePartAgent : Agent
 
     #endregion
 
-
     #region ML Agents Methods
 
     public override void Initialize()
@@ -104,7 +103,11 @@ public class ConfigurablePartAgent : Agent
     public override void Heuristic(float[] actionsOut)
     {
         //Code for heuristic mode
-        float command = 0f;
+        float command = 10f;
+        if (Input.GetKey(KeyCode.LeftControl))
+        {
+            command = 0f;
+        }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
             command = 1f;
@@ -158,9 +161,17 @@ public class ConfigurablePartAgent : Agent
     {
         //Parse the vectorAction to int
         int movement = Mathf.RoundToInt(vectorAction[0]);
-        
-        // if (movement == 0) do nothing
-        
+
+        //Store the existing spaces
+        List<PPSpace> existingSpaces = _environment.GetCurrentSpaces();
+
+         if (movement == 0)
+        {
+            FreezeAgent();
+            _activeRequest.UnfreezeRandomAgent();
+
+        }
+
         if (movement == 1)
         {
             //Tries to move +1 in X
@@ -169,12 +180,16 @@ public class ConfigurablePartAgent : Agent
                 //Check if action didn't destroy the space
                 if (_environment.CheckResultFromRequest(_activeRequest))
                 {
+                    //Action was valid, apply to gameobject
                     transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
                 }
                 //Space was destroyed, undo action
                 else
                 {
+                    print("Action destroyed space, undid action.");
                     _part.MoveInX(-1);
+                    _environment.ForceResetSpaces(existingSpaces);
+                    _activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -192,12 +207,16 @@ public class ConfigurablePartAgent : Agent
                 //Check if action didn't destroy the space
                 if (_environment.CheckResultFromRequest(_activeRequest))
                 {
+                    //Action was valid, apply to gameobject
                     transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
                 }
                 //Space was destroyed, undo action
                 else
                 {
+                    print("Action destroyed space, undid action.");
                     _part.MoveInX(1);
+                    _environment.ForceResetSpaces(existingSpaces);
+                    _activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -215,15 +234,18 @@ public class ConfigurablePartAgent : Agent
                 //Check if action didn't destroy the space
                 if (_environment.CheckResultFromRequest(_activeRequest))
                 {
+                    //Action was valid, apply to gameobject
                     transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
                 }
                 //Space was destroyed, undo action
                 else
                 {
+                    print("Action destroyed space, undid action.");
                     _part.MoveInZ(-1);
+                    _environment.ForceResetSpaces(existingSpaces);
+                    _activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
-
             }
             else
             {
@@ -239,12 +261,16 @@ public class ConfigurablePartAgent : Agent
                 //Check if action didn't destroy the space
                 if (_environment.CheckResultFromRequest(_activeRequest))
                 {
+                    //Action was valid, apply to gameobject
                     transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
                 }
                 //Space was destroyed, undo action
                 else
                 {
+                    print("Action destroyed space, undid action.");
                     _part.MoveInZ(1);
+                    _environment.ForceResetSpaces(existingSpaces);
+                    _activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -262,12 +288,17 @@ public class ConfigurablePartAgent : Agent
                 //Check if action didn't destroy the space
                 if (_environment.CheckResultFromRequest(_activeRequest))
                 {
+                    //Action was valid, apply to gameobject
                     var currentRotation = transform.rotation;
                     transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
                 }
+                //Space was destroyed, undo action
                 else
                 {
+                    print("Action destroyed space, undid action.");
                     _part.RotateComponent(-1);
+                    _environment.ForceResetSpaces(existingSpaces);
+                    _activeRequest.UnfreezeRandomAgent();
                     //apply penalty
                 }
             }
@@ -284,15 +315,24 @@ public class ConfigurablePartAgent : Agent
                 //Check if action didn't destroy the space
                 if (_environment.CheckResultFromRequest(_activeRequest))
                 {
+                    //Action was valid, apply to gameobject
                     var currentRotation = transform.rotation;
                     transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
                 }
-                
+                //Space was destroyed, undo action
+                else
+                {
+                    print("Action destroyed space, undid action.");
+                    _part.RotateComponent(-1);
+                    _environment.ForceResetSpaces(existingSpaces);
+                    _activeRequest.UnfreezeRandomAgent();
+                    //apply penalty
+                }
             }
             //Space was destroyed, undo action
             else
             {
-                //apply penalty
+                //tried an illegal movement, apply penalty
             }
         }
     }
@@ -302,12 +342,12 @@ public class ConfigurablePartAgent : Agent
     /// </summary>
     public void FreezeAgent()
     {
-        _frozen = true;
+        Frozen = true;
     }
 
     public void UnfreezeAgent()
     {
-        _frozen = false;
+        Frozen = false;
     }
 
     #endregion
@@ -367,7 +407,7 @@ public class ConfigurablePartAgent : Agent
 
     private void FixedUpdate()
     {
-        if (!_frozen)
+        if (!Frozen)
         {
             RequestDecision();
         }

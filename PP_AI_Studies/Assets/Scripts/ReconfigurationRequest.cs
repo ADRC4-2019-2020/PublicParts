@@ -9,6 +9,8 @@ using UnityEngine;
 /// </summary>
 public class ReconfigurationRequest
 {
+    #region Properties and fields
+
     //The GUID of the space that needs to be reconfigured
     public Guid SpaceId { get; private set; }
     //The name of the space that needs to be reconfigured
@@ -16,12 +18,15 @@ public class ReconfigurationRequest
     //The target parameters for the space
     public int TargetArea { get; private set; }
     public int TargetConnections { get; private set; }
-
-    private int _areaModifier = 7;
+    //The evaluation parameters, to add or remove accordingly
+    private int _areaModifier = 8;
     private int _connectivityModifier = 2;
-
     //The components to be reconfigured
     private ConfigurablePart[] _parts2Reconfigure;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Constructor for a ReconfigurationRequest for a given space, with instructions for 
@@ -57,8 +62,12 @@ public class ReconfigurationRequest
         {
             part.CPAgent.SetRequest(this);
         }
-        UnfreezeAgents();
+        UnfreezeRandomAgent();
     }
+
+    #endregion
+
+    #region Reconfiguration evaluation
 
     /// <summary>
     /// Checks if the reconfiguration has been successful
@@ -67,20 +76,24 @@ public class ReconfigurationRequest
     /// <returns>The result if the reconfiguration was successful</returns>
     public bool ReconfigurationSuccessful(PPSpace space)
     {
+        //Get the current parameters
         int currentArea = space.VoxelCount;
         int currentConnectivity = space.NumberOfConnections;
 
+        //Create the result validators
         bool areaSuccessful = true;
         bool connectivitySuccessful = true;
         
+        //Check if area objective has been reached [0 = no area reconfiguration requested]
         if (TargetArea > 0 )
         {
-            if (currentArea < TargetArea - 2 || currentArea > TargetArea + 2)
+            if (currentArea < TargetArea - 4 || currentArea > TargetArea + 4)
             {
                 areaSuccessful = false;
             }
         }
 
+        //Check if connectivity objective has been reached [0 = no connectivity reconfiguration requested]
         if (TargetConnections > 0)
         {
             if (currentConnectivity != TargetConnections)
@@ -89,6 +102,7 @@ public class ReconfigurationRequest
             }
         }
 
+        //Check if the request has been fullfiled
         if (areaSuccessful && connectivitySuccessful)
         {
             FreezeAgents();
@@ -98,15 +112,20 @@ public class ReconfigurationRequest
             }
             return true;
         }
+        //If not, continue with request open
         else
         {
-            UnfreezeAgents();
+            UnfreezeRandomAgent();
             return false;
         }
     }
 
+    #endregion
+
+    #region Exterior objects methods
+
     /// <summary>
-    /// Set the <see cref="ConfigurablePartAgent"/> that should be reconfigured as Unfrozen
+    /// Sets the <see cref="ConfigurablePartAgent"/>s of all the parts to be reconfigured ans Unfrozen
     /// </summary>
     private void UnfreezeAgents()
     {
@@ -118,7 +137,7 @@ public class ReconfigurationRequest
     }
 
     /// <summary>
-    /// Set the <see cref="ConfigurablePartAgent"/> that should be reconfigured as Frozen
+    /// Sets the <see cref="ConfigurablePartAgent"/> of all parts that should be reconfigured as Frozen
     /// </summary>
     private void FreezeAgents()
     {
@@ -130,10 +149,22 @@ public class ReconfigurationRequest
     }
 
     /// <summary>
+    /// Unfreezes a random agent. This is used to allow only one agent to act per turn
+    /// </summary>
+    public void UnfreezeRandomAgent()
+    {
+        int i = UnityEngine.Random.Range(0, _parts2Reconfigure.Length);
+        _parts2Reconfigure[i].CPAgent.UnfreezeAgent();
+        Debug.Log($"Unfrozen part {_parts2Reconfigure[i].Name}, state is {_parts2Reconfigure[i].CPAgent.Frozen}");
+    }
+
+    /// <summary>
     /// Method to be called if the target space does not exist anymore
     /// </summary>
     public void OnSpaceDestruction()
     {
         FreezeAgents();
     }
+
+    #endregion
 }

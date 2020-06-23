@@ -214,6 +214,8 @@ public class PP_ImageProcessing
         image.SetPixels(pixelsNormalized);
         image.Apply();
 
+        //string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\helpers\";
+        //ImageReadWrite.SaveImage2Path(image, folder + "normalizedOutput");
 
 
         for (int i = 0; i < realWidth; i++)
@@ -237,6 +239,48 @@ public class PP_ImageProcessing
 
                 var right1 = image.GetPixel(neighbours[3, 0].x, neighbours[3, 0].y);
                 var right2 = image.GetPixel(neighbours[3, 1].x, neighbours[3, 1].y);
+
+                #region Fixings in X
+                if (pixel.x == 0)
+                {
+                    left1 = black;
+                    left2 = black;
+                }
+                else if (pixel.x == 1)
+                {
+                    left2 = black;
+                }
+                else if (pixel.x == realWidth-1)
+                {
+                    right1 = black;
+                    right2 = black;
+                }
+                else if (pixel.x == realWidth - 2)
+                {
+                    right2 = black;
+                }
+                #endregion
+
+                #region Fixings in Y
+                if (pixel.y == 0)
+                {
+                    bottom1 = black;
+                    bottom2 = black;
+                }
+                else if (pixel.y == 1)
+                {
+                    bottom2 = black;
+                }
+                else if (pixel.y == realHeight-1)
+                {
+                    top1 = black;
+                    top2 = black;
+                }
+                else if (pixel.y == realHeight - 1)
+                {
+                    top2 = black;
+                }
+                #endregion
 
                 UnityEngine.Color[] layer1 = { top1, bottom1, left1, right1 };
                 UnityEngine.Color[] layer2 = { top2, bottom2, left2, right2 };
@@ -282,7 +326,7 @@ public class PP_ImageProcessing
                             image.Apply();
                         }
                     }
-
+                    //ImageReadWrite.SaveImage2Path(image, folder + "fixedWhiteOutput");
 
                 }
                 //else if (pixelColor == black)

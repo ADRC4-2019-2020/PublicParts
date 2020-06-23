@@ -229,8 +229,15 @@ public class VoxelGrid : MonoBehaviour
         //aiStopwatch.Start();
         Boundaries = new List<Voxel>();
         var gridImage = GetImage();
+
+        //string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\helpers\";
+
         var analysisResult = _pix2pix.GeneratePrediction(gridImage);
+        //ImageReadWrite.SaveImage2Path(analysisResult, folder + "p2pOutput");
+        
         var resultTexture = ProcessAnalysisResult(analysisResult);
+        //ImageReadWrite.SaveImage2Path(resultTexture, folder + "postprosOutput");
+
         PassBoundaryToList(resultTexture);
         DestroySpaces();
         Spaces = GenerateSpaces();
@@ -282,7 +289,7 @@ public class VoxelGrid : MonoBehaviour
                     //The existing space parameters should be evaluated here
                     //nSpace.Name = "Existing";
                     nSpace.CopyDataFromSpace(eSpace);
-                    existingSpaces.Remove(eSpace);
+                    //existingSpaces.Remove(eSpace);
                     break;
                 }
             }
@@ -292,6 +299,10 @@ public class VoxelGrid : MonoBehaviour
             //}
         }
         //DestroySpaces();
+        //foreach (var eSpace in existingSpaces)
+        //{
+        //    eSpace.DestroySpace();
+        //}
         Spaces = newSpaces;
         SetSpacesToConfigurableParts();
         //aiStopwatch.Stop();
@@ -539,6 +550,11 @@ public class VoxelGrid : MonoBehaviour
     {
         //Downscale the analysis result
         TextureScale.Point(analysisResult, 64, 64);
+        
+        
+        
+        //string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\helpers\";
+        //ImageReadWrite.SaveImage2Path(analysisResult, folder + "p2pdownscaledOutput");
 
         //Create new texture with the same size as the original grid
         Texture2D resultGridTexture = new Texture2D(Size.x, Size.z);
@@ -548,12 +564,13 @@ public class VoxelGrid : MonoBehaviour
         {
             for (int j = 0; j < resultGridTexture.height; j++)
             {
-                int x = i;
-                int y = analysisResult.height - resultGridTexture.height + j + 1;
+                int x = i + 1;
+                int y = analysisResult.height - resultGridTexture.height + j /*+ 1*/;
                 resultGridTexture.SetPixel(i, j, analysisResult.GetPixel(x, y));
             }
         }
         resultGridTexture.Apply();
+        //ImageReadWrite.SaveImage2Path(resultGridTexture, folder + "p2pcroppedOutput");
 
         //Return post-processed texture
         return PP_ImageProcessing.PostProcessImageFromTexture(resultGridTexture);
@@ -707,5 +724,15 @@ public class VoxelGrid : MonoBehaviour
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Forces the list of spaces of a previous state onto the current one,
+    /// only to be called after undoing an action
+    /// </summary>
+    /// <param name="previousSpaces"></param>
+    public void ForceSpaceReset (List<PPSpace> previousSpaces)
+    {
+        Spaces = previousSpaces;
     }
 }

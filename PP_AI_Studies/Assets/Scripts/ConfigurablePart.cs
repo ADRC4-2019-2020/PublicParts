@@ -181,7 +181,95 @@ public class ConfigurablePart : Part
         
         SetGOVisibility(goVisibility);
     }
-    
+
+    /// <summary>
+    /// Constructor for a <see cref="ConfigurablePart"/> on the input grid in a randomized position
+    /// and create its <see cref="GameObject"/>, trying once and returning its result success
+    /// </summary>
+    /// <param name="grid">The <see cref="VoxelGrid"/> to create the <see cref="ConfigurablePart"/> on</param>
+    /// <param name="goVisibility">The initial visibility of the <see cref="GameObject"/></param>
+    /// <param name="seed">The seed value for the randomized creation</param>
+    /// <param name="name">The name of the new <see cref="ConfigurablePart"/></param>
+    /// <param name="success">The result of the operation</param>
+    public ConfigurablePart(VoxelGrid grid, bool goVisibility, int seed, string name, out bool success)
+    {
+        Type = PartType.Configurable;
+        Grid = grid;
+        _environment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
+        Size = new Vector2Int(6, 2);
+        nVoxels = Size.x * Size.y;
+        OccupiedIndexes = new Vector3Int[nVoxels];
+        IsStatic = false;
+        Height = 6;
+        Name = name;
+        //Random.InitState(seed);
+
+        success = false;
+
+        //Start from horizontal position
+        Orientation = PartOrientation.Horizontal;
+        
+        //Randomize ReferenceIndex
+        int randomX = Random.Range(0, Grid.Size.x - 1);
+        int randomY = Random.Range(0, Grid.Size.y - 1);
+        int randomZ = Random.Range(0, Grid.Size.z - 1);
+        ReferenceIndex = new Vector3Int(randomX, randomY, randomZ);
+
+        //Prepare the pivot and occupied indexes
+        SetPivot();
+        GetOccupiedIndexes();
+
+        //Randomize the rotation
+        int rotation = Random.Range(0, 4);
+
+        //Change the orientation if rotation makes part vertical
+        if (rotation == 1 || rotation == 3) Orientation = PartOrientation.Vertical;
+
+        //Define the rotation matrix
+        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, rotation * 90f, 0));
+
+        //Apply rotation if rotation > 0
+        if (rotation > 0)
+        {
+            for (int i = 0; i < OccupiedIndexes.Length; i++)
+            {
+                //Rotate index
+                var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
+                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - PartPivot) + PartPivot;
+
+                //Resulting coordinates
+                int x = Mathf.RoundToInt(rotatedIndex.x);
+                int y = Mathf.RoundToInt(rotatedIndex.y);
+                int z = Mathf.RoundToInt(rotatedIndex.z);
+
+                OccupiedIndexes[i] = new Vector3Int(x, y, z);
+            }
+        }
+        
+
+        //Validate part on grid
+        foreach (var index in OccupiedIndexes)
+        {
+            if (index.x >= Grid.Size.x || index.x < 0 || index.y >= Grid.Size.y || index.y < 0 || index.z >= Grid.Size.z || index.z < 0)
+            {
+                return;
+            }
+            else if (Grid.Voxels[index.x, index.y, index.z].IsOccupied || !Grid.Voxels[index.x, index.y, index.z].IsActive)
+            {
+                return;
+            }
+        }
+
+        //Validate based on existing parts
+        if (!CheckValidDistance()) return;
+
+        //Set creation as successful and create the part on grid and create GO
+        success = true;
+        OccupyVoxels();
+        CreateGameObject(rotation);
+        SetGOVisibility(goVisibility);
+    }
+
     /// <summary>
     /// Creates a ConfigurablePart in the specified index, with the desired rotation. 
     /// If it tries to create a part in an invalid position, the output boolean will be false and
@@ -194,7 +282,6 @@ public class ConfigurablePart : Part
     /// <param name="success">The output representing the success of the operation</param>
     public ConfigurablePart(VoxelGrid grid, Vector3Int originIndex , int rotation, bool goVisibility, string name, out bool success)
     {
-        //This constructor creates a random configurable part in the specified grid.
         Type = PartType.Configurable;
         Grid = grid;
         Name = name;
@@ -214,21 +301,24 @@ public class ConfigurablePart : Part
         GetOccupiedIndexes();
 
         //Set actual orientation and rotation
-        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, rotation * 90f, 0)); ;
+        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, rotation * 90f, 0));
 
-        //Apply rotation
-        for (int i = 0; i < OccupiedIndexes.Length; i++)
+        //Apply rotation if rotation > 0
+        if (rotation > 0)
         {
-            //Rotate index
-            var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
-            Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - PartPivot) + PartPivot;
+            for (int i = 0; i < OccupiedIndexes.Length; i++)
+            {
+                //Rotate index
+                var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
+                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - PartPivot) + PartPivot;
 
-            //Resulting coordinates
-            int x = Mathf.RoundToInt(rotatedIndex.x);
-            int y = Mathf.RoundToInt(rotatedIndex.y);
-            int z = Mathf.RoundToInt(rotatedIndex.z);
+                //Resulting coordinates
+                int x = Mathf.RoundToInt(rotatedIndex.x);
+                int y = Mathf.RoundToInt(rotatedIndex.y);
+                int z = Mathf.RoundToInt(rotatedIndex.z);
 
-            OccupiedIndexes[i] = new Vector3Int(x, y, z);
+                OccupiedIndexes[i] = new Vector3Int(x, y, z);
+            }
         }
 
         //Validate part on grid
@@ -249,7 +339,7 @@ public class ConfigurablePart : Part
         OccupyVoxels();
         CreateGameObject(rotation);
         SetGOVisibility(goVisibility);
-        Name = $"CP_{ReferenceIndex.x}_{ReferenceIndex.x}_{ReferenceIndex.x}";
+        //Name = $"CP_{ReferenceIndex.x}_{ReferenceIndex.x}_{ReferenceIndex.x}";
     }
 
     #endregion

@@ -88,10 +88,7 @@ public class PP_Environment : MonoBehaviour
     {
         _cam = Camera.main;
 
-        //CreateGridFromFile();
-        //_grid = new VoxelGrid(_gridName, _gridType, _voxelSize, transform.position);
-        //_gridSize = _grid.Size;
-        _gridSize = new Vector3Int(24, 1, 12);
+        _gridSize = new Vector3Int(32, 1, 24);
         _grid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true);
         _boundaries = _grid.Boundaries;
         _gridGO = _grid.GridGO;
@@ -103,8 +100,9 @@ public class PP_Environment : MonoBehaviour
         _cameraPivot.position = new Vector3(_grid.Size.x / 2, 0, _grid.Size.z / 2) * _voxelSize;
 
         //Create Configurable Parts
-        CreateConfigurable(new Vector3Int(8, 0, 8), 1, "CP_A");
-        CreateConfigurable(new Vector3Int(18, 0, 1), 3, "CP_B");
+        //CreateSingleConfigurable(new Vector3Int(8, 0, 8), 1, "CP_A");
+        //CreateSingleConfigurable(new Vector3Int(18, 0, 1), 3, "CP_B");
+        PopulateRandomConfigurables(5);
         AnalyzeGridCreateNewSpaces();
         
     }
@@ -145,6 +143,7 @@ public class PP_Environment : MonoBehaviour
             }
         }
 
+        DrawActiveComponent();
     }
 
     #endregion
@@ -190,11 +189,31 @@ public class PP_Environment : MonoBehaviour
     /// </summary>
     /// <param name="origin">Origin to place the ReferenceIndex</param>
     /// <param name="rotation">Rotation to be applied</param>
-    private void CreateConfigurable(Vector3Int origin, int rotation, string name)
+    private void CreateSingleConfigurable(Vector3Int origin, int rotation, string name)
     {
         ConfigurablePart p = new ConfigurablePart(_grid, origin, rotation, !_showVoxels, name, out bool success);
         if (success)
         {
+            _grid.ExistingParts.Add(p);
+            _existingParts.Add(p);
+        }
+    }
+
+    /// <summary>
+    /// Populates a given number of configurable parts on the grid
+    /// </summary>
+    /// <param name="amt">The amount of parts to create</param>
+    private void PopulateRandomConfigurables(int amt)
+    {
+        for (int i = 0; i < amt; i++)
+        {
+            string partName = $"CP_{i}";
+            bool success = false;
+            ConfigurablePart p = new ConfigurablePart();
+            while (!success)
+            {
+                p = new ConfigurablePart(_grid, !_showVoxels, _popSeed, partName, out success);
+            }
             _grid.ExistingParts.Add(p);
             _existingParts.Add(p);
         }
@@ -231,6 +250,106 @@ public class PP_Environment : MonoBehaviour
             _cameraPivot.position = new Vector3(_gridSize.x / 2, 0, _gridSize.z / 2) * _voxelSize;
         }
         return clicked;
+    }
+
+    /// <summary>
+    /// Checks the results of the latest reconfiguration against the requests that were made
+    /// </summary>
+    public void CheckReconfigurationResults()
+    {
+        //foreach (var request in _reconfigurationRequests)
+        for (int i = 0; i < _reconfigurationRequests.Count; i++)
+        {
+            var request = _reconfigurationRequests[i];
+            Guid spaceId = request.SpaceId;
+            PPSpace space = _grid.GetSpaceById(spaceId);
+            if (space != null)
+            {
+                bool success = request.ReconfigurationSuccessful(space);
+                if (success)
+                {
+                    //print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                    space.Reconfigure_Area = false;
+                    space.Reconfigure_Connectivity = false;
+
+                    _reconfigurationRequests.Remove(request);
+                }
+                else
+                {
+                    //print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+
+                }
+            }
+            else
+            {
+                //Currently not allowing the space to be destroyed, so actions are being undone
+                //request.OnSpaceDestruction();
+                //_reconfigurationRequests.Remove(request);
+                //print($"{request.SpaceName} was destroyed.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks if the reconfiguration subject of a request is still valid
+    /// or has been destroyed
+    /// </summary>
+    /// <param name="request">The request to be assessed</param>
+    /// <returns>The validity of the reconfiguration</returns>
+    public bool CheckResultFromRequest(ReconfigurationRequest request)
+    {
+        bool result = true;
+        Guid spaceId = request.SpaceId;
+        PPSpace space = _grid.GetSpaceById(spaceId);
+        if (space != null)
+        {
+            //Space still exists, evaluate if reconfiguration was successful
+            bool success = request.ReconfigurationSuccessful(space);
+            if (success)
+            {
+                print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                space.Reconfigure_Area = false;
+                space.Reconfigure_Connectivity = false;
+
+                _reconfigurationRequests.Remove(request);
+            }
+            else
+            {
+                print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+
+            }
+        }
+        else
+        {
+            //Space was destroyed, return false
+            print($"{request.SpaceName} was destroyed, undoing action.");
+            result = false;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Forces reseting the Spaces list to a previous state, only to be used after undoing an action
+    /// </summary>
+    /// <param name="previousSpaces">The list to be used</param>
+    public void ForceResetSpaces(List<PPSpace> previousSpaces)
+    {
+        _spaces = previousSpaces;
+        foreach (var space in _spaces)
+        {
+            space.CreateArrow();
+        }
+        _grid.ForceSpaceReset(previousSpaces);
+    }
+
+    /// <summary>
+    /// Gets the current List of spaces on the environment
+    /// </summary>
+    /// <returns>The spaces as a List</returns>
+    public List<PPSpace> GetCurrentSpaces()
+    {
+        return _spaces;
     }
 
     #endregion
@@ -337,84 +456,7 @@ public class PP_Environment : MonoBehaviour
             //ExecuteAI();
         }
     }
-
-    /// <summary>
-    /// Checks the results of the latest reconfiguration against the requests that were made
-    /// </summary>
-    public void CheckReconfigurationResults()
-    {
-        //foreach (var request in _reconfigurationRequests)
-        for (int i = 0; i < _reconfigurationRequests.Count; i++)
-        {
-            var request = _reconfigurationRequests[i];
-            Guid spaceId = request.SpaceId;
-            PPSpace space = _grid.GetSpaceById(spaceId);
-            if (space != null)
-            {
-                bool success = request.ReconfigurationSuccessful(space);
-                if (success)
-                {
-                    //print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-                    space.Reconfigure_Area = false;
-                    space.Reconfigure_Connectivity = false;
-                    
-                    _reconfigurationRequests.Remove(request);
-                }
-                else
-                {
-                    //print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-                    
-                }
-            }
-            else
-            {
-                //MUST DO SOMETHING HERE WITH THE SPACE WAS DESTROYED, POSSIBLY FREEZE THE AGENTS THROUGH THE REQUEST
-                request.OnSpaceDestruction();
-                _reconfigurationRequests.Remove(request);
-                //print($"{request.SpaceName} was destroyed.");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Checks if the reconfiguration subject of a request is still valid
-    /// or has been destroyed
-    /// </summary>
-    /// <param name="request">The request to be assessed</param>
-    /// <returns>The validity of the reconfiguration</returns>
-    public bool CheckResultFromRequest(ReconfigurationRequest request)
-    {
-        bool result = true;
-        Guid spaceId = request.SpaceId;
-        PPSpace space = _grid.GetSpaceById(spaceId);
-        if (space != null)
-        {
-            //Space still exists, evaluate if reconfiguration was successful
-            bool success = request.ReconfigurationSuccessful(space);
-            if (success)
-            {
-                print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-                space.Reconfigure_Area = false;
-                space.Reconfigure_Connectivity = false;
-
-                _reconfigurationRequests.Remove(request);
-            }
-            else
-            {
-                print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-
-            }
-        }
-        else
-        {
-            //Space was destroyed, return false
-            print($"{request.SpaceName} was destroyed, undoing action.");
-            result = false;
-        }
-
-        return result;
-    }
-
+    
     /// <summary>
     /// Attempts to assign a space to a request made by a Tenant
     /// </summary>
@@ -601,6 +643,19 @@ public class PP_Environment : MonoBehaviour
             float z = part.ReferenceIndex.z * _voxelSize;
             Vector3 origin = new Vector3(x, y + 7*_voxelSize, z) ;
             PP_Drawing.DrawCube(origin, _voxelSize * 1.1f, 0.2f);
+        }
+    }
+
+    /// <summary>
+    /// Visual aid to show which ConfigurablePart is being controlled now
+    /// </summary>
+    private void DrawActiveComponent()
+    {
+        var unfrozenParts = _existingParts.OfType<ConfigurablePart>().Where(p => p.CPAgent.Frozen == false);
+        foreach (var up in unfrozenParts)
+        {
+            var pos = transform.position + (new Vector3(up.Center.x + 0.5f, up.Center.y + 0.5f, up.Center.z + 0.5f) * _voxelSize);
+            PP_Drawing.DrawCube(pos + new Vector3(0,3f,0), 0.25f, 0.5f);
         }
     }
 

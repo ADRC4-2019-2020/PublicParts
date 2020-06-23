@@ -15,8 +15,11 @@ public class Part : System.IEquatable<Part>
     public Vector3Int ReferenceIndex;
     public Vector3 PartPivot;
     public int Height;
-    public Vector3 Center;
+    
     public Vector3Int[] OccupiedIndexes;
+    public Vector3 Center => new Vector3(OccupiedIndexes.Average(c => (float)c.x),
+        OccupiedIndexes.Average(c => (float)c.y),
+        OccupiedIndexes.Average(c => (float)c.z));
     public Voxel[] OccupiedVoxels;
     public PartOrientation Orientation;
     public int nVoxels;
@@ -44,7 +47,7 @@ public class Part : System.IEquatable<Part>
         float avgX = OccupiedVoxels.Select(v => v.Center).Average(c => c.x);
         float avgY = OccupiedVoxels.Select(v => v.Center).Average(c => c.y);
         float avgZ = OccupiedVoxels.Select(v => v.Center).Average(c => c.z);
-        Center = new Vector3(avgX, avgY, avgZ);
+        //Center = new Vector3(avgX, avgY, avgZ);
     }
 
 

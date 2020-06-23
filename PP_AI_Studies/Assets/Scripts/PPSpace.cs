@@ -224,6 +224,7 @@ public class PPSpace : IEquatable<PPSpace>
         }
         Voxels = new HashSet<Voxel>();
         Arrow.GetComponent<InfoArrow>().SelfDestroy();
+        Arrow = null;
         return orphans;
     }
 
