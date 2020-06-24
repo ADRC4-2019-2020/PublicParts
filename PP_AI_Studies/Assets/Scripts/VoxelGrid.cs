@@ -11,9 +11,7 @@ using System;
 /// </summary>
 public class VoxelGrid : MonoBehaviour
 {
-    // 
-    // Fields and Parameters
-    //
+    #region Parameters and Fields
 
     // Original fields and parameters (AVOID CHANGING) 
     public Vector3Int Size { get; private set; }
@@ -42,12 +40,10 @@ public class VoxelGrid : MonoBehaviour
     public List<PPSpace> Spaces { get; private set; }
     public List<Voxel> Boundaries { get; private set; }
 
-    // 
-    // Methods and Functions
-    //
+    #endregion
 
-    // Original methods and Functions (AVOID CHANGING)
-    
+    #region Constructors
+
     /// <summary>
     /// Creates a rectangular VoxelGrid, with or without a slab GameObject
     /// </summary>
@@ -71,6 +67,110 @@ public class VoxelGrid : MonoBehaviour
             InstantiateGenericGO();
         }
     }
+
+    /// <summary>
+    /// Constructor for a  VoxelGrid instance from a file with its configurations
+    /// </summary>
+    /// <param name="gridName">The name of the grid file</param>
+    /// <param name="gridType">The name of the grid type</param>
+    public VoxelGrid(string gridName, string gridType, float voxelSize, Vector3 origin)
+    {
+        VoxelSize = voxelSize;
+        Origin = origin;
+        Faces = new Face[3][,,];
+        ExistingParts = new List<Part>();
+        Spaces = new List<PPSpace>();
+        Boundaries = new List<Voxel>();
+
+        _pix2pix = new PP_pix2pix();
+
+        _gridName = gridName;
+        _gridType = gridType;
+
+        //Read one state from folder
+        DirectoryInfo folder = new DirectoryInfo(Application.dataPath + $"/Resources/Input Data/TrainingData/{_gridName}");
+        string[] dimensions = folder.Name.Split('_');
+        int xSize = int.Parse(dimensions[0]);
+        int zSize = int.Parse(dimensions[1]);
+
+        Size = new Vector3Int(xSize, 1, zSize);
+        SetupVoxels();
+        //_grid = new VoxelGrid(_gridSize, _voxelSize, Vector3.zero);
+
+        //set the states of the voxel grid
+        string statesFile = "Input Data/TrainingData/" + _gridName + "/" + _gridType + "_SlabStates";
+        CSVReader.SetGridState(this, statesFile);
+
+        //move camera pivot to grid center
+        //_cameraPivot.position = new Vector3(Size.x / 2, 0, Size.z / 2) * VoxelSize;
+
+        //populate structure
+        string structureFile = "Input Data/TrainingData/" + _gridName + "/" + _gridType + "_Structure";
+        ReadStructure(structureFile);
+
+        InstantiateGridGO();
+    }
+
+    /// <summary>
+    /// Constructor for a copy grid that holds only the states 
+    /// </summary>
+    /// <param name="original"></param>
+    public VoxelGrid (VoxelGrid original)
+    {
+        Size = original.Size;
+        Origin = original.Origin;
+        
+        Voxels = new Voxel[Size.x, Size.y, Size.z];
+        for (int x = 0; x < Size.x; x++)
+        {
+            for (int y = 0; y < Size.y; y++)
+            {
+                for (int z = 0; z < Size.z; z++)
+                {
+                    Voxels[x, y, z] = original.Voxels[x,y,z].DeepCopyToGrid(this);
+                }
+            }
+        }
+
+        // make faces (from https://github.com/ADRC4/Voxel)
+        Faces = new Face[3][,,];
+        Faces[0] = new Face[Size.x + 1, Size.y, Size.z];
+
+        for (int x = 0; x < Size.x + 1; x++)
+            for (int y = 0; y < Size.y; y++)
+                for (int z = 0; z < Size.z; z++)
+                {
+                    Faces[0][x, y, z] = new Face(x, y, z, Axis.X, this);
+                }
+
+        Faces[1] = new Face[Size.x, Size.y + 1, Size.z];
+
+        for (int x = 0; x < Size.x; x++)
+            for (int y = 0; y < Size.y + 1; y++)
+                for (int z = 0; z < Size.z; z++)
+                {
+                    Faces[1][x, y, z] = new Face(x, y, z, Axis.Y, this);
+                }
+
+        Faces[2] = new Face[Size.x, Size.y, Size.z + 1];
+
+        for (int x = 0; x < Size.x; x++)
+            for (int y = 0; y < Size.y; y++)
+                for (int z = 0; z < Size.z + 1; z++)
+                {
+                    Faces[2][x, y, z] = new Face(x, y, z, Axis.Z, this);
+                }
+
+        ExistingParts = new List<Part>();
+        Spaces = new List<PPSpace>();
+        Boundaries = new List<Voxel>();
+        _pix2pix = original._pix2pix;
+    }
+
+    #endregion
+
+    #region Original methods and Functions
+    // AVOID CHANGING
 
     /// <summary>
     /// Gets the list of active voxels of the grid
@@ -161,50 +261,9 @@ public class VoxelGrid : MonoBehaviour
         }
     }
 
-    //Migration methods and Functions
+    #endregion
 
-    /// <summary>
-    /// Constructor for a  VoxelGrid instance from a file with its configurations
-    /// </summary>
-    /// <param name="gridName">The name of the grid file</param>
-    /// <param name="gridType">The name of the grid type</param>
-    public VoxelGrid(string gridName, string gridType, float voxelSize, Vector3 origin)
-    {
-        VoxelSize = voxelSize;
-        Origin = origin;
-        Faces = new Face[3][,,];
-        ExistingParts = new List<Part>();
-        Spaces = new List<PPSpace>();
-        Boundaries = new List<Voxel>();
-
-        _pix2pix = new PP_pix2pix();
-
-        _gridName = gridName;
-        _gridType = gridType;
-
-        //Read one state from folder
-        DirectoryInfo folder = new DirectoryInfo(Application.dataPath + $"/Resources/Input Data/TrainingData/{_gridName}");
-        string[] dimensions = folder.Name.Split('_');
-        int xSize = int.Parse(dimensions[0]);
-        int zSize = int.Parse(dimensions[1]);
-
-        Size = new Vector3Int(xSize, 1, zSize);
-        SetupVoxels();
-        //_grid = new VoxelGrid(_gridSize, _voxelSize, Vector3.zero);
-
-        //set the states of the voxel grid
-        string statesFile = "Input Data/TrainingData/" + _gridName + "/" + _gridType + "_SlabStates";
-        CSVReader.SetGridState(this, statesFile);
-
-        //move camera pivot to grid center
-        //_cameraPivot.position = new Vector3(Size.x / 2, 0, Size.z / 2) * VoxelSize;
-
-        //populate structure
-        string structureFile = "Input Data/TrainingData/" + _gridName + "/" + _gridType + "_Structure";
-        ReadStructure(structureFile);
-
-        InstantiateGridGO();
-    }
+    #region Migration methods and Functions
 
     /// <summary>
     /// Executes the internal Barracuda Pix2pix model, inferring from GPU and generating the respective spaces
@@ -228,7 +287,7 @@ public class VoxelGrid : MonoBehaviour
         //Stopwatch aiStopwatch = new Stopwatch();
         //aiStopwatch.Start();
         Boundaries = new List<Voxel>();
-        var gridImage = GetImage();
+        var gridImage = GetStateImage();
 
         //string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\helpers\";
 
@@ -270,12 +329,14 @@ public class VoxelGrid : MonoBehaviour
 
         //Generate new spaces
         Boundaries = new List<Voxel>();
-        var gridImage = GetImage();
+        var gridImage = GetStateImage();
         var analysisResult = _pix2pix.GeneratePrediction(gridImage);
         var resultTexture = ProcessAnalysisResult(analysisResult);
         PassBoundaryToList(resultTexture);
         List<PPSpace> newSpaces = GenerateSpaces();
         List<PPSpace> resultSpaces = new List<PPSpace>();
+        
+        //Compare new spaces with existing spaces
         foreach (var nSpace in newSpaces)
         {
             PPSpace outSpace = nSpace;
@@ -298,11 +359,6 @@ public class VoxelGrid : MonoBehaviour
                 
             //}
         }
-        //DestroySpaces();
-        //foreach (var eSpace in existingSpaces)
-        //{
-        //    eSpace.DestroySpace();
-        //}
         Spaces = newSpaces;
         SetSpacesToConfigurableParts();
         //aiStopwatch.Stop();
@@ -318,42 +374,6 @@ public class VoxelGrid : MonoBehaviour
         foreach (var part in ExistingParts.OfType<ConfigurablePart>())
         {
             part.FindAssociatedSpaces();
-        }
-    }
-
-    private void CompareAndKeepSpaces(List<PPSpace> existingSpaces, List<PPSpace> newSpaces)
-    {
-        //Copy the existing indicies from the 
-        List<HashSet<Vector3Int>> existingIndices = new List<HashSet<Vector3Int>>();
-        foreach (var space in existingSpaces)
-        {
-            HashSet<Vector3Int> temp = new HashSet<Vector3Int>();
-            foreach (var index in space.Indices)
-            {
-                temp.Add(new Vector3Int(index.x, index.y, index.z));
-            }
-            existingIndices.Add(temp);
-        }
-
-        foreach (var nSpace in newSpaces)
-        {
-            for (int i = 0; i < existingSpaces.Count; i++)
-            {
-                var eSpace = existingSpaces[i];
-                var eIndices = existingIndices[i];
-
-                if (nSpace.CompareSpaces(eSpace, eIndices))
-                {
-                    //The existing space parameters should be evaluated here
-                    nSpace.Name = "Existing";
-                    existingSpaces.Remove(eSpace);
-                    break;
-                }
-            }
-            foreach (var eSpace in existingSpaces)
-            {
-
-            }
         }
     }
 
@@ -450,10 +470,10 @@ public class VoxelGrid : MonoBehaviour
         {
             Voxels2SmallestNeighbour(Boundaries.Where(b => !b.InSpace));
         }
-        foreach (var space  in newSpaces)
-        {
-            space.CalculateSortedBoundary();
-        }
+        //foreach (var space  in newSpaces)
+        //{
+        //    space.CalculateSortedBoundary();
+        //}
         return newSpaces;
         //_activityLog = $"AI Message: Generated {Spaces.Count} Spaces";
     }
@@ -626,7 +646,7 @@ public class VoxelGrid : MonoBehaviour
     /// Gets the image from the grid
     /// </summary>
     /// <returns></returns>
-    private Texture2D GetImage()
+    private Texture2D GetStateImage()
     {
         return ImageReadWrite.TextureFromGrid(this);
     }
@@ -737,4 +757,28 @@ public class VoxelGrid : MonoBehaviour
     {
         Spaces = previousSpaces;
     }
+
+    /// <summary>
+    /// Method to creat a single <see cref="ConfigurablePart"/> on this grid in a given position with
+    /// a given rotation and returns the ConfigurablePart object. The method attempts to create the component and the result parameter 
+    /// represents the success of the operation
+    /// </summary>
+    /// <param name="origin">The ReferenceIndex to create the part on</param>
+    /// <param name="rotation">The clockwise rotation to be applied to the part</param>
+    /// <param name="name">The name to be given to the part</param>
+    /// <param name="showVoxels">A boolean representing if the initial state should be with the voxels or GameObjects visible</param>
+    /// <param name="result">The output boolean representing the result of the operation</param>
+    /// <returns>The resulting <see cref="ConfigurablePart"/></returns>
+    public ConfigurablePart CreateSinglePart(Vector3Int origin, int rotation, string name, bool showVoxels, out bool result)
+    {
+        ConfigurablePart p = new ConfigurablePart(this, origin, rotation, !showVoxels, name, out bool success);
+        if (success)
+        {
+            ExistingParts.Add(p);
+        }
+        result = success;
+        return p;
+    }
+
+    #endregion
 }

@@ -16,8 +16,8 @@ public class ReconfigurationRequest
     //The name of the space that needs to be reconfigured
     public string SpaceName { get; private set; }
     //The target parameters for the space
-    public int TargetArea { get; private set; }
-    public int TargetConnections { get; private set; }
+    public int TargetArea { get; private set; } = 0;
+    public int TargetConnections { get; private set; } = 0;
     //The evaluation parameters, to add or remove accordingly
     private int _areaModifier = 8;
     private int _connectivityModifier = 2;
@@ -63,6 +63,17 @@ public class ReconfigurationRequest
             part.SetRequest(this);
         }
         UnfreezeRandomAgent();
+    }
+
+    /// <summary>
+    /// An empty constructor for a <see cref="ReconfigurationRequest"/>
+    /// </summary>
+    public ReconfigurationRequest()
+    {
+        SpaceId = new Guid();
+        SpaceName = "";
+        TargetArea = 0;
+        TargetConnections = 0;
     }
 
     #endregion

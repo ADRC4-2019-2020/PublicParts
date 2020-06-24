@@ -14,7 +14,7 @@ public class ConfigurablePartAgent : Agent
     private ConfigurablePart _part;
     private PP_Environment _environment;
     public bool Frozen;
-    private ReconfigurationRequest _activeRequest;
+    private ReconfigurationRequest _activeRequest = new ReconfigurationRequest();
 
     #endregion
 
@@ -48,8 +48,13 @@ public class ConfigurablePartAgent : Agent
     {
         for (int i = 0; i < transform.childCount; i++)
         {
-            var mRenderer = transform.GetChild(i).GetComponent<MeshRenderer>();
-            mRenderer.enabled = visible;
+            var child = transform.GetChild(i);
+            if (child.GetComponent<MeshRenderer>() != null)
+            {
+                var mRenderer = child.GetComponent<MeshRenderer>();
+                mRenderer.enabled = visible;
+            }
+            
         }
     }
 
@@ -75,7 +80,7 @@ public class ConfigurablePartAgent : Agent
     /// </summary>
     public void ClearRequest()
     {
-        _activeRequest = null;
+        _activeRequest = new ReconfigurationRequest();
     }
 
     #endregion
@@ -143,7 +148,30 @@ public class ConfigurablePartAgent : Agent
     /// <param name="sensor"></param>
     public override void CollectObservations(VectorSensor sensor)
     {
-        //Code for observation collection
+        //Code for observation collection [9 OBSERVATIONS TOTAL]
+
+        //Current orientation of the part Horizontal = 0, vertical  = 1. [1 OBSERVATION]
+        if (_part.Orientation == PartOrientation.Horizontal) sensor.AddObservation(0f);
+        else sensor.AddObservation(1f);
+
+        //The current rotation of the part [1 OBSERVATION]
+        sensor.AddObservation(_part.Rotation);
+
+        //the reference index of the part (X and Z only) [2 OBSERVATIONS]
+        sensor.AddObservation(_part.ReferenceIndex.x);
+        sensor.AddObservation(_part.ReferenceIndex.z);
+
+        //The active request properties [2 OBSERVATIONS]
+        sensor.AddObservation(_activeRequest.TargetArea);
+        sensor.AddObservation(_activeRequest.TargetConnections);
+
+        //The properties of the grid [3 OBSERVATIONS]
+        //Size
+        sensor.AddObservation(_part.Grid.Size.x);
+        sensor.AddObservation(_part.Grid.Size.y);
+        //Amount of spaces
+        sensor.AddObservation(_part.Grid.Spaces.Count);
+
     }
 
     /// <summary>
@@ -361,7 +389,7 @@ public class ConfigurablePartAgent : Agent
             //apply destruction penalty
         }
         Frozen = true;
-        _activeRequest = null;
+        ClearRequest();
     }
 
     #endregion

@@ -117,14 +117,32 @@ class PP_Drawing : MonoBehaviour
         Graphics.DrawMesh(_unitBox, matrix, _instance._opaque, 0, null, 0, _properties);
     }
 
-    public static void DrawConfigurable(Vector3 center, float size, float t = 0)
+    public static void DrawCube(Vector3 center, float size, Color color)
     {
+        //var color = _gradient.Evaluate(t);
+        //var color = new Color(0.9f, 0.9f, 0.9f);
+        _properties.SetColor("_BaseColor", color);
+
         var matrix = Matrix4x4.TRS(
                 center,
                 Quaternion.identity,
                 Vector3.one * (size * 0.99f)
                 );
-        Graphics.DrawMesh(_unitBox, matrix, _woodM, 0);
+
+        Graphics.DrawMesh(_unitBox, matrix, _instance._opaque, 0, null, 0, _properties);
+    }
+
+    public static void DrawConfigurable(Vector3 center, float size, Color color)
+    {
+        //Color color = Color.black;
+        _properties.SetColor("_BaseColor", color);
+        var matrix = Matrix4x4.TRS(
+                center,
+                Quaternion.identity,
+                Vector3.one * (size /** 0.99f*/)
+                );
+        //Graphics.DrawMesh(_unitBox, matrix, _woodM, 0);
+        Graphics.DrawMesh(_unitBox, matrix, _instance._opaque, 0, null, 0, _properties);
     }
 
     public static void DrawCubeTransparent(Vector3 center, float size)

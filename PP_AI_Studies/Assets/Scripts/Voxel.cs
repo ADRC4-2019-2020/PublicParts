@@ -98,17 +98,23 @@ public class Voxel : IEquatable<Voxel>
         return Index.GetHashCode() + IsActive.GetHashCode() + IsOccupied.GetHashCode();
     }
 
-    //public Voxel DeepCopy()
-    //{
-    //    Voxel newVoxel = new Voxel(new Vector3Int(Index.x, Index.y, Index.z), _grid);
+    /// <summary>
+    /// Creates a deep copy of this voxel in another grid
+    /// </summary>
+    /// <param name="other">The target <see cref="VoxelGrid"/></param>
+    /// <returns>The copied <see cref="Voxel"/></returns>
+    public Voxel DeepCopyToGrid(VoxelGrid other)
+    {
+        Voxel newVoxel = new Voxel(new Vector3Int(Index.x, Index.y, Index.z), other);
 
-    //    newVoxel.IsOccupied = IsOccupied;
-    //    newVoxel.IsActive = IsActive;
-    //    newVoxel.Faces = Faces;
-    //    newVoxel.Part = Part;
-    //    newVoxel.InSpace = InSpace;
+        newVoxel.IsOccupied = IsOccupied;
+        newVoxel.IsActive = IsActive;
+        newVoxel.Faces = Faces;
+        newVoxel.Part = Part;
+        newVoxel.InSpace = InSpace;
+        newVoxel.ParentSpace = ParentSpace;
 
-    //    return newVoxel;
-    //}
+        return newVoxel;
+    }
 
 }

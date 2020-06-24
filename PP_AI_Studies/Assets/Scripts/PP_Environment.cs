@@ -14,11 +14,13 @@ public class PP_Environment : MonoBehaviour
 {
     #region Fields and Parameters
 
-    //Object inputs
+    #region Basic
+
     [SerializeField] GUISkin _skin;
     [SerializeField] Transform _cameraPivot;
     Camera _cam;
-    VoxelGrid _grid;
+    VoxelGrid MainGrid;
+    private VoxelGrid _paralellGrid;
     Vector3Int _gridSize;
 
     #endregion
@@ -30,7 +32,7 @@ public class PP_Environment : MonoBehaviour
     string _gridType = "A";
     GameObject _gridGO;
     //Seed to run the population method
-    int _popSeed = 5;
+    int _popSeed = 24;
 
     float _voxelSize = 0.375f;
 
@@ -83,6 +85,8 @@ public class PP_Environment : MonoBehaviour
 
     #endregion
 
+    #endregion
+
     #region Unity Methods
 
     void Start()
@@ -90,19 +94,18 @@ public class PP_Environment : MonoBehaviour
         _cam = Camera.main;
 
         _gridSize = new Vector3Int(32, 1, 24);
-        _grid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true);
-        _boundaries = _grid.Boundaries;
-        _gridGO = _grid.GridGO;
+        MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true);
+        _paralellGrid = new VoxelGrid(MainGrid);
+        _boundaries = MainGrid.Boundaries;
+        _gridGO = MainGrid.GridGO;
         _gridGO.transform.SetParent(transform);
 
         //Load tenants and requests data
-        _tenants = JSONReader.ReadTenantsWithPreferences("Input Data/U_TenantPreferences", _grid);
+        _tenants = JSONReader.ReadTenantsWithPreferences("Input Data/U_TenantPreferences", MainGrid);
         _spaceRequests = JSONReader.ReadSpaceRequests("Input Data/U_SpaceRequests", _tenants);
-        _cameraPivot.position = new Vector3(_grid.Size.x / 2, 0, _grid.Size.z / 2) * _voxelSize;
+        _cameraPivot.position = new Vector3(MainGrid.Size.x / 2, 0, MainGrid.Size.z / 2) * _voxelSize;
 
         //Create Configurable Parts
-        //CreateSingleConfigurable(new Vector3Int(8, 0, 8), 1, "CP_A");
-        //CreateSingleConfigurable(new Vector3Int(18, 0, 1), 3, "CP_B");
         PopulateRandomConfigurables(5);
         AnalyzeGridCreateNewSpaces();
         
@@ -153,25 +156,13 @@ public class PP_Environment : MonoBehaviour
     #region Architectural functions and methods
 
     /// <summary>
-    /// Runs the populate and analyze method from the <see cref="VoxelGrid"/> 
-    /// </summary>
-    private void ExecutePopAndAnalysisOnGrid()
-    {
-        _grid.RunPopulationAndAnalysis();
-        _existingParts = _grid.ExistingParts;
-        _boundaries = _grid.Boundaries;
-        _spaces = _grid.Spaces;
-        //SetParentForNewConfigurables();
-    }
-
-    /// <summary>
     /// Runs the analyze, creating new spaces
     /// </summary>
     public void AnalyzeGridCreateNewSpaces()
     {
-        _grid.RunAnalysisCreateNewSpaces();
-        _boundaries = _grid.Boundaries;
-        _spaces = _grid.Spaces;
+        MainGrid.RunAnalysisCreateNewSpaces();
+        _boundaries = MainGrid.Boundaries;
+        _spaces = MainGrid.Spaces;
     }
 
     /// <summary>
@@ -180,25 +171,10 @@ public class PP_Environment : MonoBehaviour
     /// </summary>
     public void AnalyzeGridUpdateSpaces()
     {
-        _grid.RunAnalysisUpdateSpaces();
-        _boundaries = _grid.Boundaries;
-        _spaces = _grid.Spaces;
+        MainGrid.RunAnalysisUpdateSpaces();
+        _boundaries = MainGrid.Boundaries;
+        _spaces = MainGrid.Spaces;
         //CheckReconfigurationResults(); //This checks the results for every request
-    }
-
-    /// <summary>
-    /// Creates a configurable part in the selected origin with the set rotation
-    /// </summary>
-    /// <param name="origin">Origin to place the ReferenceIndex</param>
-    /// <param name="rotation">Rotation to be applied</param>
-    private void CreateSingleConfigurable(Vector3Int origin, int rotation, string name)
-    {
-        ConfigurablePart p = new ConfigurablePart(_grid, origin, rotation, !_showVoxels, name, out bool success);
-        if (success)
-        {
-            _grid.ExistingParts.Add(p);
-            _existingParts.Add(p);
-        }
     }
 
     /// <summary>
@@ -212,11 +188,13 @@ public class PP_Environment : MonoBehaviour
             string partName = $"CP_{i}";
             bool success = false;
             ConfigurablePart p = new ConfigurablePart();
+            int attempt = 0;
             while (!success)
             {
-                p = new ConfigurablePart(_grid, !_showVoxels, _popSeed, partName, out success);
+                p = new ConfigurablePart(MainGrid, !_showVoxels, _popSeed + attempt, partName, out success);
+                attempt++;
             }
-            _grid.ExistingParts.Add(p);
+            MainGrid.ExistingParts.Add(p);
             _existingParts.Add(p);
         }
     }
@@ -264,7 +242,7 @@ public class PP_Environment : MonoBehaviour
         {
             var request = _reconfigurationRequests[i];
             Guid spaceId = request.SpaceId;
-            PPSpace space = _grid.GetSpaceById(spaceId);
+            PPSpace space = MainGrid.GetSpaceById(spaceId);
             if (space != null)
             {
                 bool success = request.ReconfigurationSuccessful(space);
@@ -305,7 +283,7 @@ public class PP_Environment : MonoBehaviour
         int checkCount = _spaces.Count(s => s.SpaceId == spaceId);
         if (checkCount == 1)
         {
-            PPSpace space = _grid.GetSpaceById(spaceId);
+            PPSpace space = MainGrid.GetSpaceById(spaceId);
             if (space != null)
             {
                 //Space still exists, evaluate if reconfiguration was successful
@@ -361,7 +339,7 @@ public class PP_Environment : MonoBehaviour
         //{
         //    space.CreateArrow();
         //}
-        _grid.ForceSpaceReset(previousSpaces);
+        MainGrid.ForceSpaceReset(previousSpaces);
     }
 
     /// <summary>
@@ -544,7 +522,7 @@ public class PP_Environment : MonoBehaviour
             }
         }
         //_gridGO.SetActive(!visible);
-        _grid.SetGOVisibility(!visible);
+        MainGrid.SetGOVisibility(!visible);
     }
 
     /// <summary>
@@ -560,29 +538,29 @@ public class PP_Environment : MonoBehaviour
                 {
                     Vector3 index = new Vector3(x + 0.5f, y + 0.5f, z + 0.5f) * _voxelSize;
                     //Vector3 index = new Vector3(x , y , z) * _voxelSize;
-                    if (_grid.Voxels[x, y, z].IsOccupied)
+                    if (MainGrid.Voxels[x, y, z].IsOccupied)
                     {
-                        for (int i = 0; i < 6; i++)
+                        for (int i = 0; i < 8; i++)
                         {
-                            var voxel = _grid.Voxels[x, y, z];
+                            var voxel = MainGrid.Voxels[x, y, z];
                             if (voxel.Part.Type == PartType.Configurable)
                             {
                                 //PP_Drawing.DrawConfigurable(transform.position + _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
-                                PP_Drawing.DrawConfigurable(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawConfigurable(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), MainGrid.VoxelSize, Color.black);
                             }
                             else
                             {
                                 //PP_Drawing.DrawCube(transform.position +  _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
-                                PP_Drawing.DrawCube(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawCube(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), MainGrid.VoxelSize, 1);
                             }
 
                         }
 
                     }
-                    if (_grid.Voxels[x, y, z].IsActive)
+                    if (MainGrid.Voxels[x, y, z].IsActive)
                     {
                         //PP_Drawing.DrawCube(transform.position + _grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
-                        PP_Drawing.DrawCube(transform.position + index, _grid.VoxelSize, 0);
+                        PP_Drawing.DrawCube(transform.position + index, MainGrid.VoxelSize, Color.grey);
                     }
                 }
             }
@@ -608,7 +586,7 @@ public class PP_Environment : MonoBehaviour
     /// </summary>
     private void DrawSpaces()
     {
-        foreach (var space in _grid.Spaces)
+        foreach (var space in MainGrid.Spaces)
         {
             Color color;
             Color black = Color.black;
@@ -640,7 +618,7 @@ public class PP_Environment : MonoBehaviour
                     color = black;
                 }
             }
-            PP_Drawing.DrawSpaceBoundary(space, _grid, color, transform.position);
+            PP_Drawing.DrawSpaceBoundary(space, MainGrid, color, transform.position);
         }
     }
 
@@ -653,7 +631,7 @@ public class PP_Environment : MonoBehaviour
         {
             float tagHeight = 3.0f;
             Vector2 tagSize = new Vector2(60, 15);
-            foreach (var space in _grid.Spaces)
+            foreach (var space in MainGrid.Spaces)
             {
                 string spaceName = space.Name;
                 Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * tagHeight);
@@ -690,7 +668,7 @@ public class PP_Environment : MonoBehaviour
         foreach (var up in unfrozenParts)
         {
             var pos = transform.position + (new Vector3(up.Center.x + 0.5f, up.Center.y + 0.5f, up.Center.z + 0.5f) * _voxelSize);
-            PP_Drawing.DrawCube(pos + new Vector3(0,3f,0), 0.25f, 0.5f);
+            PP_Drawing.DrawCube(pos + new Vector3(0,4f,0), 0.25f, 0f);
         }
     }
 

@@ -83,10 +83,6 @@ public static class ImageReadWrite
         }
         gridImage.Apply();
 
-        
-        
-
-
         ////Construct the resulting resized image
         ////Scale image up, multiplying by 4
         //TextureScale.Point(gridImage, gridImage.width * 4, gridImage.height * 4);

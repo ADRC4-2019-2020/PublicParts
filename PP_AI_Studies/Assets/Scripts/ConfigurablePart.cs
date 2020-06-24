@@ -15,16 +15,13 @@ public class ConfigurablePart : Part
     /// The GameObject that represents the configurable part
     /// </summary>
     public GameObject CPGameObject { get; private set; }
-
     public HashSet<PPSpace> AssociatedSpaces { get; private set; }
-
     public PP_Environment _environment { get; private set; }
-
     /// <summary>
     /// The configurable part agent
     /// </summary>
     public ConfigurablePartAgent CPAgent { get; private set; }
-
+    public int Rotation { get; private set; }
     #endregion
 
     #region Constructors and helpers
@@ -94,7 +91,7 @@ public class ConfigurablePart : Part
         OccupiedIndexes = new Vector3Int[nVoxels];
         IsStatic = false;
         Height = 6;
-        int rotation = 0;
+        Rotation = 0;
         //Random.InitState(seed);
         bool validPart = false;
         while (!validPart)
@@ -115,18 +112,18 @@ public class ConfigurablePart : Part
 
             //Set actual orientation and rotation
             Matrix4x4 rotationMatrix;
-            rotation = Random.Range(0, 4);
-            if (rotation == 0)
+            Rotation = Random.Range(0, 4);
+            if (Rotation == 0)
             {
                 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 0, 0));
             }
-            else if (rotation == 1)
+            else if (Rotation == 1)
             {
                 //First rotation, 90 degrees clockwise
                 Orientation = PartOrientation.Vertical;
                 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 90f, 0));
             }
-            else if (rotation == 2)
+            else if (Rotation == 2)
             {
                 //Second rotation, 180 degrees clockwise
                 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 180f, 0));
@@ -177,7 +174,7 @@ public class ConfigurablePart : Part
             }
         }
         OccupyVoxels();
-        CreateGameObject(rotation);
+        CreateGameObject(Rotation);
         
         SetGOVisibility(goVisibility);
     }
@@ -202,7 +199,7 @@ public class ConfigurablePart : Part
         IsStatic = false;
         Height = 6;
         Name = name;
-        //Random.InitState(seed);
+        Random.InitState(seed);
 
         success = false;
 
@@ -220,16 +217,16 @@ public class ConfigurablePart : Part
         GetOccupiedIndexes();
 
         //Randomize the rotation
-        int rotation = Random.Range(0, 4);
+        Rotation = Random.Range(0, 4);
 
         //Change the orientation if rotation makes part vertical
-        if (rotation == 1 || rotation == 3) Orientation = PartOrientation.Vertical;
+        if (Rotation == 1 || Rotation == 3) Orientation = PartOrientation.Vertical;
 
         //Define the rotation matrix
-        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, rotation * 90f, 0));
+        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, Rotation * 90f, 0));
 
         //Apply rotation if rotation > 0
-        if (rotation > 0)
+        if (Rotation > 0)
         {
             for (int i = 0; i < OccupiedIndexes.Length; i++)
             {
@@ -266,7 +263,7 @@ public class ConfigurablePart : Part
         //Set creation as successful and create the part on grid and create GO
         success = true;
         OccupyVoxels();
-        CreateGameObject(rotation);
+        CreateGameObject(Rotation);
         SetGOVisibility(goVisibility);
     }
 
@@ -292,7 +289,7 @@ public class ConfigurablePart : Part
         IsStatic = false;
         Height = 6;
         success = false;
-
+        Rotation = rotation;
         //Start from horizontal position
         Orientation = PartOrientation.Horizontal;
         ReferenceIndex = originIndex;
@@ -301,10 +298,10 @@ public class ConfigurablePart : Part
         GetOccupiedIndexes();
 
         //Set actual orientation and rotation
-        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, rotation * 90f, 0));
+        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, Rotation * 90f, 0));
 
         //Apply rotation if rotation > 0
-        if (rotation > 0)
+        if (Rotation > 0)
         {
             for (int i = 0; i < OccupiedIndexes.Length; i++)
             {
@@ -815,6 +812,16 @@ public class ConfigurablePart : Part
             OccupiedIndexes[i] = newIndex;
         }
         Orientation = newOrientation;
+        
+        Rotation = Rotation + direction;
+        if (Rotation == 4)
+        {
+            Rotation = 0;
+        }
+        else if (Rotation < 0)
+        {
+            Rotation = 3;
+        }
 
         CPAgent.FreezeAgent();
         //Call to Update the slab in the environment

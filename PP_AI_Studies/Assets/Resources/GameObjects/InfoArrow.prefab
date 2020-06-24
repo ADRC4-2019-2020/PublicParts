@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4150020466804879539}
   - component: {fileID: 3077840898973747416}
   - component: {fileID: 4308236056797325691}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: InfoArrow
   m_TagString: InfoArrow
   m_Icon: {fileID: 0}
@@ -43,7 +43,7 @@ MeshCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 0
   m_Enabled: 1
-  serializedVersion: 3
+  serializedVersion: 4
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2432090755550338912, guid: b6815381724375a45a178a783e1b312f, type: 3}
@@ -59,9 +59,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64a4c1d0c4ef60c4695f2790d3aa3236, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InfoSpace:
-    OCIndexes: 
-    Name: 
 --- !u!1 &6899733256408622909
 GameObject:
   m_ObjectHideFlags: 0
@@ -73,7 +70,7 @@ GameObject:
   - component: {fileID: 5906763857661207435}
   - component: {fileID: 6609537013098477400}
   - component: {fileID: 2493701358274386856}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: default
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -117,6 +114,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
