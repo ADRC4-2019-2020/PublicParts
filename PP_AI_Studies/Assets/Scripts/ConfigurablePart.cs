@@ -150,7 +150,6 @@ public class ConfigurablePart : Part
                 OccupiedIndexes[i] = new Vector3Int(x, y, z);
             }
 
-            //GetOccupiedIndexes();
             //Validate part on grid
             foreach (var index in OccupiedIndexes)
             {
@@ -339,6 +338,36 @@ public class ConfigurablePart : Part
         //Name = $"CP_{ReferenceIndex.x}_{ReferenceIndex.x}_{ReferenceIndex.x}";
     }
 
+    /// <summary>
+    /// Constructor for a <see cref="ConfigurablePart"/> placed in a blank position
+    /// </summary>
+    /// <param name="grid">The grid to place the part in</param>
+    /// <param name="goVisibility">The initial visibility of the <see cref="GameObject"/></param>
+    /// <param name="name">The name of the <see cref="ConfigurablePart"/></param>
+    public ConfigurablePart(VoxelGrid grid, bool goVisibility, string name)
+    {
+        //Iniitialize the properties as defaults
+        Type = PartType.Configurable;
+        Grid = grid;
+        _environment = Grid.GridGO.transform.parent.GetComponent<PP_Environment>();
+        Size = new Vector2Int(6, 2);
+        nVoxels = Size.x * Size.y;
+        OccupiedIndexes = new Vector3Int[nVoxels];
+        OccupiedVoxels = new Voxel[nVoxels];
+        IsStatic = false;
+        Height = 6;
+        Name = name;
+        Orientation = PartOrientation.Horizontal;
+        Rotation = 0;
+        ReferenceIndex = Vector3Int.zero;
+
+        
+
+        //Create the game object and the agent
+        CreateGameObject(Rotation);
+        SetGOVisibility(goVisibility);
+    }
+
     #endregion
 
     #region Voxel and grid Methods
@@ -489,6 +518,86 @@ public class ConfigurablePart : Part
         }
     }
 
+    public void FindNewPosition(int seed, out bool success)
+    {
+        Random.InitState(seed);
+        //Clean the voxels, just to be safe
+        foreach (Voxel voxel in OccupiedVoxels)
+        {
+            if (voxel != null)
+            {
+                voxel.IsOccupied = false;
+                voxel.Part = null;
+            }
+        }
+        OccupiedVoxels = new Voxel[nVoxels];
+        OccupiedIndexes = new Vector3Int[nVoxels];
+
+        success = false;
+
+        //Start from horizontal position
+        Orientation = PartOrientation.Horizontal;
+
+        //Randomize ReferenceIndex
+        int randomX = Random.Range(0, Grid.Size.x - 1);
+        int randomY = Random.Range(0, Grid.Size.y - 1);
+        int randomZ = Random.Range(0, Grid.Size.z - 1);
+        ReferenceIndex = new Vector3Int(randomX, randomY, randomZ);
+
+        //Prepare the pivot and occupied indexes
+        SetPivot();
+        GetOccupiedIndexes();
+
+        //Randomize the rotation
+        Rotation = Random.Range(0, 4);
+
+        //Change the orientation if rotation makes part vertical
+        if (Rotation == 1 || Rotation == 3) Orientation = PartOrientation.Vertical;
+
+        //Define the rotation matrix
+        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, Rotation * 90f, 0));
+
+        //Apply rotation if rotation > 0
+        if (Rotation > 0)
+        {
+            for (int i = 0; i < OccupiedIndexes.Length; i++)
+            {
+                //Rotate index
+                var existingIndex = new Vector3Int(OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z);
+                Vector3 rotatedIndex = rotationMatrix.MultiplyPoint(existingIndex - PartPivot) + PartPivot;
+
+                //Resulting coordinates
+                int x = Mathf.RoundToInt(rotatedIndex.x);
+                int y = Mathf.RoundToInt(rotatedIndex.y);
+                int z = Mathf.RoundToInt(rotatedIndex.z);
+
+                OccupiedIndexes[i] = new Vector3Int(x, y, z);
+            }
+        }
+
+
+        //Validate part on grid
+        foreach (var index in OccupiedIndexes)
+        {
+            if (index.x >= Grid.Size.x || index.x < 0 || index.y >= Grid.Size.y || index.y < 0 || index.z >= Grid.Size.z || index.z < 0)
+            {
+                return;
+            }
+            else if (Grid.Voxels[index.x, index.y, index.z].IsOccupied || !Grid.Voxels[index.x, index.y, index.z].IsActive)
+            {
+                return;
+            }
+        }
+
+        //Validate based on existing parts
+        if (!CheckValidDistance()) return;
+
+        //Set creation as successful and create the part on grid and create GO
+        success = true;
+        OccupyVoxels();
+        SetGOTransformations();
+    }
+
     #endregion
 
     #region GameObject Methods
@@ -502,7 +611,7 @@ public class ConfigurablePart : Part
         GameObject reference = Resources.Load<GameObject>("GameObjects/ConfigurableComponentAgent");
         CPGameObject = GameObject.Instantiate(reference, Grid.GridGO.transform.parent);
         CPGameObject.transform.name = Name;
-        SetGOTransformations(rotation);
+        SetGOTransformations();
 
         CPAgent = CPGameObject.GetComponent<ConfigurablePartAgent>();
         CPAgent.SetPart(this);
@@ -512,7 +621,7 @@ public class ConfigurablePart : Part
     /// Sets the Transform of the <see cref="ConfigurablePart"/> GameObject that has been initialized
     /// </summary>
     /// <param name="rotation">The rotation set to the part</param>
-    private void SetGOTransformations(int rotation)
+    private void SetGOTransformations()
     {
         var voxelSize = Grid.VoxelSize;
         var xPos = ReferenceIndex.x;
@@ -521,7 +630,7 @@ public class ConfigurablePart : Part
 
         CPGameObject.transform.localPosition = new Vector3(xPos, yPos, zPos) * voxelSize;
         CPGameObject.transform.localScale = new Vector3(voxelSize, voxelSize, voxelSize);
-        CPGameObject.transform.localRotation = Quaternion.Euler(0, rotation * 90f, 0);
+        CPGameObject.transform.localRotation = Quaternion.Euler(0, Rotation * 90f, 0);
     }
     
     /// <summary>

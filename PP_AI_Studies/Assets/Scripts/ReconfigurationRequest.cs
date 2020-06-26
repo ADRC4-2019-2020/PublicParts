@@ -116,7 +116,7 @@ public class ReconfigurationRequest
         //Check if the request has been fullfiled
         if (areaSuccessful && connectivitySuccessful)
         {
-            OnReconfigurationSuccessful();
+            //OnReconfigurationSuccessful();
             return true;
         }
         //If not, continue with request open
@@ -171,10 +171,10 @@ public class ReconfigurationRequest
     public void OnSpaceDestruction()
     {
         FreezeAgents();
-        foreach (var agnt in _agents2Reconfigure)
-        {
-            agnt.SetAsComplete(false);
-        }
+        //foreach (var agnt in _agents2Reconfigure)
+        //{
+        //    agnt.SetAsComplete(false);
+        //}
     }
 
     /// <summary>
@@ -183,10 +183,10 @@ public class ReconfigurationRequest
     public void OnReconfigurationSuccessful()
     {
         FreezeAgents();
-        foreach (var agnt in _agents2Reconfigure)
-        {
-            agnt.SetAsComplete(true);
-        }
+        //foreach (var agnt in _agents2Reconfigure)
+        //{
+        //    agnt.SetAsComplete(true);
+        //}
     }
 
     #endregion

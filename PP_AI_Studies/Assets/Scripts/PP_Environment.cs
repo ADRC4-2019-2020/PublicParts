@@ -32,7 +32,9 @@ public class PP_Environment : MonoBehaviour
     string _gridType = "A";
     GameObject _gridGO;
     //Seed to run the population method
-    int _popSeed = 24;
+    int[] _availableSeeds = new int[10] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+    public int PopSeed;
+    int _nComponents = 5;
 
     float _voxelSize = 0.375f;
 
@@ -60,9 +62,17 @@ public class PP_Environment : MonoBehaviour
     string[] _weekdaysNames = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
     int _currentWeekDay = 0;
 
+
+
+    #endregion
+
+    #region MLAgents properties
+
     bool _progressionRunning = false;
 
     #endregion
+
+    public int InitializedAgents = 0;
 
     #region Debugging
 
@@ -106,9 +116,13 @@ public class PP_Environment : MonoBehaviour
         _cameraPivot.position = new Vector3(MainGrid.Size.x / 2, 0, MainGrid.Size.z / 2) * _voxelSize;
 
         //Create Configurable Parts
-        PopulateRandomConfigurables(5);
-        AnalyzeGridCreateNewSpaces();
-        
+        //PopulateRandomConfigurables(_nComponents);
+        //AnalyzeGridCreateNewSpaces();
+
+        //UPDATING
+        //Create the configurable
+        //PopSeed = 22;
+        CreateBlankConfigurables();
     }
 
     void Update()
@@ -148,6 +162,24 @@ public class PP_Environment : MonoBehaviour
         }
 
         DrawActiveComponent();
+
+        //Check number of initialized agents and evaluate grid
+        if (InitializedAgents == _nComponents)
+        {
+            foreach (ConfigurablePart part in _existingParts.OfType<ConfigurablePart>())
+            {
+                int attempt = 0;
+                bool success = false;
+                while (!success)
+                {
+                    part.FindNewPosition(PopSeed + attempt, out success);
+                    attempt++;
+                }
+            }
+            AnalyzeGridCreateNewSpaces();
+            InitializedAgents = 0;
+        }
+
         //StartCoroutine(SaveScreenshot());
     }
 
@@ -191,9 +223,19 @@ public class PP_Environment : MonoBehaviour
             int attempt = 0;
             while (!success)
             {
-                p = new ConfigurablePart(MainGrid, !_showVoxels, _popSeed + attempt, partName, out success);
+                p = new ConfigurablePart(MainGrid, !_showVoxels, PopSeed + attempt, partName, out success);
                 attempt++;
             }
+            MainGrid.ExistingParts.Add(p);
+            _existingParts.Add(p);
+        }
+    }
+
+    private void CreateBlankConfigurables()
+    {
+        for (int i = 0; i < _nComponents; i++)
+        {
+            ConfigurablePart p = new ConfigurablePart(MainGrid, !_showVoxels, $"CP_{i}");
             MainGrid.ExistingParts.Add(p);
             _existingParts.Add(p);
         }
@@ -276,9 +318,13 @@ public class PP_Environment : MonoBehaviour
     /// </summary>
     /// <param name="request">The request to be assessed</param>
     /// <returns>The validity of the reconfiguration</returns>
-    public bool CheckResultFromRequest(ReconfigurationRequest request)
+    public int CheckResultFromRequest(ReconfigurationRequest request)
     {
-        bool result = true;
+        //Return an integer representing the result of the action
+        //0 = valid
+        //1 = successful
+        //2 = destroyed the space
+        int result = 0;
         Guid spaceId = request.SpaceId;
         int checkCount = _spaces.Count(s => s.SpaceId == spaceId);
         if (checkCount == 1)
@@ -290,6 +336,7 @@ public class PP_Environment : MonoBehaviour
                 bool success = request.ReconfigurationSuccessful(space);
                 if (success)
                 {
+                    result = 1;
                     print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
                     space.Reconfigure_Area = false;
                     space.Reconfigure_Connectivity = false;
@@ -297,6 +344,7 @@ public class PP_Environment : MonoBehaviour
                 }
                 else
                 {
+                    result = 0;
                     print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
 
                 }
@@ -312,17 +360,17 @@ public class PP_Environment : MonoBehaviour
                 space.Reconfigure_Area = false;
                 space.Reconfigure_Connectivity = false;
             }
-            request.OnSpaceDestruction();
+            //request.OnSpaceDestruction();
             _reconfigurationRequests.Remove(request);
-            result = false;
+            result = 2;
         }
         else
         {
             //Space was destroyed, return false
             print($"{request.SpaceName} was destroyed.");
-            request.OnSpaceDestruction();
+            //request.OnSpaceDestruction();
             _reconfigurationRequests.Remove(request);
-            result = false;
+            result = 2;
         }
 
         return result;
@@ -349,6 +397,20 @@ public class PP_Environment : MonoBehaviour
     public List<PPSpace> GetCurrentSpaces()
     {
         return _spaces;
+    }
+
+    /// <summary>
+    /// Resets the grid after the an Episode is concluded
+    /// </summary>
+    public void ResetGrid()
+    {
+        MainGrid.RestartGrid();
+        _spaces = new List<PPSpace>();
+        _boundaries = new List<Voxel>();
+        foreach (ConfigurablePartAgent partAgent in _existingParts.OfType<ConfigurablePart>().Select(p => p.CPAgent))
+        {
+            partAgent.EndEpisode();
+        }
     }
 
     #endregion

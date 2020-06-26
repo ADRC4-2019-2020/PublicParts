@@ -13,14 +13,16 @@ public class VoxelGrid : MonoBehaviour
 {
     #region Parameters and Fields
 
-    // Original fields and parameters (AVOID CHANGING) 
+    #region Original fields and parameters (AVOID CHANGING) 
     public Vector3Int Size { get; private set; }
     public Voxel[,,] Voxels { get; private set; }
     public Face[][,,] Faces { get; private set; }
     public float VoxelSize { get; private set; }
     public Vector3 Origin { get; private set; }
 
-    //Migration Parameters
+    #endregion
+
+    #region Migration Parameters
 
     //Grid setup
     //Currently available slabs: 44_44_A
@@ -39,6 +41,8 @@ public class VoxelGrid : MonoBehaviour
     public List<Part> ExistingParts { get; private set; }
     public List<PPSpace> Spaces { get; private set; }
     public List<Voxel> Boundaries { get; private set; }
+
+    #endregion
 
     #endregion
 
@@ -778,6 +782,25 @@ public class VoxelGrid : MonoBehaviour
         }
         result = success;
         return p;
+    }
+
+    public void RestartGrid()
+    {
+        //Should clear the grid, keeping only the existing parts
+        foreach (Voxel voxel in Voxels)
+        {
+            voxel.IsOccupied = false;
+            voxel.InSpace = false;
+            voxel.ParentSpace = null;
+            voxel.Part = null;
+        }
+        foreach (var space in Spaces)
+        {
+            space.DestroySpace();
+        }
+        Spaces = new List<PPSpace>();
+        Boundaries = new List<Voxel>();
+
     }
 
     #endregion

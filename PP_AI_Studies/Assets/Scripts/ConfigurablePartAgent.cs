@@ -15,6 +15,14 @@ public class ConfigurablePartAgent : Agent
     private PP_Environment _environment;
     public bool Frozen;
     private ReconfigurationRequest _activeRequest = new ReconfigurationRequest();
+    
+    //Rewards and penalties
+    private float _destroyedPenalty = -1f;
+    private float _existentialPenalty = -0.1f;
+    private float _invalidMovementPenalty = -0.1f;
+    private float _validReward = 0.1f;
+    private float _successReward = 1f;
+    
 
     #endregion
 
@@ -87,11 +95,11 @@ public class ConfigurablePartAgent : Agent
 
     #region ML Agents Methods
 
-    public override void Initialize()
-    {
-        //Start with the agent frozen
-        FreezeAgent();
-    }
+    //public override void Initialize()
+    //{
+    //    //Start with the agent frozen
+    //    FreezeAgent();
+    //}
 
     /// <summary>
     /// Method to configure the agent on the beggining of each episode
@@ -99,6 +107,11 @@ public class ConfigurablePartAgent : Agent
     public override void OnEpisodeBegin()
     {
         //Code for the start of the episode
+        FreezeAgent();
+        ClearRequest();
+        //_part.FindNewPosition(_environment.PopSeed);
+        _environment.InitializedAgents++;
+        //print($"Initialized agent of {_part.Name}");
     }
 
     /// <summary>
@@ -190,10 +203,10 @@ public class ConfigurablePartAgent : Agent
         //Parse the vectorAction to int
         int movement = Mathf.RoundToInt(vectorAction[0]);
 
-        //Store the existing spaces
-        List<PPSpace> existingSpaces = _environment.GetCurrentSpaces();
+        //Store the existing spaces to apply
+        //List<PPSpace> existingSpaces = _environment.GetCurrentSpaces();
 
-         if (movement == 0)
+        if (movement == 0)
         {
             FreezeAgent();
             _activeRequest.UnfreezeRandomAgent();
@@ -206,24 +219,33 @@ public class ConfigurablePartAgent : Agent
             if (_part.MoveInX(1))
             {
                 //Check if action didn't destroy the space
-                if (_environment.CheckResultFromRequest(_activeRequest))
+                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                if (actionResult != 2)
                 {
                     //Action was valid, apply to gameobject
                     transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
+                    if (actionResult == 1)
+                    {
+                        //Action acheived desired reconfiguration
+                        LocalEndEpisode(_successReward);
+                    }
+                    else
+                    {
+                        AddReward(_validReward);
+                    }
                 }
                 //Space was destroyed, undo action
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    //_part.MoveInX(-1);
-                    //_environment.ForceResetSpaces(existingSpaces);
-                    //_activeRequest.UnfreezeRandomAgent();
+                    LocalEndEpisode(_destroyedPenalty);
                     //apply penalty
                 }
             }
             else
             {
                 //tried an illegal movement, apply penalty
+                AddReward(_invalidMovementPenalty);
             }
         }
         
@@ -233,25 +255,34 @@ public class ConfigurablePartAgent : Agent
             if (_part.MoveInX(-1))
             {
                 //Check if action didn't destroy the space
-                if (_environment.CheckResultFromRequest(_activeRequest))
+                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                if (actionResult != 2)
                 {
                     //Action was valid, apply to gameobject
                     transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
+                    if(actionResult == 1)
+                    {
+                        //Action acheived desired reconfiguration
+                        LocalEndEpisode(_successReward);
+                    }
+                    else
+                    {
+                        AddReward(_validReward);
+                    }
                 }
                 //Space was destroyed, undo action
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    //_part.MoveInX(1);
-                    //_environment.ForceResetSpaces(existingSpaces);
-                    //_activeRequest.UnfreezeRandomAgent();
-                    //apply penalty
+                    LocalEndEpisode(_destroyedPenalty);
                 }
             }
             else
             {
                 //tried an illegal movement, apply penalty
+                AddReward(_invalidMovementPenalty);
             }
+
         }
         
         else if (movement == 3)
@@ -260,24 +291,32 @@ public class ConfigurablePartAgent : Agent
             if (_part.MoveInZ(1))
             {
                 //Check if action didn't destroy the space
-                if (_environment.CheckResultFromRequest(_activeRequest))
+                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                if (actionResult != 2)
                 {
                     //Action was valid, apply to gameobject
                     transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
+                    if (actionResult == 1)
+                    {
+                        //Action acheived desired reconfiguration
+                        LocalEndEpisode(_successReward);
+                    }
+                    else
+                    {
+                        AddReward(_validReward);
+                    }
                 }
                 //Space was destroyed, undo action
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    //_part.MoveInZ(-1);
-                    //_environment.ForceResetSpaces(existingSpaces);
-                    //_activeRequest.UnfreezeRandomAgent();
-                    //apply penalty
+                    LocalEndEpisode(_destroyedPenalty);
                 }
             }
             else
             {
                 //tried an illegal movement, apply penalty
+                AddReward(_invalidMovementPenalty);
             }
         }
         
@@ -287,24 +326,32 @@ public class ConfigurablePartAgent : Agent
             if (_part.MoveInZ(-1))
             {
                 //Check if action didn't destroy the space
-                if (_environment.CheckResultFromRequest(_activeRequest))
+                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                if (actionResult != 2)
                 {
                     //Action was valid, apply to gameobject
                     transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
+                    if (actionResult == 1)
+                    {
+                        //Action acheived desired reconfiguration
+                        LocalEndEpisode(_successReward);
+                    }
+                    else
+                    {
+                        AddReward(_validReward);
+                    }
                 }
                 //Space was destroyed, undo action
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    //_part.MoveInZ(1);
-                    //_environment.ForceResetSpaces(existingSpaces);
-                    //_activeRequest.UnfreezeRandomAgent();
-                    //apply penalty
+                    LocalEndEpisode(_destroyedPenalty);
                 }
             }
             else
             {
                 //tried an illegal movement, apply penalty
+                AddReward(_invalidMovementPenalty);
             }
         }
         
@@ -314,25 +361,33 @@ public class ConfigurablePartAgent : Agent
             if (_part.RotateComponent(1))
             {
                 //Check if action didn't destroy the space
-                if (_environment.CheckResultFromRequest(_activeRequest))
+                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                if (actionResult != 2)
                 {
                     //Action was valid, apply to gameobject
                     var currentRotation = transform.rotation;
                     transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
+                    if (actionResult == 1)
+                    {
+                        //Action acheived desired reconfiguration
+                        LocalEndEpisode(_successReward);
+                    }
+                    else
+                    {
+                        AddReward(_validReward);
+                    }
                 }
                 //Space was destroyed, undo action
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    //_part.RotateComponent(-1);
-                    //_environment.ForceResetSpaces(existingSpaces);
-                    //_activeRequest.UnfreezeRandomAgent();
-                    //apply penalty
+                    LocalEndEpisode(_destroyedPenalty);
                 }
             }
             else
             {
                 //tried an illegal movement, apply penalty
+                AddReward(_invalidMovementPenalty);
             }
         }
         
@@ -341,26 +396,33 @@ public class ConfigurablePartAgent : Agent
             if (_part.RotateComponent(-1))
             {
                 //Check if action didn't destroy the space
-                if (_environment.CheckResultFromRequest(_activeRequest))
+                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                if (actionResult != 2)
                 {
                     //Action was valid, apply to gameobject
                     var currentRotation = transform.rotation;
                     transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
+                    if (actionResult == 1)
+                    {
+                        //Action acheived desired reconfiguration
+                        LocalEndEpisode(_successReward);
+                    }
+                    else
+                    {
+                        AddReward(_validReward);
+                    }
                 }
                 //Space was destroyed, undo action
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    //_part.RotateComponent(-1);
-                    //_environment.ForceResetSpaces(existingSpaces);
-                    //_activeRequest.UnfreezeRandomAgent();
-                    //apply penalty
+                    LocalEndEpisode(_destroyedPenalty);
                 }
             }
-            //Space was destroyed, undo action
             else
             {
                 //tried an illegal movement, apply penalty
+                AddReward(_invalidMovementPenalty);
             }
         }
     }
@@ -378,18 +440,25 @@ public class ConfigurablePartAgent : Agent
         Frozen = false;
     }
 
-    public void SetAsComplete(bool success)
+    //public void SetAsComplete(bool success)
+    //{
+    //    if (success)
+    //    {
+    //        //apply reward
+    //    }
+    //    else
+    //    {
+    //        //apply destruction penalty
+    //    }
+    //    Frozen = true;
+    //    ClearRequest();
+    //}
+
+    private void LocalEndEpisode(float reward)
     {
-        if (success)
-        {
-            //apply reward
-        }
-        else
-        {
-            //apply destruction penalty
-        }
-        Frozen = true;
-        ClearRequest();
+        AddReward(reward);
+        _environment.ResetGrid();
+        //EndEpisode();
     }
 
     #endregion

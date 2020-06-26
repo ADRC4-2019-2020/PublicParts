@@ -431,6 +431,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _skin: {fileID: 11400000, guid: ecbe29542ad82cd4193ccaa49156b029, type: 2}
   _cameraPivot: {fileID: 255751959}
+  PopSeed: 10
+  InitializedAgents: 0
 --- !u!1 &1736869760
 GameObject:
   m_ObjectHideFlags: 0
