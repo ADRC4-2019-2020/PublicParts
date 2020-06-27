@@ -24,7 +24,6 @@ public class ConfigurablePartAgent : Agent
     private float _successReward = 1f;
 
     private bool _training = true;
-    
 
     #endregion
 

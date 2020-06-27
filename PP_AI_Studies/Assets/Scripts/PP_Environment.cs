@@ -27,12 +27,9 @@ public class PP_Environment : MonoBehaviour
 
     #region Grid setup
 
-    //Currently available slabs: 44_44_A
-    string _gridName = "44_44";
-    string _gridType = "A";
     GameObject _gridGO;
     //Seed to run the population method
-    int[] _availableSeeds = new int[10] { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+    int[] _availableSeeds = new int[4] { 666, 555, 444, 66 };
     public int PopSeed;
     int _nComponents = 5;
 
@@ -71,10 +68,9 @@ public class PP_Environment : MonoBehaviour
     #region MLAgents properties
 
     bool _progressionRunning = false;
+    public int InitializedAgents = 0;
 
     #endregion
-
-    public int InitializedAgents = 0;
 
     #region Debugging
 
@@ -94,6 +90,8 @@ public class PP_Environment : MonoBehaviour
     string _activityLog = "";
 
     PPSpace _selectedSpace;
+
+    bool _saveImageSteps = false;
 
     #endregion
 
@@ -133,7 +131,7 @@ public class PP_Environment : MonoBehaviour
         {
             DrawState();
         }
-
+        DrawBoundaries();
         if (_showRawBoundaries)
         {
             DrawBoundaries();
@@ -164,6 +162,7 @@ public class PP_Environment : MonoBehaviour
         //Check number of initialized agents and evaluate grid
         if (InitializedAgents == _nComponents)
         {
+            PopSeed = _availableSeeds[UnityEngine.Random.Range(0, 4)];
             foreach (ConfigurablePart part in _existingParts.OfType<ConfigurablePart>())
             {
                 int attempt = 0;
@@ -173,13 +172,16 @@ public class PP_Environment : MonoBehaviour
                     part.FindNewPosition(PopSeed + attempt, out success);
                     attempt++;
                 }
+                
+            }
+            foreach (ConfigurablePart part in _existingParts.OfType<ConfigurablePart>())
+            {
+                part.OccupyVoxels();
             }
             AnalyzeGridCreateNewSpaces();
-            InitializedAgents = 0;
             SetRandomSpaceToReconfigure();
+            InitializedAgents = 0;
         }
-
-        //StartCoroutine(SaveScreenshot());
     }
 
     #endregion
@@ -230,6 +232,10 @@ public class PP_Environment : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Populates parts and save the result grid state as an image for a given amount of times
+    /// </summary>
+    /// <param name="quantity">The quantity of states to save</param>
     private void PopulateRandomAndSave(int quantity)
     {
         for (int n = 0; n < quantity; n++)
@@ -634,13 +640,7 @@ public class PP_Environment : MonoBehaviour
 
     #region Drawing and Visualizing
 
-    IEnumerator SaveScreenshot()
-    {
-        string file = $"SavedFrames/ReconfigurationTest/Frame_{_frame}.png";
-        ScreenCapture.CaptureScreenshot(file);
-        _frame++;
-        yield return new WaitForEndOfFrame();
-    }
+   
 
     /// <summary>
     /// Change the visibility of the scene's GameObjects, iterating between 
@@ -724,37 +724,41 @@ public class PP_Environment : MonoBehaviour
     {
         foreach (var space in MainGrid.Spaces)
         {
-            Color color;
-            Color black = Color.black;
-            Color white = Color.white;
-            Color acid = new Color(0.85f, 1.0f, 0.0f, 0.70f);
-            if (space.Reconfigure)
+            if (!space.IsSpare)
             {
-                if (space != _selectedSpace)
+                Color color;
+                Color black = Color.black;
+                Color white = Color.white;
+                Color acid = new Color(0.85f, 1.0f, 0.0f, 0.70f);
+                if (space.Reconfigure)
                 {
-                    //color = new Color(0.7f, 0.1f, 0.1f, 0.70f);
-                    color = acid;
+                    if (space != _selectedSpace)
+                    {
+                        //color = new Color(0.7f, 0.1f, 0.1f, 0.70f);
+                        color = acid;
+                    }
+                    else
+                    {
+                        //color = new Color(0.90f, 0.70f, 0.0f, 0.70f);
+                        color = acid;
+                    }
                 }
                 else
                 {
-                    //color = new Color(0.90f, 0.70f, 0.0f, 0.70f);
-                    color = acid;
+                    if (space != _selectedSpace)
+                    {
+                        //color = new Color(0.9f, 0.9f, 0.9f, 0.70f);
+                        color = black;
+                    }
+                    else
+                    {
+                        //color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
+                        color = black;
+                    }
                 }
+                PP_Drawing.DrawSpaceBoundary(space, MainGrid, color, transform.position);
             }
-            else
-            {
-                if (space != _selectedSpace)
-                {
-                    //color = new Color(0.9f, 0.9f, 0.9f, 0.70f);
-                    color = black;
-                }
-                else
-                {
-                    //color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
-                    color = black;
-                }
-            }
-            PP_Drawing.DrawSpaceBoundary(space, MainGrid, color, transform.position);
+            
         }
     }
 
@@ -769,13 +773,16 @@ public class PP_Environment : MonoBehaviour
             Vector2 tagSize = new Vector2(60, 15);
             foreach (var space in MainGrid.Spaces)
             {
-                string spaceName = space.Name;
-                Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * tagHeight);
+                if (!space.IsSpare)
+                {
+                    string spaceName = space.Name;
+                    Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * tagHeight);
 
-                var t = _cam.WorldToScreenPoint(tagWorldPos);
-                Vector2 tagPos = new Vector2(t.x - (tagSize.x / 2), Screen.height - t.y);
+                    var t = _cam.WorldToScreenPoint(tagWorldPos);
+                    Vector2 tagPos = new Vector2(t.x - (tagSize.x / 2), Screen.height - t.y);
 
-                GUI.Box(new Rect(tagPos, tagSize), spaceName, "spaceTag");
+                    GUI.Box(new Rect(tagPos, tagSize), spaceName, "spaceTag");
+                }
             }
         }
     }

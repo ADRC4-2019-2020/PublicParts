@@ -63,7 +63,15 @@ public class VoxelGrid : MonoBehaviour
         ExistingParts = new List<Part>();
         Spaces = new List<PPSpace>();
         Boundaries = new List<Voxel>();
-        _pix2pix = new PP_pix2pix();
+        if (Size == new Vector3Int(30, 1, 24))
+        {
+            _pix2pix = new PP_pix2pix("30x24");
+        }
+        else
+        {
+            _pix2pix = new PP_pix2pix("original");
+        }
+        
         SetupVoxels();
 
         if (createGO)
@@ -86,7 +94,7 @@ public class VoxelGrid : MonoBehaviour
         Spaces = new List<PPSpace>();
         Boundaries = new List<Voxel>();
 
-        _pix2pix = new PP_pix2pix();
+        _pix2pix = new PP_pix2pix("original");
 
         _gridName = gridName;
         _gridType = gridType;
@@ -293,11 +301,11 @@ public class VoxelGrid : MonoBehaviour
         Boundaries = new List<Voxel>();
         var gridImage = GetStateImage();
 
-        //string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\helpers\";
+        string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\helpers\";
 
         var analysisResult = _pix2pix.GeneratePrediction(gridImage);
         //ImageReadWrite.SaveImage2Path(analysisResult, folder + "p2pOutput");
-        
+
         var resultTexture = ProcessAnalysisResult(analysisResult);
         //ImageReadWrite.SaveImage2Path(resultTexture, folder + "postprosOutput");
 
@@ -474,10 +482,14 @@ public class VoxelGrid : MonoBehaviour
         {
             Voxels2SmallestNeighbour(Boundaries.Where(b => !b.InSpace));
         }
-        //foreach (var space  in newSpaces)
-        //{
-        //    space.CalculateSortedBoundary();
-        //}
+        foreach (var space in newSpaces)
+        {
+            if (space.IsSpare)
+            {
+                space.HideArrow();
+            }
+            
+        }
         return newSpaces;
         //_activityLog = $"AI Message: Generated {Spaces.Count} Spaces";
     }
@@ -576,9 +588,7 @@ public class VoxelGrid : MonoBehaviour
     {
         //Downscale the analysis result
         TextureScale.Point(analysisResult, 64, 64);
-        
-        
-        
+
         //string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\helpers\";
         //ImageReadWrite.SaveImage2Path(analysisResult, folder + "p2pdownscaledOutput");
 
@@ -590,8 +600,8 @@ public class VoxelGrid : MonoBehaviour
         {
             for (int j = 0; j < resultGridTexture.height; j++)
             {
-                int x = i + 1;
-                int y = analysisResult.height - resultGridTexture.height + j /*+ 1*/;
+                int x = i;
+                int y = analysisResult.height - resultGridTexture.height + j;
                 resultGridTexture.SetPixel(i, j, analysisResult.GetPixel(x, y));
             }
         }
@@ -643,7 +653,7 @@ public class VoxelGrid : MonoBehaviour
             ExistingParts.Add(p);
         }
         //Write image to temp_sr folder
-        return ImageReadWrite.TextureFromGrid(this);
+        return ImageReadWrite.TextureFromGridOriginal(this);
     }
 
     /// <summary>
@@ -784,6 +794,9 @@ public class VoxelGrid : MonoBehaviour
         return p;
     }
 
+    /// <summary>
+    /// Restarts the grid in the end of a training episode
+    /// </summary>
     public void RestartGrid()
     {
         //Should clear the grid, keeping only the existing parts
@@ -801,6 +814,11 @@ public class VoxelGrid : MonoBehaviour
         Spaces = new List<PPSpace>();
         Boundaries = new List<Voxel>();
 
+    }
+
+    public void EnsurePartInGrid(ConfigurablePart part)
+    {
+        part.OccupyVoxels();
     }
 
     #endregion

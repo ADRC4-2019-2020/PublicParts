@@ -87,7 +87,7 @@ public class AI_SpaceRecognition : MonoBehaviour
         _cameraPivot.position = new Vector3(_gridSize.x / 2, 0, _gridSize.z / 2) * _voxelSize;
 
         //Create the pix2pix object
-        _pix2pix = new PP_pix2pix();
+        _pix2pix = new PP_pix2pix("original");
     }
 
 
@@ -405,7 +405,7 @@ public class AI_SpaceRecognition : MonoBehaviour
             _existingParts.Add(p);
         }
         //Write image to temp_sr folder
-        return ImageReadWrite.TextureFromGrid(_grid);
+        return ImageReadWrite.TextureFromGridOriginal(_grid);
     }
 
     /// <summary>

@@ -29,7 +29,7 @@ public class Part : System.IEquatable<Part>
 
     public Voxel OriginVoxel => Grid.Voxels[ReferenceIndex.x, ReferenceIndex.y, ReferenceIndex.z];
 
-    protected void OccupyVoxels()
+    public void OccupyVoxels()
     {
         OccupiedVoxels = new Voxel[nVoxels];
         for (int i = 0; i < nVoxels; i++)

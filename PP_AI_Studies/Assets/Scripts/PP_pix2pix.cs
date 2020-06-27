@@ -19,14 +19,20 @@ public class PP_pix2pix
     /// Constructs the PP_pix2pix engine, loading the model and creating the Worker responsible for
     /// inferring results
     /// </summary>
-    public PP_pix2pix()
+    public PP_pix2pix(string version)
     {
         //Class constructor, loads model and creates worker
-        _modelAsset = Resources.Load<NNModel>("Models/pp_p2p_k2o");
+        if (version == "original" )
+        {
+            _modelAsset = Resources.Load<NNModel>("Models/pp_p2p_k2o");
+        }
+        else if (version == "30x24")
+        {
+            _modelAsset = Resources.Load<NNModel>("Models/pp_p2p_v4_k2o");
+        }
         _loadedModel = ModelLoader.Load(_modelAsset);
         _worker = WorkerFactory.CreateWorker(WorkerFactory.Type.ComputePrecompiled, _loadedModel);
     }
-
 
     //Main methods
 

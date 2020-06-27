@@ -530,6 +530,19 @@ public class ConfigurablePart : Part
                 voxel.Part = null;
             }
         }
+        //foreach (var index in OccupiedIndexes)
+        //{
+        //    if ((index.x > 0 && index.x < Grid.Size.x) && (index.y > 0 && index.y < Grid.Size.y) && (index.z > 0 && index.z < Grid.Size.z))
+        //    {
+        //        var voxel = Grid.Voxels[index.x, index.y, index.z];
+        //        if (voxel != null)
+        //        {
+        //            voxel.IsOccupied = false;
+        //            voxel.Part = null;
+        //        }
+        //    }
+        //}
+
         OccupiedVoxels = new Voxel[nVoxels];
         OccupiedIndexes = new Vector3Int[nVoxels];
 
@@ -537,6 +550,7 @@ public class ConfigurablePart : Part
 
         //Start from horizontal position
         Orientation = PartOrientation.Horizontal;
+        Rotation = 0;
 
         //Randomize ReferenceIndex
         int randomX = Random.Range(0, Grid.Size.x - 1);
@@ -554,12 +568,11 @@ public class ConfigurablePart : Part
         //Change the orientation if rotation makes part vertical
         if (Rotation == 1 || Rotation == 3) Orientation = PartOrientation.Vertical;
 
-        //Define the rotation matrix
-        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, Rotation * 90f, 0));
-
         //Apply rotation if rotation > 0
         if (Rotation > 0)
         {
+            //Define the rotation matrix
+            Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, Rotation * 90f, 0));
             for (int i = 0; i < OccupiedIndexes.Length; i++)
             {
                 //Rotate index
@@ -593,9 +606,9 @@ public class ConfigurablePart : Part
         if (!CheckValidDistance()) return;
 
         //Set creation as successful and create the part on grid and create GO
-        success = true;
         OccupyVoxels();
         SetGOTransformations();
+        success = true;
     }
 
     #endregion

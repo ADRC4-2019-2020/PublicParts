@@ -54,7 +54,13 @@ public static class ImageReadWrite
         File.WriteAllBytes(path, data);
     }
 
-    public static Texture2D TextureFromGrid(VoxelGrid grid)
+    /// <summary>
+    /// Generates a texture from the grid, resized properly. This method it targeted to the original dataset,
+    /// that had the error caused by the buggy resize, requiring the external resizing to be applied
+    /// </summary>
+    /// <param name="grid">The source <see cref="VoxelGrid"/></param>
+    /// <returns>The result <see cref="Texture2D"/></returns>
+    public static Texture2D TextureFromGridOriginal(VoxelGrid grid)
     {
         string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en";
         var textureFormat = TextureFormat.RGB24;
@@ -132,6 +138,82 @@ public static class ImageReadWrite
         //UnityEngine.Debug.Log(image.width);
 
         return image;
+    }
+
+    /// <summary>
+    /// Generates a texture from the grid, resized properly internally.
+    /// </summary>
+    /// <param name="grid">The source <see cref="VoxelGrid"/></param>
+    /// <returns>The result <see cref="Texture2D"/></returns>
+    public static Texture2D TextureFromGrid(VoxelGrid grid)
+    {
+        string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en";
+        var textureFormat = TextureFormat.RGB24;
+
+        Vector2Int size = new Vector2Int(grid.Size.x, grid.Size.z);
+        Texture2D gridImage = new Texture2D(size.x, size.y, textureFormat, true, true);
+        for (int i = 0; i < gridImage.width; i++)
+        {
+            for (int j = 0; j < gridImage.height; j++)
+            {
+                var voxel = grid.Voxels[i, 0, j];
+                Color c = !voxel.IsActive || voxel.IsOccupied ? Color.black : Color.white;
+                gridImage.SetPixel(i, j, c);
+            }
+        }
+        gridImage.Apply();
+        //ImageReadWrite.SaveImage2Path(gridImage, folder + @"\helpers\firstOutput");
+
+        //Construct the resulting resized image
+        //Scale image up, multiplying by 4
+        TextureScale.Point(gridImage, gridImage.width * 4, gridImage.height * 4);
+        //Texture2D resultImage = new Texture2D(256, 256, textureFormat, true, true);
+        Texture2D resultImage = new Texture2D(256, 256);
+        //Set all pixels to gray
+        Color[] grayPixels = new Color[256 * 256];
+        var gray = Color.gray;
+        for (int i = 0; i < grayPixels.Length; i++)
+        {
+            grayPixels[i] = gray;
+        }
+        resultImage.SetPixels(grayPixels);
+        resultImage.Apply();
+
+        //Write grid image on result image
+        for (int i = 0; i < gridImage.width; i++)
+        {
+            for (int j = 0; j < gridImage.height; j++)
+            {
+                int x = i;
+                int y = resultImage.height - gridImage.height + j;
+                resultImage.SetPixel(x, y, gridImage.GetPixel(i, j));
+            }
+        }
+        resultImage.Apply();
+        //ImageReadWrite.SaveImage2Path(resultImage, folder + @"\helpers\upscaledOutput");
+
+        //temporarily save image to ensure encoding
+        //string path = folder + "/temp.png";
+        //using (MemoryStream memory = new MemoryStream())
+        //{
+        //    using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite))
+        //    {
+        //        byte[] data = gridImage.EncodeToPNG();
+        //        fs.Write(data, 0, data.Length);
+        //    }
+        //}
+        ////External resize and enlarging
+        //PP_ImageProcessing.ResizeAndFitCanvas(folder, "4", "256", "256");
+
+
+        ////Read externally resized image
+        //Texture2D image = new Texture2D(256, 256, textureFormat, true, true);
+
+        //byte[] imageData = File.ReadAllBytes(path);
+        //image.LoadImage(imageData);
+        //UnityEngine.Debug.Log(image.width);
+
+        return resultImage;
     }
 
     public static Texture2D ReadWriteAI(VoxelGrid grid, string prefix)

@@ -223,7 +223,7 @@ public class PPSpace : IEquatable<PPSpace>
             orphans.Add(voxel);
         }
         Voxels = new HashSet<Voxel>();
-        Arrow.GetComponent<InfoArrow>().SelfDestroy();
+        //Arrow.GetComponent<InfoArrow>().SelfDestroy();
         Arrow = null;
         return orphans;
     }
@@ -234,7 +234,7 @@ public class PPSpace : IEquatable<PPSpace>
     public void ValidadeSpace()
     {
         CalculateSortedBoundary();
-        CreateArrow();
+        //CreateArrow();
         SetBoundaryConfigurableParts();
     }
 
@@ -250,6 +250,18 @@ public class PPSpace : IEquatable<PPSpace>
         Arrow.transform.localPosition = _center + new Vector3(0, 1.75f, 0);
         Arrow.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
         Arrow.GetComponent<InfoArrow>().SetSpace(this);
+    }
+
+    /// <summary>
+    /// Deactivates the <see cref="InfoArrow"/>
+    /// </summary>
+    public void HideArrow()
+    {
+        if (Arrow != null)
+        {
+            Arrow.SetActive(false);
+        }
+        
     }
 
     /// <summary>
