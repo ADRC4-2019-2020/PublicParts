@@ -15,6 +15,8 @@ public class ReconfigurationRequest
     public Guid SpaceId { get; private set; }
     //The name of the space that needs to be reconfigured
     public string SpaceName { get; private set; }
+    //The current indices occupied by the space
+    public Vector3Int[] CurrentIndices;
     //The target parameters for the space
     public int TargetArea { get; private set; } = 0;
     public int TargetConnections { get; private set; } = 0;
@@ -42,8 +44,11 @@ public class ReconfigurationRequest
     {
         SpaceId = space.SpaceId;
         SpaceName = space.Name;
+        CurrentIndices = space.Indices.ToArray();
         int currentArea = space.VoxelCount;
         int currentConnectivity = space.NumberOfConnections;
+
+        space.ArtificialReconfigureRequest(areaDirection, connectivityDirection);
 
         //Set the target area
         if (areaDirection == 1) TargetArea = currentArea + _areaModifier;
@@ -55,7 +60,7 @@ public class ReconfigurationRequest
         else if (connectivityDirection == -1) TargetConnections = currentConnectivity - _connectivityModifier;
         else if (connectivityDirection == 0) TargetConnections = 0;
 
-        Debug.Log($"Reconfiguration requested for {space.Name}. Area from {currentArea} to {TargetArea}");
+        //Debug.Log($"Reconfiguration requested for {space.Name}. Area from {currentArea} to {TargetArea}");
 
         _agents2Reconfigure = space.BoundaryParts.Select(p => p.CPAgent).ToArray();
         foreach (var part in _agents2Reconfigure)
@@ -162,7 +167,6 @@ public class ReconfigurationRequest
     {
         int i = UnityEngine.Random.Range(0, _agents2Reconfigure.Length);
         _agents2Reconfigure[i].UnfreezeAgent();
-        //Debug.Log($"Unfrozen part {_parts2Reconfigure[i].Name}, state is {_parts2Reconfigure[i].CPAgent.Frozen}");
     }
 
     /// <summary>

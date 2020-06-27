@@ -51,7 +51,7 @@ public class PP_Environment : MonoBehaviour
 
     #endregion
 
-    #region Simulation parameters
+    #region Simulation properties
     int _frame = 0;
 
     int _day = 0;
@@ -62,7 +62,9 @@ public class PP_Environment : MonoBehaviour
     string[] _weekdaysNames = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
     int _currentWeekDay = 0;
 
-
+    Vector3Int[] _completedIndices;
+    bool _showCompleted;
+    Color _completedColor;
 
     #endregion
 
@@ -103,9 +105,8 @@ public class PP_Environment : MonoBehaviour
     {
         _cam = Camera.main;
 
-        _gridSize = new Vector3Int(32, 1, 24);
+        _gridSize = new Vector3Int(30, 1, 24);
         MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true);
-        _paralellGrid = new VoxelGrid(MainGrid);
         _boundaries = MainGrid.Boundaries;
         _gridGO = MainGrid.GridGO;
         _gridGO.transform.SetParent(transform);
@@ -118,6 +119,7 @@ public class PP_Environment : MonoBehaviour
         //Create Configurable Parts
         //PopulateRandomConfigurables(_nComponents);
         //AnalyzeGridCreateNewSpaces();
+
 
         //UPDATING
         //Create the configurable
@@ -152,13 +154,9 @@ public class PP_Environment : MonoBehaviour
             _showVoxels = !_showVoxels;
             SetGameObjectsVisibility(_showVoxels);
         }
-
-        if (_selectedSpace != null)
+        if (_showCompleted)
         {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                SetSpaceToReconfigure();
-            }
+            DrawCompletedSpace();
         }
 
         DrawActiveComponent();
@@ -178,6 +176,7 @@ public class PP_Environment : MonoBehaviour
             }
             AnalyzeGridCreateNewSpaces();
             InitializedAgents = 0;
+            SetRandomSpaceToReconfigure();
         }
 
         //StartCoroutine(SaveScreenshot());
@@ -231,6 +230,35 @@ public class PP_Environment : MonoBehaviour
         }
     }
 
+    private void PopulateRandomAndSave(int quantity)
+    {
+        for (int n = 0; n < quantity; n++)
+        {
+            PopSeed = System.DateTime.Now.Millisecond;
+            MainGrid.ClearGrid();
+            _existingParts = new List<Part>();
+
+            for (int i = 0; i < _nComponents; i++)
+            {
+                string partName = $"CP_{i}";
+                bool success = false;
+                ConfigurablePart p = new ConfigurablePart();
+                int attempt = 0;
+                while (!success)
+                {
+                    p = new ConfigurablePart(MainGrid, !_showVoxels, PopSeed + attempt, partName, out success);
+                    attempt++;
+                }
+                //MainGrid.ExistingParts.Add(p);
+                _existingParts.Add(p);
+            }
+            ImageReadWrite.WriteGrid2Image(MainGrid, n);
+        }
+    }
+
+    /// <summary>
+    /// Initializes blank, not yet applied to the grid, <see cref="ConfigurablePart"/>
+    /// </summary>
     private void CreateBlankConfigurables()
     {
         for (int i = 0; i < _nComponents; i++)
@@ -334,10 +362,11 @@ public class PP_Environment : MonoBehaviour
             {
                 //Space still exists, evaluate if reconfiguration was successful
                 bool success = request.ReconfigurationSuccessful(space);
+                request.CurrentIndices = space.Indices.ToArray();
                 if (success)
                 {
                     result = 1;
-                    print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                    //print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
                     space.Reconfigure_Area = false;
                     space.Reconfigure_Connectivity = false;
                     _reconfigurationRequests.Remove(request);
@@ -345,14 +374,14 @@ public class PP_Environment : MonoBehaviour
                 else
                 {
                     result = 0;
-                    print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
+                    //print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
 
                 }
             }
         }
         else if (checkCount > 1)
         {
-            print($"{request.SpaceName} was split.");
+            //print($"{request.SpaceName} was split.");
             //Space was destroyed and split into 2 or more. Differentiate new spaces
             foreach (var space in _spaces.Where(s => s.SpaceId == spaceId))
             {
@@ -367,7 +396,7 @@ public class PP_Environment : MonoBehaviour
         else
         {
             //Space was destroyed, return false
-            print($"{request.SpaceName} was destroyed.");
+            //print($"{request.SpaceName} was destroyed.");
             //request.OnSpaceDestruction();
             _reconfigurationRequests.Remove(request);
             result = 2;
@@ -402,8 +431,28 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Resets the grid after the an Episode is concluded
     /// </summary>
-    public void ResetGrid()
+    public void ResetGrid(ReconfigurationRequest request, bool success)
     {
+        _completedIndices = request.CurrentIndices;
+        _showCompleted = true;
+        if (success) _completedColor = Color.green;
+        else _completedColor = Color.red;
+
+        StartCoroutine(AnimateCompletionAndRestart());
+        //MainGrid.RestartGrid();
+        //_spaces = new List<PPSpace>();
+        //_boundaries = new List<Voxel>();
+        //foreach (ConfigurablePartAgent partAgent in _existingParts.OfType<ConfigurablePart>().Select(p => p.CPAgent))
+        //{
+        //    partAgent.EndEpisode();
+        //}
+    }
+
+    IEnumerator AnimateCompletionAndRestart()
+    {
+        yield return new WaitForSeconds(0.5f);
+        _showCompleted = false;
+        _completedIndices = null;
         MainGrid.RestartGrid();
         _spaces = new List<PPSpace>();
         _boundaries = new List<Voxel>();
@@ -424,7 +473,32 @@ public class PP_Environment : MonoBehaviour
     {
         ReconfigurationRequest rr = new ReconfigurationRequest(_selectedSpace, 1, 0);
         _reconfigurationRequests.Add(rr);
-        _selectedSpace.ArtificialReconfigureRequest(0, 1);
+        //_selectedSpace.ArtificialReconfigureRequest(0, 1);
+    }
+
+    /// <summary>
+    /// Sets one of the existing spaces to be reconfigured
+    /// </summary>
+    private void SetRandomSpaceToReconfigure() 
+    {
+        PPSpace space =  new PPSpace();
+        bool validRequest = false;
+        while (!validRequest)
+        {
+            UnityEngine.Random.InitState(System.DateTime.Now.Millisecond);
+            int i = UnityEngine.Random.Range(0, _spaces.Count);
+            space = _spaces[i];
+
+            if (space.BoundaryParts.Count > 0 && !space.IsSpare)
+            {
+                validRequest = true;
+            }
+        }
+        
+        //Set area to be increased
+        ReconfigurationRequest rr = new ReconfigurationRequest(space, 1, 0);
+        _reconfigurationRequests.Add(rr);
+        //space.ArtificialReconfigureRequest(0, 1);
     }
 
     /// <summary>
@@ -734,6 +808,16 @@ public class PP_Environment : MonoBehaviour
         }
     }
 
+    private void DrawCompletedSpace()
+    {
+        foreach (var index in _completedIndices)
+        {
+            Vector3 realIndex = new Vector3(index.x + 0.5f, index.y + 1.5f, index.z + 0.5f) * _voxelSize;
+            PP_Drawing.DrawCube(transform.position + realIndex, MainGrid.VoxelSize, _completedColor);
+        }
+        
+    }
+
     #endregion
 
     #region GUI Controls and Settings
@@ -751,70 +835,64 @@ public class PP_Environment : MonoBehaviour
         //Draw Spaces tags
         DrawSpaceTags();
 
-        //Logo
-        GUI.DrawTexture(new Rect(leftPad, -10, 128, 128), Resources.Load<Texture>("Textures/PP_Logo"));
+        ////Logo
+        //GUI.DrawTexture(new Rect(leftPad, -10, 128, 128), Resources.Load<Texture>("Textures/PP_Logo"));
 
-        //Background Transparency
-        GUI.Box(new Rect(leftPad, topPad - 75, (fieldTitleWidth * 2) + (leftPad * 3), (fieldHeight * 25) + 10), Resources.Load<Texture>("Textures/PP_TranspBKG"), "backgroundTile");
+        ////Background Transparency
+        //GUI.Box(new Rect(leftPad, topPad - 75, (fieldTitleWidth * 2) + (leftPad * 3), (fieldHeight * 25) + 10), Resources.Load<Texture>("Textures/PP_TranspBKG"), "backgroundTile");
 
-        //Setup title
-        GUI.Box(new Rect(leftPad, topPad - 40, fieldTitleWidth, fieldHeight + 10), "Control Panel", "partsTitle");
+        ////Setup title
+        //GUI.Box(new Rect(leftPad, topPad - 40, fieldTitleWidth, fieldHeight + 10), "Control Panel", "partsTitle");
 
-        //Title
-        GUI.Box(new Rect(180, 30, 500, 25), "AI Space Analyzer", "title");
+        ////Title
+        //GUI.Box(new Rect(180, 30, 500, 25), "AI Space Analyzer", "title");
 
-        //Date and Time _dateTimeNow
-        GUI.Box(new Rect(Screen.width - 530, 30, 500, 25), _dateTimeNow, "dateTime");
+        ////Date and Time _dateTimeNow
+        //GUI.Box(new Rect(Screen.width - 530, 30, 500, 25), _dateTimeNow, "dateTime");
 
-        //UI during Daily progression
-        Rect pauseRect = new Rect(leftPad, Screen.height - leftPad - 50, 42, 42);
-        if (_progressionRunning)
-        {
-            //Pause Button
-            if (GUI.Button(pauseRect, Resources.Load<Texture>("Textures/PauseButton"), "pauseButton"))
-            {
-                _timePause = !_timePause;
-            }
-        }
-        //Activity log box
-        Rect logRect = new Rect(pauseRect.position + new Vector2(leftPad * 3, 0), new Vector2(900, 42));
-        GUI.Box(logRect, _activityLog, "activityLog");
+        ////UI during Daily progression
+        //Rect pauseRect = new Rect(leftPad, Screen.height - leftPad - 50, 42, 42);
+        //if (_progressionRunning)
+        //{
+        //    //Pause Button
+        //    if (GUI.Button(pauseRect, Resources.Load<Texture>("Textures/PauseButton"), "pauseButton"))
+        //    {
+        //        _timePause = !_timePause;
+        //    }
+        //}
+        ////Activity log box
+        //Rect logRect = new Rect(pauseRect.position + new Vector2(leftPad * 3, 0), new Vector2(900, 42));
+        //GUI.Box(logRect, _activityLog, "activityLog");
 
+        ////Populate Button and save several - AI
+        //if (GUI.Button(new Rect(leftPad, topPad + ((fieldHeight + 10) * i++),
+        //    (fieldTitleWidth + leftPad + textFieldWidth), fieldHeight),
+        //    "Update Generate Spaces [AI]"))
+        //{
+        //    AnalyzeGridCreateNewSpaces();
+        //}
 
-
-
-        //Output message to be displayed out of test mode
-
-
-        //Populate Button and save several - AI
-        if (GUI.Button(new Rect(leftPad, topPad + ((fieldHeight + 10) * i++),
-            (fieldTitleWidth + leftPad + textFieldWidth), fieldHeight),
-            "Update Generate Spaces [AI]"))
-        {
-            AnalyzeGridCreateNewSpaces();
-        }
-
-        if (_spaces.Any())
-        {
-            //Start Daily progression of tenants
-            if (GUI.Button(new Rect(leftPad, topPad + ((fieldHeight + 10) * i++),
-                (fieldTitleWidth + leftPad + textFieldWidth), fieldHeight),
-                "Start Daily Progression"))
-            {
-                _progressionRunning = true;
-                StartCoroutine(DailyProgression());
-            }
-        }
+        //if (_spaces.Any())
+        //{
+        //    //Start Daily progression of tenants
+        //    if (GUI.Button(new Rect(leftPad, topPad + ((fieldHeight + 10) * i++),
+        //        (fieldTitleWidth + leftPad + textFieldWidth), fieldHeight),
+        //        "Start Daily Progression"))
+        //    {
+        //        _progressionRunning = true;
+        //        StartCoroutine(DailyProgression());
+        //    }
+        //}
 
 
-        //Output Message
-        GUI.Box(new Rect(leftPad, (topPad) + ((fieldHeight + 10) * i++), (fieldTitleWidth + leftPad + textFieldWidth), fieldHeight), _outputMessage, "outputMessage");
+        ////Output Message
+        //GUI.Box(new Rect(leftPad, (topPad) + ((fieldHeight + 10) * i++), (fieldTitleWidth + leftPad + textFieldWidth), fieldHeight), _outputMessage, "outputMessage");
 
-        //Debug pop-up window
-        if (_showDebug)
-        {
-            GUI.Window(0, new Rect(Screen.width - leftPad - 300, topPad - 75, 300, (fieldHeight * 25) + 10), DebugWindow, "Debug_Summary");
-        }
+        ////Debug pop-up window
+        //if (_showDebug)
+        //{
+        //    GUI.Window(0, new Rect(Screen.width - leftPad - 300, topPad - 75, 300, (fieldHeight * 25) + 10), DebugWindow, "Debug_Summary");
+        //}
     }
 
     /// <summary>

@@ -649,46 +649,43 @@ public class PPSpace : IEquatable<PPSpace>
     }
 
     /// <summary>
-    /// Calls a reconfiguration to occur artificially, on demand
-    /// type 0 = Area
-    /// type 1 = Connectivity
-    /// direction +1 = increase
-    /// direction -1 = decrease
+    /// Calls a reconfiguration to occur artificially, on demand.
+    /// Direction == 0 => no reconfiguration required
+    /// Direction == 1 => reconfiguration required to increase caracteristic
+    /// Direction == -1 => reconfiguration required to decrease caracteristic
     /// </summary>
-    public void ArtificialReconfigureRequest(int type, int direction)
+    /// <param name="areaDirection">The direction to modify the Area</param>
+    /// <param name="connectivityDirection">The direction to modify the connectivity</param>
+    public void ArtificialReconfigureRequest(int areaDirection, int connectivityDirection)
     {
-        if (type == 0)
+        if (areaDirection != 0)
         {
             Reconfigure_Area = true;
-            if (direction == -1)
+            if (areaDirection == -1)
             {
                 _areaIncrease = 0;
                 _areaDecrease = 1;
             }
-            else if (direction == 1)
+            else if (areaDirection == 1)
             {
                 _areaIncrease = 1;
                 _areaDecrease = 0;
             }
         }
-        else if (type == 1)
+        if (connectivityDirection != 0)
         {
             Reconfigure_Connectivity = true;
-            if (direction == -1)
+            if (connectivityDirection == -1)
             {
                 _connectivityIncrease = 0;
                 _connectivityDecrease = 1;
             }
-            else if (direction == 1)
+            else if (connectivityDirection == 1)
             {
                 _connectivityIncrease = 1;
                 _connectivityDecrease = 0;
             }
         }
-        //foreach (var part in BoundaryParts)
-        //{
-        //    part.CPAgent.UnfreezeAgent();
-        //}
     }
 
     #endregion

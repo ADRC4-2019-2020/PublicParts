@@ -22,6 +22,8 @@ public class ConfigurablePartAgent : Agent
     private float _invalidMovementPenalty = -0.1f;
     private float _validReward = 0.1f;
     private float _successReward = 1f;
+
+    private bool _training = true;
     
 
     #endregion
@@ -95,12 +97,6 @@ public class ConfigurablePartAgent : Agent
 
     #region ML Agents Methods
 
-    //public override void Initialize()
-    //{
-    //    //Start with the agent frozen
-    //    FreezeAgent();
-    //}
-
     /// <summary>
     /// Method to configure the agent on the beggining of each episode
     /// </summary>
@@ -110,7 +106,7 @@ public class ConfigurablePartAgent : Agent
         FreezeAgent();
         ClearRequest();
         //_part.FindNewPosition(_environment.PopSeed);
-        _environment.InitializedAgents++;
+        if (_training) _environment.InitializedAgents++;
         //print($"Initialized agent of {_part.Name}");
     }
 
@@ -227,7 +223,7 @@ public class ConfigurablePartAgent : Agent
                     if (actionResult == 1)
                     {
                         //Action acheived desired reconfiguration
-                        LocalEndEpisode(_successReward);
+                        TriggerEndEpisode(_successReward);
                     }
                     else
                     {
@@ -238,7 +234,7 @@ public class ConfigurablePartAgent : Agent
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    LocalEndEpisode(_destroyedPenalty);
+                    TriggerEndEpisode(_destroyedPenalty);
                     //apply penalty
                 }
             }
@@ -263,7 +259,7 @@ public class ConfigurablePartAgent : Agent
                     if(actionResult == 1)
                     {
                         //Action acheived desired reconfiguration
-                        LocalEndEpisode(_successReward);
+                        TriggerEndEpisode(_successReward);
                     }
                     else
                     {
@@ -274,7 +270,7 @@ public class ConfigurablePartAgent : Agent
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    LocalEndEpisode(_destroyedPenalty);
+                    TriggerEndEpisode(_destroyedPenalty);
                 }
             }
             else
@@ -299,7 +295,7 @@ public class ConfigurablePartAgent : Agent
                     if (actionResult == 1)
                     {
                         //Action acheived desired reconfiguration
-                        LocalEndEpisode(_successReward);
+                        TriggerEndEpisode(_successReward);
                     }
                     else
                     {
@@ -310,7 +306,7 @@ public class ConfigurablePartAgent : Agent
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    LocalEndEpisode(_destroyedPenalty);
+                    TriggerEndEpisode(_destroyedPenalty);
                 }
             }
             else
@@ -334,7 +330,7 @@ public class ConfigurablePartAgent : Agent
                     if (actionResult == 1)
                     {
                         //Action acheived desired reconfiguration
-                        LocalEndEpisode(_successReward);
+                        TriggerEndEpisode(_successReward);
                     }
                     else
                     {
@@ -345,7 +341,7 @@ public class ConfigurablePartAgent : Agent
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    LocalEndEpisode(_destroyedPenalty);
+                    TriggerEndEpisode(_destroyedPenalty);
                 }
             }
             else
@@ -370,7 +366,7 @@ public class ConfigurablePartAgent : Agent
                     if (actionResult == 1)
                     {
                         //Action acheived desired reconfiguration
-                        LocalEndEpisode(_successReward);
+                        TriggerEndEpisode(_successReward);
                     }
                     else
                     {
@@ -381,7 +377,7 @@ public class ConfigurablePartAgent : Agent
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    LocalEndEpisode(_destroyedPenalty);
+                    TriggerEndEpisode(_destroyedPenalty);
                 }
             }
             else
@@ -405,7 +401,7 @@ public class ConfigurablePartAgent : Agent
                     if (actionResult == 1)
                     {
                         //Action acheived desired reconfiguration
-                        LocalEndEpisode(_successReward);
+                        TriggerEndEpisode(_successReward);
                     }
                     else
                     {
@@ -416,7 +412,7 @@ public class ConfigurablePartAgent : Agent
                 else
                 {
                     //print("Action destroyed space, undid action.");
-                    LocalEndEpisode(_destroyedPenalty);
+                    TriggerEndEpisode(_destroyedPenalty);
                 }
             }
             else
@@ -454,10 +450,16 @@ public class ConfigurablePartAgent : Agent
     //    ClearRequest();
     //}
 
-    private void LocalEndEpisode(float reward)
+    /// <summary>
+    /// Triggers the end of an episode due to failure or success
+    /// </summary>
+    /// <param name="reward">The reward or penalty to be applied to the agent</param>
+    private void TriggerEndEpisode(float reward)
     {
         AddReward(reward);
-        _environment.ResetGrid();
+        bool success = false;
+        if (reward > 0) success = true;
+        _environment.ResetGrid(_activeRequest, success);
         //EndEpisode();
     }
 

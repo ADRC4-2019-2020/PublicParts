@@ -13,11 +13,14 @@
 [Pp]lans/
 [Pp]lans_2/
 [Pp]lans_3/
+[Pp]lans_4/
 [Pp]lans_LR/
 [Tt]raining_checkpoints/
 [Tt]raining_checkpoints_2/
 [Tt]raining_checkpoints_3/
+[Tt]raining_checkpoints_4/
 [Tt]raining_checkpoints_LR/
+[Ss]aved_models/
 [Bb]ackup_tc3/
 [Cc]kpt_bkp/
 [Pp]rem_test/
