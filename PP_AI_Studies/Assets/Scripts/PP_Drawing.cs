@@ -111,7 +111,7 @@ class PP_Drawing : MonoBehaviour
         var matrix = Matrix4x4.TRS(
                 center,
                 Quaternion.identity,
-                Vector3.one * (size * 0.99f)
+                Vector3.one * (size * 1f)
                 );
 
         Graphics.DrawMesh(_unitBox, matrix, _instance._opaque, 0, null, 0, _properties);
@@ -126,7 +126,7 @@ class PP_Drawing : MonoBehaviour
         var matrix = Matrix4x4.TRS(
                 center,
                 Quaternion.identity,
-                Vector3.one * (size * 0.99f)
+                Vector3.one * (size * 1f)
                 );
 
         Graphics.DrawMesh(_unitBox, matrix, _instance._opaque, 0, null, 0, _properties);

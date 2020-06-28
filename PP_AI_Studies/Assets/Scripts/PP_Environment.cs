@@ -131,7 +131,7 @@ public class PP_Environment : MonoBehaviour
         {
             DrawState();
         }
-        DrawBoundaries();
+        //DrawBoundaries();
         if (_showRawBoundaries)
         {
             DrawBoundaries();
@@ -157,7 +157,7 @@ public class PP_Environment : MonoBehaviour
             DrawCompletedSpace();
         }
 
-        DrawActiveComponent();
+        //DrawActiveComponent();
 
         //Check number of initialized agents and evaluate grid
         if (InitializedAgents == _nComponents)
@@ -639,8 +639,6 @@ public class PP_Environment : MonoBehaviour
     #endregion
 
     #region Drawing and Visualizing
-
-   
 
     /// <summary>
     /// Change the visibility of the scene's GameObjects, iterating between 
