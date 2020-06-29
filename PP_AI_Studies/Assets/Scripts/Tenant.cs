@@ -13,6 +13,7 @@ public class Tenant : IEquatable<Tenant>
     public string Name;
     GameObject _userIcon;
     VoxelGrid _grid;
+    public PPSpace OnSpace;
 
     //Area preferences are stored in a linear, 2 instances array. [0] = min, [1] = max
     //This represents the area in square meters per person in the population occupying the space
@@ -52,6 +53,7 @@ public class Tenant : IEquatable<Tenant>
     {
         SetGOVisibility(true);
         _userIcon.GetComponent<UserIcon>().SetSpace(space, grid);
+        OnSpace = space;
     }
 
     public void SetGOVisibility(bool visible)
@@ -62,6 +64,7 @@ public class Tenant : IEquatable<Tenant>
 
     public void ReleaseIcon()
     {
+        OnSpace = null;
         _userIcon.GetComponent<UserIcon>().ReleaseSpace();
         SetGOVisibility(false);
         _userIcon.transform.position = Vector3.zero;

@@ -518,6 +518,11 @@ public class ConfigurablePart : Part
         }
     }
 
+    /// <summary>
+    /// Finds a new position for the <see cref="ConfigurablePart"/>, avoiding its destruction
+    /// </summary>
+    /// <param name="seed">The seed for the Random method</param>
+    /// <param name="success">The result of the operation</param>
     public void FindNewPosition(int seed, out bool success)
     {
         Random.InitState(seed);
@@ -706,8 +711,10 @@ public class ConfigurablePart : Part
     /// on every execution.
     /// </summary>
     /// <param name="distance">The distance to be moved</param>
+    /// <param name="updateSpaces">Bool to trigger space evaluation update. Default is true</param>
+    /// <param name="freezeAgent">Bool to trigger the freezing of the agent once done with movement. Default is true</param>
     /// <returns>The boolean representing if movement was successful</returns>
-    public bool MoveInX(int distance)
+    public bool MoveInX(int distance, bool updateSpaces = true, bool freezeAgent = true)
     {
         //Boolean to evalute the validity of the movement
         bool validMovement = true;
@@ -767,9 +774,11 @@ public class ConfigurablePart : Part
         ReferenceIndex += new Vector3Int(distance, 0, 0);
         SetPivot();
 
-        CPAgent.FreezeAgent();
+        if (freezeAgent) CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
-        _environment.AnalyzeGridUpdateSpaces();
+        if (updateSpaces) _environment.AnalyzeGridUpdateSpaces();
+
+        
         
         return validMovement;
     }
@@ -780,8 +789,10 @@ public class ConfigurablePart : Part
     /// on every execution.
     /// </summary>
     /// <param name="distance">The distance to be moved</param>
+    /// <param name="updateSpaces">Bool to trigger space evaluation update. Default is true</param>
+    /// <param name="freezeAgent">Bool to trigger the freezing of the agent once done with movement. Default is true</param>
     /// <returns>The boolean representing if movement was successful</returns>
-    public bool MoveInZ(int distance)
+    public bool MoveInZ(int distance, bool updateSpaces = true, bool freezeAgent = true)
     {
         //Boolean to evalute the validity of the movement
         bool validMovement = true;
@@ -841,10 +852,13 @@ public class ConfigurablePart : Part
         ReferenceIndex += new Vector3Int(0, 0, distance);
         SetPivot();
 
-        CPAgent.FreezeAgent();
+        if (freezeAgent) CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
-        _environment.AnalyzeGridUpdateSpaces();
-        
+        if (updateSpaces)
+        {
+            _environment.AnalyzeGridUpdateSpaces();
+        }
+
         return validMovement;
     }
 
@@ -855,8 +869,10 @@ public class ConfigurablePart : Part
     /// on every execution.
     /// </summary>
     /// <param name="direction">The direction to rotate </param>
+    /// <param name="updateSpaces">Bool to trigger space evaluation update. Default is true</param>
+    /// <param name="freezeAgent">Bool to trigger the freezing of the agent once done with movement. Default is true</param>
     /// <returns>The boolean representing if the rotation was successful</returns>
-    public bool RotateComponent(int direction)
+    public bool RotateComponent(int direction, bool updateSpaces = true, bool freezeAgent = true)
     {
         //Boolean to evalute the validity of the rotation
         bool validRotation = true;
@@ -945,9 +961,12 @@ public class ConfigurablePart : Part
             Rotation = 3;
         }
 
-        CPAgent.FreezeAgent();
+        if (freezeAgent) CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
-        _environment.AnalyzeGridUpdateSpaces();
+        if (updateSpaces)
+        {
+            _environment.AnalyzeGridUpdateSpaces();
+        }
         return validRotation;
     }
 

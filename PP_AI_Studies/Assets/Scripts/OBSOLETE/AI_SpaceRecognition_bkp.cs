@@ -343,7 +343,7 @@ public class AI_SpaceRecognition_bkp : MonoBehaviour
                 clicked = hit.collider.gameObject.GetComponent<InfoArrow>().GetSpace();
                 //print($"Clicked on {clicked.Name}'s arrow");
                 _showSpaceData = true;
-                _spaceData = clicked.GetSpaceInfo();
+                _spaceData = clicked.GetSpaceDebugInfo();
                 _cameraPivot.position = hit.collider.gameObject.transform.position;
                 _selectedSpace = clicked;
             }
@@ -1097,7 +1097,7 @@ public class AI_SpaceRecognition_bkp : MonoBehaviour
         _debugMessage = "";
         if (_showSpaces && _showSpaceData)
         {
-            _debugMessage = _selectedSpace.GetSpaceInfo();
+            _debugMessage = _selectedSpace.GetSpaceDebugInfo();
         }
         else
         {

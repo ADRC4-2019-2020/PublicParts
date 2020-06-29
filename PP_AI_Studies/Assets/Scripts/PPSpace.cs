@@ -5,6 +5,7 @@ using System.Linq;
 using System;
 using System.Globalization;
 using UnityEngine.PlayerLoop;
+using Unity.Barracuda;
 
 [System.Serializable]
 public class PPSpace : IEquatable<PPSpace>
@@ -288,7 +289,7 @@ public class PPSpace : IEquatable<PPSpace>
     /// Gets the information from the space
     /// </summary>
     /// <returns>The formated infomation</returns>
-    public string GetSpaceInfo()
+    public string GetSpaceDebugInfo()
     {
         string output = "";
         string tab = "  ";
@@ -391,6 +392,31 @@ public class PPSpace : IEquatable<PPSpace>
             tab + connectivityScore + breakLine +
             tab + connectivityReconfigText
             ;
+
+        return output;
+    }
+
+    /// <summary>
+    /// Gets the information from the space
+    /// </summary>
+    /// <returns>The formated infomation</returns>
+    public string GetSpaceData()
+    {
+        string output;
+        string tab = "  ";
+        string breakLine = "\n";
+        string nameHeader = Name;
+
+        string area = $"Area: {Area.ToString("F", new CultureInfo("en-US"))} m²";
+        string timesUsed = $"Times used: {TimesUsed.ToString()}";
+        string areaScore = $"Area Score: {AreaScore.ToString()}";
+        string connectivityScore = $"Connectivity Score: {ConnectivityScore.ToString()}";
+
+        output = nameHeader + breakLine +
+            tab + area + breakLine +
+            tab + areaScore + breakLine +
+            tab + connectivityScore + breakLine +
+            tab + timesUsed + breakLine;
 
         return output;
     }
@@ -700,10 +726,34 @@ public class PPSpace : IEquatable<PPSpace>
         }
     }
 
+    /// <summary>
+    /// Reset the values for area evaluation to default
+    /// </summary>
+    public void ResetAreaEvaluation()
+    {
+        Reconfigure_Area = false;
+        AreaScore = 0.5f;
+        _areaRating = 0;
+        _areaIncrease = 0;
+        _areaDecrease = 0;
+    }
+
+    /// <summary>
+    /// Reset the values for connectivity evaluation to default
+    /// </summary>
+    public void ResetConnectivityEvaluation()
+    {
+        Reconfigure_Connectivity = false;
+        ConnectivityScore = 0.5f;
+        _connectivityRating = 0;
+        _connectivityIncrease = 0;
+        _connectivityDecrease = 0;
+    }
+
     #endregion
 
     #region Equality checking
-    
+
     public bool Equals(PPSpace other)
     {
         return (other != null && Voxels.Count == other.Voxels.Count && Voxels.All(other.Voxels.Contains));

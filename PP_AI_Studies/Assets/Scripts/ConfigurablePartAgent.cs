@@ -24,6 +24,7 @@ public class ConfigurablePartAgent : Agent
     private float _successReward = 1f;
 
     private bool _training = true;
+    private bool _manual = false;
 
     #endregion
 
@@ -115,39 +116,42 @@ public class ConfigurablePartAgent : Agent
     /// <param name="actionsOut"></param>
     public override void Heuristic(float[] actionsOut)
     {
-        //Code for heuristic mode
-        float command = 10f;
-        if (Input.GetKeyDown(KeyCode.LeftControl))
+        if (!_manual)
         {
-            command = 0f;
-        }
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-        {
-            command = 1f;
-        }
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            command = 2f;
-        }
-        else if (Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            command = 3f;
-        }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            command = 4f;
-        }
+            //Code for heuristic mode
+            float command = 10f;
+            if (Input.GetKeyDown(KeyCode.LeftControl))
+            {
+                command = 0f;
+            }
+            if (Input.GetKeyDown(KeyCode.RightArrow))
+            {
+                command = 1f;
+            }
+            else if (Input.GetKeyDown(KeyCode.LeftArrow))
+            {
+                command = 2f;
+            }
+            else if (Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                command = 3f;
+            }
+            else if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                command = 4f;
+            }
 
-        else if (Input.GetKeyDown(KeyCode.E))
-        {
-            command = 5f;
-        }
+            else if (Input.GetKeyDown(KeyCode.E))
+            {
+                command = 5f;
+            }
 
-        else if (Input.GetKeyDown(KeyCode.Q))
-        {
-            command = 6f;
+            else if (Input.GetKeyDown(KeyCode.Q))
+            {
+                command = 6f;
+            }
+            actionsOut[0] = command;
         }
-        actionsOut[0] = command;
     }
 
     /// <summary>
@@ -156,30 +160,32 @@ public class ConfigurablePartAgent : Agent
     /// <param name="sensor"></param>
     public override void CollectObservations(VectorSensor sensor)
     {
-        //Code for observation collection [9 OBSERVATIONS TOTAL]
+        if (!_manual)
+        {
+            //Code for observation collection [9 OBSERVATIONS TOTAL]
 
-        //Current orientation of the part Horizontal = 0, vertical  = 1. [1 OBSERVATION]
-        if (_part.Orientation == PartOrientation.Horizontal) sensor.AddObservation(0f);
-        else sensor.AddObservation(1f);
+            //Current orientation of the part Horizontal = 0, vertical  = 1. [1 OBSERVATION]
+            if (_part.Orientation == PartOrientation.Horizontal) sensor.AddObservation(0f);
+            else sensor.AddObservation(1f);
 
-        //The current rotation of the part [1 OBSERVATION]
-        sensor.AddObservation(_part.Rotation);
+            //The current rotation of the part [1 OBSERVATION]
+            sensor.AddObservation(_part.Rotation);
 
-        //the reference index of the part (X and Z only) [2 OBSERVATIONS]
-        sensor.AddObservation(_part.ReferenceIndex.x);
-        sensor.AddObservation(_part.ReferenceIndex.z);
+            //the reference index of the part (X and Z only) [2 OBSERVATIONS]
+            sensor.AddObservation(_part.ReferenceIndex.x);
+            sensor.AddObservation(_part.ReferenceIndex.z);
 
-        //The active request properties [2 OBSERVATIONS]
-        sensor.AddObservation(_activeRequest.TargetArea);
-        sensor.AddObservation(_activeRequest.TargetConnections);
+            //The active request properties [2 OBSERVATIONS]
+            sensor.AddObservation(_activeRequest.TargetArea);
+            sensor.AddObservation(_activeRequest.TargetConnections);
 
-        //The properties of the grid [3 OBSERVATIONS]
-        //Size
-        sensor.AddObservation(_part.Grid.Size.x);
-        sensor.AddObservation(_part.Grid.Size.y);
-        //Amount of spaces
-        sensor.AddObservation(_part.Grid.Spaces.Count);
-
+            //The properties of the grid [3 OBSERVATIONS]
+            //Size
+            sensor.AddObservation(_part.Grid.Size.x);
+            sensor.AddObservation(_part.Grid.Size.y);
+            //Amount of spaces
+            sensor.AddObservation(_part.Grid.Spaces.Count);
+        }
     }
 
     /// <summary>
@@ -195,231 +201,235 @@ public class ConfigurablePartAgent : Agent
     /// <param name="vectorAction"></param>
     public override void OnActionReceived(float[] vectorAction)
     {
-        //Parse the vectorAction to int
-        int movement = Mathf.RoundToInt(vectorAction[0]);
-
-        //Store the existing spaces to apply
-        //List<PPSpace> existingSpaces = _environment.GetCurrentSpaces();
-
-        if (movement == 0)
+        if (!_manual)
         {
-            FreezeAgent();
-            _activeRequest.UnfreezeRandomAgent();
+            //Parse the vectorAction to int
+            int movement = Mathf.RoundToInt(vectorAction[0]);
 
-        }
+            //Store the existing spaces to apply
+            //List<PPSpace> existingSpaces = _environment.GetCurrentSpaces();
 
-        if (movement == 1)
-        {
-            //Tries to move +1 in X
-            if (_part.MoveInX(1))
+            if (movement == 0)
             {
-                //Check if action didn't destroy the space
-                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                if (actionResult != 2)
+                FreezeAgent();
+                _activeRequest.UnfreezeRandomAgent();
+
+            }
+
+            if (movement == 1)
+            {
+                //Tries to move +1 in X
+                if (_part.MoveInX(1))
                 {
-                    //Action was valid, apply to gameobject
-                    transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
-                    if (actionResult == 1)
+                    //Check if action didn't destroy the space
+                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                    if (actionResult != 2)
                     {
-                        //Action acheived desired reconfiguration
-                        TriggerEndEpisode(_successReward);
+                        //Action was valid, apply to gameobject
+                        transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
+                        if (actionResult == 1)
+                        {
+                            //Action acheived desired reconfiguration
+                            TriggerEndEpisode(_successReward);
+                        }
+                        else
+                        {
+                            AddReward(_validReward);
+                        }
                     }
+                    //Space was destroyed, undo action
                     else
                     {
-                        AddReward(_validReward);
+                        //print("Action destroyed space, undid action.");
+                        TriggerEndEpisode(_destroyedPenalty);
+                        //apply penalty
                     }
                 }
-                //Space was destroyed, undo action
                 else
                 {
-                    //print("Action destroyed space, undid action.");
-                    TriggerEndEpisode(_destroyedPenalty);
-                    //apply penalty
+                    //tried an illegal movement, apply penalty
+                    AddReward(_invalidMovementPenalty);
                 }
             }
-            else
+
+            else if (movement == 2)
             {
-                //tried an illegal movement, apply penalty
-                AddReward(_invalidMovementPenalty);
+                //Tries to move -1 in X
+                if (_part.MoveInX(-1))
+                {
+                    //Check if action didn't destroy the space
+                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                    if (actionResult != 2)
+                    {
+                        //Action was valid, apply to gameobject
+                        transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
+                        if (actionResult == 1)
+                        {
+                            //Action acheived desired reconfiguration
+                            TriggerEndEpisode(_successReward);
+                        }
+                        else
+                        {
+                            AddReward(_validReward);
+                        }
+                    }
+                    //Space was destroyed, undo action
+                    else
+                    {
+                        //print("Action destroyed space, undid action.");
+                        TriggerEndEpisode(_destroyedPenalty);
+                    }
+                }
+                else
+                {
+                    //tried an illegal movement, apply penalty
+                    AddReward(_invalidMovementPenalty);
+                }
+
+            }
+
+            else if (movement == 3)
+            {
+                //Tries to move +1 in Z
+                if (_part.MoveInZ(1))
+                {
+                    //Check if action didn't destroy the space
+                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                    if (actionResult != 2)
+                    {
+                        //Action was valid, apply to gameobject
+                        transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
+                        if (actionResult == 1)
+                        {
+                            //Action acheived desired reconfiguration
+                            TriggerEndEpisode(_successReward);
+                        }
+                        else
+                        {
+                            AddReward(_validReward);
+                        }
+                    }
+                    //Space was destroyed, undo action
+                    else
+                    {
+                        //print("Action destroyed space, undid action.");
+                        TriggerEndEpisode(_destroyedPenalty);
+                    }
+                }
+                else
+                {
+                    //tried an illegal movement, apply penalty
+                    AddReward(_invalidMovementPenalty);
+                }
+            }
+
+            else if (movement == 4)
+            {
+                //Tries to move -1 in Z
+                if (_part.MoveInZ(-1))
+                {
+                    //Check if action didn't destroy the space
+                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                    if (actionResult != 2)
+                    {
+                        //Action was valid, apply to gameobject
+                        transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
+                        if (actionResult == 1)
+                        {
+                            //Action acheived desired reconfiguration
+                            TriggerEndEpisode(_successReward);
+                        }
+                        else
+                        {
+                            AddReward(_validReward);
+                        }
+                    }
+                    //Space was destroyed, undo action
+                    else
+                    {
+                        //print("Action destroyed space, undid action.");
+                        TriggerEndEpisode(_destroyedPenalty);
+                    }
+                }
+                else
+                {
+                    //tried an illegal movement, apply penalty
+                    AddReward(_invalidMovementPenalty);
+                }
+            }
+
+            else if (movement == 5)
+            {
+                //Tries to rotate component clockwise
+                if (_part.RotateComponent(1))
+                {
+                    //Check if action didn't destroy the space
+                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                    if (actionResult != 2)
+                    {
+                        //Action was valid, apply to gameobject
+                        var currentRotation = transform.rotation;
+                        transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
+                        if (actionResult == 1)
+                        {
+                            //Action acheived desired reconfiguration
+                            TriggerEndEpisode(_successReward);
+                        }
+                        else
+                        {
+                            AddReward(_validReward);
+                        }
+                    }
+                    //Space was destroyed, undo action
+                    else
+                    {
+                        //print("Action destroyed space, undid action.");
+                        TriggerEndEpisode(_destroyedPenalty);
+                    }
+                }
+                else
+                {
+                    //tried an illegal movement, apply penalty
+                    AddReward(_invalidMovementPenalty);
+                }
+            }
+
+            else if (movement == 6)
+            {
+                if (_part.RotateComponent(-1))
+                {
+                    //Check if action didn't destroy the space
+                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+                    if (actionResult != 2)
+                    {
+                        //Action was valid, apply to gameobject
+                        var currentRotation = transform.rotation;
+                        transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
+                        if (actionResult == 1)
+                        {
+                            //Action acheived desired reconfiguration
+                            TriggerEndEpisode(_successReward);
+                        }
+                        else
+                        {
+                            AddReward(_validReward);
+                        }
+                    }
+                    //Space was destroyed, undo action
+                    else
+                    {
+                        //print("Action destroyed space, undid action.");
+                        TriggerEndEpisode(_destroyedPenalty);
+                    }
+                }
+                else
+                {
+                    //tried an illegal movement, apply penalty
+                    AddReward(_invalidMovementPenalty);
+                }
             }
         }
         
-        else if (movement == 2)
-        {
-            //Tries to move -1 in X
-            if (_part.MoveInX(-1))
-            {
-                //Check if action didn't destroy the space
-                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                if (actionResult != 2)
-                {
-                    //Action was valid, apply to gameobject
-                    transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
-                    if(actionResult == 1)
-                    {
-                        //Action acheived desired reconfiguration
-                        TriggerEndEpisode(_successReward);
-                    }
-                    else
-                    {
-                        AddReward(_validReward);
-                    }
-                }
-                //Space was destroyed, undo action
-                else
-                {
-                    //print("Action destroyed space, undid action.");
-                    TriggerEndEpisode(_destroyedPenalty);
-                }
-            }
-            else
-            {
-                //tried an illegal movement, apply penalty
-                AddReward(_invalidMovementPenalty);
-            }
-
-        }
-        
-        else if (movement == 3)
-        {
-            //Tries to move +1 in Z
-            if (_part.MoveInZ(1))
-            {
-                //Check if action didn't destroy the space
-                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                if (actionResult != 2)
-                {
-                    //Action was valid, apply to gameobject
-                    transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
-                    if (actionResult == 1)
-                    {
-                        //Action acheived desired reconfiguration
-                        TriggerEndEpisode(_successReward);
-                    }
-                    else
-                    {
-                        AddReward(_validReward);
-                    }
-                }
-                //Space was destroyed, undo action
-                else
-                {
-                    //print("Action destroyed space, undid action.");
-                    TriggerEndEpisode(_destroyedPenalty);
-                }
-            }
-            else
-            {
-                //tried an illegal movement, apply penalty
-                AddReward(_invalidMovementPenalty);
-            }
-        }
-        
-        else if (movement == 4)
-        {
-            //Tries to move -1 in Z
-            if (_part.MoveInZ(-1))
-            {
-                //Check if action didn't destroy the space
-                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                if (actionResult != 2)
-                {
-                    //Action was valid, apply to gameobject
-                    transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
-                    if (actionResult == 1)
-                    {
-                        //Action acheived desired reconfiguration
-                        TriggerEndEpisode(_successReward);
-                    }
-                    else
-                    {
-                        AddReward(_validReward);
-                    }
-                }
-                //Space was destroyed, undo action
-                else
-                {
-                    //print("Action destroyed space, undid action.");
-                    TriggerEndEpisode(_destroyedPenalty);
-                }
-            }
-            else
-            {
-                //tried an illegal movement, apply penalty
-                AddReward(_invalidMovementPenalty);
-            }
-        }
-        
-        else if (movement == 5)
-        {
-            //Tries to rotate component clockwise
-            if (_part.RotateComponent(1))
-            {
-                //Check if action didn't destroy the space
-                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                if (actionResult != 2)
-                {
-                    //Action was valid, apply to gameobject
-                    var currentRotation = transform.rotation;
-                    transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
-                    if (actionResult == 1)
-                    {
-                        //Action acheived desired reconfiguration
-                        TriggerEndEpisode(_successReward);
-                    }
-                    else
-                    {
-                        AddReward(_validReward);
-                    }
-                }
-                //Space was destroyed, undo action
-                else
-                {
-                    //print("Action destroyed space, undid action.");
-                    TriggerEndEpisode(_destroyedPenalty);
-                }
-            }
-            else
-            {
-                //tried an illegal movement, apply penalty
-                AddReward(_invalidMovementPenalty);
-            }
-        }
-        
-        else if (movement == 6)
-        {
-            if (_part.RotateComponent(-1))
-            {
-                //Check if action didn't destroy the space
-                int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                if (actionResult != 2)
-                {
-                    //Action was valid, apply to gameobject
-                    var currentRotation = transform.rotation;
-                    transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
-                    if (actionResult == 1)
-                    {
-                        //Action acheived desired reconfiguration
-                        TriggerEndEpisode(_successReward);
-                    }
-                    else
-                    {
-                        AddReward(_validReward);
-                    }
-                }
-                //Space was destroyed, undo action
-                else
-                {
-                    //print("Action destroyed space, undid action.");
-                    TriggerEndEpisode(_destroyedPenalty);
-                }
-            }
-            else
-            {
-                //tried an illegal movement, apply penalty
-                AddReward(_invalidMovementPenalty);
-            }
-        }
     }
 
     /// <summary>
@@ -434,20 +444,6 @@ public class ConfigurablePartAgent : Agent
     {
         Frozen = false;
     }
-
-    //public void SetAsComplete(bool success)
-    //{
-    //    if (success)
-    //    {
-    //        //apply reward
-    //    }
-    //    else
-    //    {
-    //        //apply destruction penalty
-    //    }
-    //    Frozen = true;
-    //    ClearRequest();
-    //}
 
     /// <summary>
     /// Triggers the end of an episode due to failure or success
@@ -466,60 +462,66 @@ public class ConfigurablePartAgent : Agent
 
     #region Unity Methods
 
+    /// <summary>
+    /// Method utilized to move the components in manual mode
+    /// </summary>
     private void Update()
     {
-        ////THIS GUYS SHOULD BE MOVED TO HEURISTICS
-        //if (Input.GetKeyDown(KeyCode.LeftArrow))
-        //{
-        //    if (_part.MoveInX(-1))
-        //    {
-        //        transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
-        //    }
-        //}
-        //if (Input.GetKeyDown(KeyCode.RightArrow))
-        //{
-        //    if (_part.MoveInX(1))
-        //    {
-        //        transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
-        //    }
-        //}
-        //if (Input.GetKeyDown(KeyCode.UpArrow))
-        //{
-        //    if (_part.MoveInZ(1))
-        //    {
-        //        transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
-        //    }
-        //}
-        //if (Input.GetKeyDown(KeyCode.DownArrow))
-        //{
-        //    if (_part.MoveInZ(-1))
-        //    {
-        //        transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
-        //    }
-        //}
+        if (_manual && !Frozen)
+        {
+            if (Input.GetKeyDown(KeyCode.A))
+            {
+                if (_part.MoveInX(-1, false, false))
+                {
+                    transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
+                }
+            }
+            if (Input.GetKeyDown(KeyCode.D))
+            {
+                if (_part.MoveInX(1, false, false))
+                {
+                    transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
+                }
+            }
+            if (Input.GetKeyDown(KeyCode.W))
+            {
+                if (_part.MoveInZ(1, false, false))
+                {
+                    transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
+                }
+            }
+            if (Input.GetKeyDown(KeyCode.S))
+            {
+                if (_part.MoveInZ(-1, false, false))
+                {
+                    transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
+                }
+            }
 
-        //if (Input.GetKeyDown(KeyCode.E))
-        //{
-        //    if (_part.RotateComponent(1))
-        //    {
-        //        var currentRotation = transform.rotation;
-        //        transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
-        //    }
-        //}
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                if (_part.RotateComponent(1, false, false))
+                {
+                    var currentRotation = transform.rotation;
+                    transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
+                }
+            }
 
-        //if (Input.GetKeyDown(KeyCode.Q))
-        //{
-        //    if (_part.RotateComponent(-1))
-        //    {
-        //        var currentRotation = transform.rotation;
-        //        transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
-        //    }
-        //}
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                if (_part.RotateComponent(-1, false, false))
+                {
+                    var currentRotation = transform.rotation;
+                    transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
+                }
+            }
+        }
+        
     }
 
     private void FixedUpdate()
     {
-        if (!Frozen)
+        if (!Frozen && !_manual)
         {
             RequestDecision();
         }

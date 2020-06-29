@@ -1,0 +1,46 @@
+{
+  "Tenants": [
+    {
+      "Name": "David Doria",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
+    },
+    {
+      "Name": "Keshav Ramaswami",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
+    },
+    {
+      "Name": "George Floyd",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
+    },
+    {
+      "Name": "Xuan Kiko Zhang",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
+    },
+    {
+      "Name": "Albus Dumbledore",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
+    },
+    {
+      "Name": "Severus Snape",
+      "AreaPrefWork_S": "4.5_6.0",
+      "AreaPrefLeisure_S": "4.5_6.0",
+      "ConnectivityPrefWork_S": "1_10",
+      "ConnectivityPrefLeisure_S": "1_10"
+    }
+  ]
+}

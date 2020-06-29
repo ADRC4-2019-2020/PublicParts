@@ -54,7 +54,7 @@ public class VoxelGrid : MonoBehaviour
     /// <param name="size">The vector representing the size of the grid</param>
     /// <param name="voxelSize">The size of the voxel in metres</param>
     /// <param name="origin">The origin of the grid to be created</param>
-    public VoxelGrid(Vector3Int size, float voxelSize, Vector3 origin, bool createGO = false)
+    public VoxelGrid(Vector3Int size, float voxelSize, Vector3 origin, bool createGO = false, bool GOvisibility = false)
     {
         Size = size;
         VoxelSize = voxelSize;
@@ -63,6 +63,7 @@ public class VoxelGrid : MonoBehaviour
         ExistingParts = new List<Part>();
         Spaces = new List<PPSpace>();
         Boundaries = new List<Voxel>();
+        _showVoxels = !GOvisibility;
         if (Size == new Vector3Int(30, 1, 24))
         {
             _pix2pix = new PP_pix2pix("30x24");

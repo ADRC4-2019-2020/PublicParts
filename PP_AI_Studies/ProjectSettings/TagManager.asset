@@ -7,6 +7,8 @@ TagManager:
   - InfoArrow
   - ConfigurablePart
   - CPSensor
+  - SpacePanel
+  - TenantPanel
   layers:
   - Default
   - TransparentFX

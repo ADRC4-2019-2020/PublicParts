@@ -6,118 +6,100 @@ using UnityEngine;
 using System.Diagnostics;
 using System;
 using System.IO.Abstractions;
+using UnityEngine.UI;
 
-public class PP_ManualEnvironment : MonoBehaviour
+public class PP_ManualEnvironment : PP_Environment
 {
-    #region Fields and Parameters
+    #region Fields and properties
 
-    #region Basic
+    #region UI amd HUD
+    
+    public Text MessageBanner;
+    public Text PreviousMessages;
+    private string[] _messageStack = new string[8];
+    public Text DataDisplay;
+    public Text DayTimeDisplay;
+    public Text DisplayRequestTotal;
+    private int _requestTotal = 0;
+    public GameObject SpaceDataPanel;
+    public GameObject TenantsDataPanel;
+    public GameObject RequestsDataPanel;
 
-    [SerializeField] GUISkin _skin;
-    [SerializeField] Transform _cameraPivot;
-    Camera _cam;
-    VoxelGrid MainGrid;
-    private VoxelGrid _paralellGrid;
-    Vector3Int _gridSize;
-
+    private Sprite _regularBorder;
+    private Sprite _activeBorder;
+    
     #endregion
 
-    #region Grid setup
+    #region Manual environment specific
 
-    GameObject _gridGO;
-    //Seed to run the population method
-    int[] _availableSeeds = new int[4] { 666, 555, 444, 66 };
-    public int PopSeed;
-    int _nComponents = 5;
-
-    float _voxelSize = 0.375f;
-
+    private ConfigurablePartAgent _selectedComponent;
+    private MainCamera _camControl;
+    
+    #endregion
     #endregion
 
-    #region Grid data and objects collections
+    #region Unity methods
 
-    List<Part> _existingParts = new List<Part>();
-    List<PPSpace> _spaces = new List<PPSpace>();
-    List<Voxel> _boundaries = new List<Voxel>();
-    List<Tenant> _tenants = new List<Tenant>();
-    List<PPSpaceRequest> _spaceRequests = new List<PPSpaceRequest>();
-    List<ReconfigurationRequest> _reconfigurationRequests = new List<ReconfigurationRequest>();
+    /// <summary>
+    /// Configures the Environment, based on 
+    /// </summary>
+    private void Awake()
+    {
+        _nComponents = 5;
+        _voxelSize = 0.375f;
+        _existingParts = new List<Part>();
+        _spaces = new List<PPSpace>();
+        _boundaries = new List<Voxel>();
+        _tenants = new List<Tenant>();
+        _spaceRequests = new List<PPSpaceRequest>();
+        _reconfigurationRequests = new List<ReconfigurationRequest>();
 
-    #endregion
+        _hourStep = 0.1f;
+        InitializedAgents = 0;
+        _showDebug = true;
+        _compiledMessage = new string[2];
+        _showRawBoundaries = false;
+        _showSpaces = true;
+        _showSpaceData = false;
+        _showVoxels = false;
+        _activityLog = "";
+        _saveImageSteps = false;
+        _timePause = true;
 
-    #region Simulation properties
-    int _frame = 0;
+        _regularBorder = Resources.Load<Sprite>("Textures/RectangularBorder");
+        _activeBorder = Resources.Load<Sprite>("Textures/RectangularBorder_Active");
+    }
 
-    int _day = 0;
-    int _hour = 0;
-    float _hourStep = 0.05f; //in seconds, represents a virtual hour
-    bool _timePause;
-    string _dateTimeNow;
-    string[] _weekdaysNames = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
-    int _currentWeekDay = 0;
-
-    Vector3Int[] _completedIndices;
-    bool _showCompleted;
-    Color _completedColor;
-
-    #endregion
-
-    #region MLAgents properties
-
-    bool _progressionRunning = false;
-    public int InitializedAgents = 0;
-
-    #endregion
-
-    #region Debugging
-
-    bool _showDebug = true;
-    string _debugMessage;
-    string[] _compiledMessage = new string[2];
-
-    bool _showTime;
-    bool _showRawBoundaries = false;
-    bool _showSpaces = true;
-    bool _showSpaceData = false;
-
-    bool _showVoxels = true;
-
-    string _outputMessage;
-    string _spaceData;
-    string _activityLog = "";
-
-    PPSpace _selectedSpace;
-
-    bool _saveImageSteps = false;
-
-    #endregion
-
-    #endregion
-
-    #region Unity Methods
-
-    void Start()
+    private void Start()
     {
         _cam = Camera.main;
+        _camControl = _cam.transform.GetComponent<MainCamera>();
+        _camControl.Navigate = _timePause;
+        
 
         _gridSize = new Vector3Int(30, 1, 24);
-        MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true);
+        MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true, true);
         _boundaries = MainGrid.Boundaries;
         _gridGO = MainGrid.GridGO;
         _gridGO.transform.SetParent(transform);
 
+        _cameraPivot.position = MainGrid.Origin + (new Vector3(_gridSize.x / 2f, _gridSize.y, _gridSize.z / 2f) * _voxelSize);
+
         //Load tenants and requests data
         _tenants = JSONReader.ReadTenantsWithPreferences("Input Data/U_TenantPreferences", MainGrid);
         _spaceRequests = JSONReader.ReadSpaceRequests("Input Data/U_SpaceRequests", _tenants);
-        _cameraPivot.position = new Vector3(MainGrid.Size.x / 2, 0, MainGrid.Size.z / 2) * _voxelSize;
+        InitializeTenantDisplay();
 
         //Create Configurable Parts
-        //PopulateRandomConfigurables(_nComponents);
-        //AnalyzeGridCreateNewSpaces();
+        PopulateRandomConfigurables(_nComponents);
+        AnalyzeGridCreateNewSpaces();
+        SendSpacesData();
+        StartCoroutine(DailyProgression());
     }
 
-    void Update()
+    private void Update()
     {
+
         if (_showVoxels)
         {
             DrawState();
@@ -133,9 +115,11 @@ public class PP_ManualEnvironment : MonoBehaviour
             DrawSpaces();
         }
 
+        #region Control inputs
+
         if (Input.GetMouseButtonDown(0))
         {
-            GetSpaceFromArrow();
+            ActivateComponent();
         }
 
         if (Input.GetKeyDown(KeyCode.V))
@@ -143,214 +127,68 @@ public class PP_ManualEnvironment : MonoBehaviour
             _showVoxels = !_showVoxels;
             SetGameObjectsVisibility(_showVoxels);
         }
-        if (_showCompleted)
+
+        if (Input.GetKeyDown(KeyCode.P))
         {
-            DrawCompletedSpace();
+            _timePause = !_timePause;
+            _camControl.Navigate = _timePause;
         }
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            AnalyzeGridUpdateSpaces();
+            SendSpacesData();
+            ClearAllRequests();
+            _timePause = false;
+            _camControl.Navigate = _timePause;
+        }
+
+        #endregion
+
+        //DrawActiveComponent();
     }
 
     #endregion
 
+
     #region Architectural functions and methods
-
+    
     /// <summary>
-    /// Runs the analyze, creating new spaces
+    /// Uses the mouse pointer to activate a component to be moved
     /// </summary>
-    public void AnalyzeGridCreateNewSpaces()
-    {
-        MainGrid.RunAnalysisCreateNewSpaces();
-        _boundaries = MainGrid.Boundaries;
-        _spaces = MainGrid.Spaces;
-    }
-
-    /// <summary>
-    /// Analyzes the current state of the grid, attempting to keep and update the spaces
-    /// that can be understood as the same
-    /// </summary>
-    public void AnalyzeGridUpdateSpaces()
-    {
-        MainGrid.RunAnalysisUpdateSpaces();
-        _boundaries = MainGrid.Boundaries;
-        _spaces = MainGrid.Spaces;
-    }
-
-    /// <summary>
-    /// Populates a given number of configurable parts on the grid
-    /// </summary>
-    /// <param name="amt">The amount of parts to create</param>
-    private void PopulateRandomConfigurables(int amt)
-    {
-        for (int i = 0; i < amt; i++)
-        {
-            string partName = $"CP_{i}";
-            bool success = false;
-            ConfigurablePart p = new ConfigurablePart();
-            int attempt = 0;
-            while (!success)
-            {
-                p = new ConfigurablePart(MainGrid, !_showVoxels, PopSeed + attempt, partName, out success);
-                attempt++;
-            }
-            MainGrid.ExistingParts.Add(p);
-            _existingParts.Add(p);
-        }
-    }
-
-
-    /// <summary>
-    /// Initializes blank, not yet applied to the grid, <see cref="ConfigurablePart"/>
-    /// </summary>
-    private void CreateBlankConfigurables()
-    {
-        for (int i = 0; i < _nComponents; i++)
-        {
-            ConfigurablePart p = new ConfigurablePart(MainGrid, !_showVoxels, $"CP_{i}");
-            MainGrid.ExistingParts.Add(p);
-            _existingParts.Add(p);
-        }
-    }
-
-    /// <summary>
-    /// UPDATE THIS TO RUN ON EVIRONMENT Gets the space that the Arrow object represents 
-    /// </summary>
-    /// <returns>The PPSpace object</returns>
-    private PPSpace GetSpaceFromArrow()
+    /// <returns></returns>
+    private ConfigurablePartAgent ActivateComponent()
     {
         //This method allows clicking on the InfoArrow
         //and returns its respective space
-        PPSpace clicked = null;
+        ConfigurablePartAgent clicked = null;
         Ray ClickRay = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
         if (Physics.Raycast(ClickRay, out hit))
         {
-            if (hit.collider.gameObject.transform != null && hit.collider.gameObject.tag == "InfoArrow")
+            if (hit.collider.gameObject.transform != null && hit.collider.gameObject.tag == "ConfigurablePart")
             {
-                clicked = hit.collider.gameObject.GetComponent<InfoArrow>().GetSpace();
-                _showSpaceData = true;
-                _spaceData = clicked.GetSpaceInfo();
-                _cameraPivot.position = hit.collider.gameObject.transform.position;
-                _selectedSpace = clicked;
+                //Clear the current active component
+                if (_selectedComponent != null)
+                {
+                    _selectedComponent.FreezeAgent();
+                    _selectedComponent = null;
+                }
+                clicked = hit.collider.gameObject.GetComponent<ConfigurablePartAgent>();
+                _selectedComponent = clicked;
+                _selectedComponent.UnfreezeAgent();
             }
-        }
-        else
-        {
-            _spaceData = null;
-            _selectedSpace = null;
-            _showSpaceData = false;
-            _cameraPivot.position = new Vector3(_gridSize.x / 2, 0, _gridSize.z / 2) * _voxelSize;
+            else
+            {
+                //Clear the current active component
+                if (_selectedComponent != null)
+                {
+                    _selectedComponent.FreezeAgent();
+                    _selectedComponent = null;
+                }
+            }
         }
         return clicked;
-    }
-
-    /// <summary>
-    /// Checks if the reconfiguration subject of a request is still valid
-    /// or has been destroyed
-    /// </summary>
-    /// <param name="request">The request to be assessed</param>
-    /// <returns>The validity of the reconfiguration</returns>
-    public int CheckResultFromRequest(ReconfigurationRequest request)
-    {
-        //Return an integer representing the result of the action
-        //0 = valid
-        //1 = successful
-        //2 = destroyed the space
-        int result = 0;
-        Guid spaceId = request.SpaceId;
-        int checkCount = _spaces.Count(s => s.SpaceId == spaceId);
-        if (checkCount == 1)
-        {
-            PPSpace space = MainGrid.GetSpaceById(spaceId);
-            if (space != null)
-            {
-                //Space still exists, evaluate if reconfiguration was successful
-                bool success = request.ReconfigurationSuccessful(space);
-                request.CurrentIndices = space.Indices.ToArray();
-                if (success)
-                {
-                    result = 1;
-                    //print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-                    space.Reconfigure_Area = false;
-                    space.Reconfigure_Connectivity = false;
-                    _reconfigurationRequests.Remove(request);
-                }
-                else
-                {
-                    result = 0;
-                    //print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-
-                }
-            }
-        }
-        else if (checkCount > 1)
-        {
-            //print($"{request.SpaceName} was split.");
-            //Space was destroyed and split into 2 or more. Differentiate new spaces
-            foreach (var space in _spaces.Where(s => s.SpaceId == spaceId))
-            {
-                space.SpaceId = Guid.NewGuid();
-                space.Reconfigure_Area = false;
-                space.Reconfigure_Connectivity = false;
-            }
-            //request.OnSpaceDestruction();
-            _reconfigurationRequests.Remove(request);
-            result = 2;
-        }
-        else
-        {
-            //Space was destroyed, return false
-            //print($"{request.SpaceName} was destroyed.");
-            //request.OnSpaceDestruction();
-            _reconfigurationRequests.Remove(request);
-            result = 2;
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Forces reseting the Spaces list to a previous state, only to be used after undoing an action
-    /// </summary>
-    /// <param name="previousSpaces">The list to be used</param>
-    public void ForceResetSpaces(List<PPSpace> previousSpaces)
-    {
-        _spaces = previousSpaces;
-        MainGrid.ForceSpaceReset(previousSpaces);
-    }
-
-    /// <summary>
-    /// Gets the current List of spaces on the environment
-    /// </summary>
-    /// <returns>The spaces as a List</returns>
-    public List<PPSpace> GetCurrentSpaces()
-    {
-        return _spaces;
-    }
-
-    /// <summary>
-    /// Resets the grid after the an Episode is concluded
-    /// </summary>
-    public void ResetGrid(ReconfigurationRequest request, bool success)
-    {
-        _completedIndices = request.CurrentIndices;
-        _showCompleted = true;
-        if (success) _completedColor = Color.green;
-        else _completedColor = Color.red;
-
-        StartCoroutine(AnimateCompletionAndRestart());
-    }
-
-    IEnumerator AnimateCompletionAndRestart()
-    {
-        yield return new WaitForSeconds(0.5f);
-        _showCompleted = false;
-        _completedIndices = null;
-        MainGrid.RestartGrid();
-        _spaces = new List<PPSpace>();
-        _boundaries = new List<Voxel>();
-        foreach (ConfigurablePartAgent partAgent in _existingParts.OfType<ConfigurablePart>().Select(p => p.CPAgent))
-        {
-            partAgent.EndEpisode();
-        }
     }
 
     #endregion
@@ -358,35 +196,10 @@ public class PP_ManualEnvironment : MonoBehaviour
     #region Space utilization functions and methods
 
     /// <summary>
-    /// Sets one of the existing spaces to be reconfigured
-    /// </summary>
-    private void SetRandomSpaceToReconfigure()
-    {
-        PPSpace space = new PPSpace();
-        bool validRequest = false;
-        while (!validRequest)
-        {
-            UnityEngine.Random.InitState(System.DateTime.Now.Millisecond);
-            int i = UnityEngine.Random.Range(0, _spaces.Count);
-            space = _spaces[i];
-
-            if (space.BoundaryParts.Count > 0 && !space.IsSpare)
-            {
-                validRequest = true;
-            }
-        }
-
-        //Set area to be increased
-        ReconfigurationRequest rr = new ReconfigurationRequest(space, 1, 0);
-        _reconfigurationRequests.Add(rr);
-        //space.ArtificialReconfigureRequest(0, 1);
-    }
-
-    /// <summary>
-    /// IEnumerator to run the daily progression of the occupation simulation
+    /// Manages the daily progression of the simulation
     /// </summary>
     /// <returns></returns>
-    private IEnumerator DailyProgression()
+    protected override IEnumerator DailyProgression()
     {
         while (_day < 365)
         {
@@ -397,7 +210,9 @@ public class PP_ManualEnvironment : MonoBehaviour
                     CheckSpaces();
                     CheckForReconfiguration();
                 }
-                _dateTimeNow = $"Day {_day}, {_weekdaysNames[_currentWeekDay]}, {_hour}:00";
+                DayTimeDisplay.text = $"Day {_day.ToString("D3")}, "  +
+                    $"{_weekdaysNames[_currentWeekDay]}, " +
+                    $"{_hour}:00";
                 float hourProbability = UnityEngine.Random.value;
                 foreach (var request in _spaceRequests)
                 {
@@ -407,6 +222,7 @@ public class PP_ManualEnvironment : MonoBehaviour
                         if (rProbability >= hourProbability)
                         {
                             RequestSpace(request);
+                            _requestTotal++;
                         }
                     }
                 }
@@ -416,10 +232,14 @@ public class PP_ManualEnvironment : MonoBehaviour
                     string useReturn = space.UseSpace();
                     if (useReturn != "IGNORE")
                     {
-                        _activityLog = useReturn;
+                        //_activityLog = useReturn;
+                        //MessageBanner.text = useReturn;
+                        AddDisplayMessage(useReturn);
                     }
                 }
-
+                DisplayRequestTotal.text = $"Total of space requests: {_requestTotal.ToString("D4")}";
+                UpdateTenantDisplay();
+                SendSpacesData();
                 NextHour();
                 //UpdateSpaceData();
                 yield return new WaitForSeconds(_hourStep);
@@ -432,9 +252,41 @@ public class PP_ManualEnvironment : MonoBehaviour
     }
 
     /// <summary>
+    /// Manages the probabilistic simulation of Tenants requesting spaces
+    /// </summary>
+    /// <param name="request"></param>
+    protected override void RequestSpace(PPSpaceRequest request)
+    {
+        var requestArea = request.Population * request.Tenant.AreaPerIndInferred; //Request area assuming the area the tenant prefers per individual
+        var availableSpaces = _spaces.Where(s => !s.Occupied && !s.IsSpare);
+
+        if (availableSpaces.Count() > 0)
+        {
+            PPSpace bestSuited = availableSpaces.MaxBy(s => s.VoxelCount);
+            foreach (var space in availableSpaces)
+            {
+                var spaceArea = space.Area;
+
+                if (spaceArea >= requestArea && spaceArea < bestSuited.VoxelCount)
+                {
+                    bestSuited = space;
+                }
+            }
+            bestSuited.OccupySpace(request);
+            string newMessage = $"Assinged {bestSuited.Name} to {request.Tenant.Name} at {_hour.ToString("D2")}:00 for {request.ActivityName}";
+            AddDisplayMessage(newMessage);
+        }
+        else
+        {
+            AddDisplayMessage("No available space found");
+        }
+        
+    }
+
+    /// <summary>
     /// Check if spaces need to be reconfigured
     /// </summary>
-    private void CheckSpaces()
+    protected override void CheckSpaces()
     {
         foreach (var space in _spaces)
         {
@@ -465,186 +317,48 @@ public class PP_ManualEnvironment : MonoBehaviour
     /// Check if there are enough reconfiguration requests to reconfigure the whole plan
     /// NOTE: TEMPORARY METHOD
     /// </summary>
-    private void CheckForReconfiguration()
+    protected override void CheckForReconfiguration()
     {
-        if (_spaces.Count(s => s.Reconfigure) >= 2)
+        if (_spaces.Count(s => s.Reconfigure) >= 1)
         {
-            //ExecuteAI();
+            AddDisplayMessage("Reconfiguration requested");
+            _timePause = true;
+            _camControl.Navigate = _timePause;
         }
     }
 
     /// <summary>
-    /// Attempts to assign a space to a request made by a Tenant
+    /// Clears all reconfiguration requests for all spaces
     /// </summary>
-    /// <param name="request">The Request object</param>
-    private void RequestSpace(PPSpaceRequest request)
+    private void ClearAllRequests()
     {
-        var requestArea = request.Population * request.Tenant.AreaPerIndInferred; //Request area assuming the area the tenant prefers per individual
-        var availableSpaces = _spaces.Where(s => !s.Occupied && !s.IsSpare);
-
-        PPSpace bestSuited = availableSpaces.MaxBy(s => s.VoxelCount);
-        foreach (var space in availableSpaces)
+        foreach (var space in _spaces)
         {
-            var spaceArea = space.Area;
-
-            if (spaceArea >= requestArea && spaceArea < bestSuited.VoxelCount)
+            if (space.Reconfigure_Area == true)
             {
-                bestSuited = space;
+                space.ResetAreaEvaluation();
+            }
+            if (space.Reconfigure_Connectivity)
+            {
+                space.ResetConnectivityEvaluation();
             }
         }
-        bestSuited.OccupySpace(request);
-        _activityLog = $"Assinged {bestSuited.Name} to {request.Tenant.Name} at {_dateTimeNow}";
-    }
-
-    /// <summary>
-    /// Move simulation to next hour, keeping track of time, day number and weekday
-    /// </summary>
-    private void NextHour()
-    {
-        _hour++;
-        if (_hour % 24 == 0)
-        {
-            _hour = 0;
-            _day++;
-            _currentWeekDay++;
-        }
-        if (_currentWeekDay > 6) _currentWeekDay = 0;
     }
 
     #endregion
 
-    #region Drawing and Visualizing
-
-    /// <summary>
-    /// Change the visibility of the scene's GameObjects, iterating between 
-    /// voxel and GameObject visualization
-    /// </summary>
-    /// <param name="visible">The boolean trigger</param>
-    private void SetGameObjectsVisibility(bool visible)
-    {
-        var configurables = _existingParts.OfType<ConfigurablePart>().ToArray();
-        if (configurables.Length > 0)
-        {
-            foreach (var c in configurables)
-            {
-                c.SetGOVisibility(!visible);
-            }
-        }
-        //_gridGO.SetActive(!visible);
-        MainGrid.SetGOVisibility(!visible);
-    }
-
-    /// <summary>
-    /// Draws the current VoxelGrid state with mesh voxels
-    /// </summary>
-    private void DrawState()
-    {
-        for (int x = 0; x < _gridSize.x; x++)
-        {
-            for (int y = 0; y < _gridSize.y; y++)
-            {
-                for (int z = 0; z < _gridSize.z; z++)
-                {
-                    Vector3 index = new Vector3(x + 0.5f, y + 0.5f, z + 0.5f) * _voxelSize;
-                    //Vector3 index = new Vector3(x , y , z) * _voxelSize;
-                    if (MainGrid.Voxels[x, y, z].IsOccupied)
-                    {
-                        for (int i = 0; i < 8; i++)
-                        {
-                            var voxel = MainGrid.Voxels[x, y, z];
-                            if (voxel.Part.Type == PartType.Configurable)
-                            {
-                                //PP_Drawing.DrawConfigurable(transform.position + _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
-                                PP_Drawing.DrawConfigurable(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), MainGrid.VoxelSize, Color.black);
-                            }
-                            else
-                            {
-                                //PP_Drawing.DrawCube(transform.position +  _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
-                                PP_Drawing.DrawCube(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), MainGrid.VoxelSize, 1);
-                            }
-
-                        }
-
-                    }
-                    if (MainGrid.Voxels[x, y, z].IsActive)
-                    {
-                        //PP_Drawing.DrawCube(transform.position + _grid.Voxels[x, y, z].Center, _grid.VoxelSize, 0);
-                        PP_Drawing.DrawCube(transform.position + index, MainGrid.VoxelSize, Color.grey);
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Draws the boundary voxels with meshes
-    /// </summary>
-    private void DrawBoundaries()
-    {
-        foreach (var voxel in _boundaries)
-        {
-            //Vector3 index = new Vector3(voxel.Index.x, voxel.Index.y, voxel.Index.z) * _voxelSize;
-            Vector3 index = new Vector3(voxel.Index.x + 0.5f, voxel.Index.y + 0.5f, voxel.Index.z + 0.5f) * _voxelSize;
-            //PP_Drawing.DrawCubeTransparent(transform.position + voxel.Center + new Vector3(0f, _voxelSize, 0f), _voxelSize);
-            PP_Drawing.DrawCubeTransparent(transform.position + index + new Vector3(0f, _voxelSize, 0f), _voxelSize);
-        }
-    }
-
-    /// <summary>
-    /// Represents the spaces with voxel meshes
-    /// </summary>
-    private void DrawSpaces()
-    {
-        foreach (var space in MainGrid.Spaces)
-        {
-            if (!space.IsSpare)
-            {
-                Color color;
-                Color black = Color.black;
-                Color white = Color.white;
-                Color acid = new Color(0.85f, 1.0f, 0.0f, 0.70f);
-                if (space.Reconfigure)
-                {
-                    if (space != _selectedSpace)
-                    {
-                        //color = new Color(0.7f, 0.1f, 0.1f, 0.70f);
-                        color = acid;
-                    }
-                    else
-                    {
-                        //color = new Color(0.90f, 0.70f, 0.0f, 0.70f);
-                        color = acid;
-                    }
-                }
-                else
-                {
-                    if (space != _selectedSpace)
-                    {
-                        //color = new Color(0.9f, 0.9f, 0.9f, 0.70f);
-                        color = black;
-                    }
-                    else
-                    {
-                        //color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
-                        color = black;
-                    }
-                }
-                PP_Drawing.DrawSpaceBoundary(space, MainGrid, color, transform.position);
-            }
-
-        }
-    }
-
+    #region Drawing and representing
     /// <summary>
     /// Draws the space tags
     /// </summary>
-    private void DrawSpaceTags()
+    protected override void DrawSpaceTags()
     {
         if (_showSpaces)
         {
+            var spaces = _spaces.Where(s => !s.IsSpare).ToArray();
             float tagHeight = 3.0f;
             Vector2 tagSize = new Vector2(60, 15);
-            foreach (var space in MainGrid.Spaces)
+            foreach (var space in spaces)
             {
                 if (!space.IsSpare)
                 {
@@ -659,33 +373,111 @@ public class PP_ManualEnvironment : MonoBehaviour
             }
         }
     }
-
-    /// <summary>
-    /// Visual aid to show which ConfigurablePart is being controlled now
-    /// </summary>
-    private void DrawActiveComponent()
-    {
-        var unfrozenParts = _existingParts.OfType<ConfigurablePart>().Where(p => p.CPAgent.Frozen == false);
-        foreach (var up in unfrozenParts)
-        {
-            var pos = transform.position + (new Vector3(up.Center.x + 0.5f, up.Center.y + 0.5f, up.Center.z + 0.5f) * _voxelSize);
-            PP_Drawing.DrawCube(pos + new Vector3(0, 4f, 0), 0.25f, 0f);
-        }
-    }
-
-    private void DrawCompletedSpace()
-    {
-        foreach (var index in _completedIndices)
-        {
-            Vector3 realIndex = new Vector3(index.x + 0.5f, index.y + 1.5f, index.z + 0.5f) * _voxelSize;
-            PP_Drawing.DrawCube(transform.position + realIndex, MainGrid.VoxelSize, _completedColor);
-        }
-
-    }
-
     #endregion
 
+
     #region GUI Controls and Settings
+
+    /// <summary>
+    /// Sends space data to be displayed on the UI (based on text elements docked on panel)
+    /// </summary>
+    private void SendSpacesData()
+    {
+        var spaces = _spaces.Where(s => !s.IsSpare).ToArray();
+
+        int panelCount = SpaceDataPanel.transform.childCount;
+        int spaceCount = spaces.Length;
+        for (int i = 0; i < panelCount; i++)
+        {
+            var panel = SpaceDataPanel.transform.GetChild(i).GetComponent<Text>();
+            if (i < spaceCount)
+            {
+                panel.enabled = true;
+                panel.transform.GetChild(0).gameObject.SetActive(true);
+                panel.text = spaces[i].GetSpaceData();
+            }
+            else
+            {
+                panel.transform.GetChild(0).gameObject.SetActive(false);
+                panel.enabled = false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Add messeges to be displyed on the UI, populating a message stack
+    /// </summary>
+    /// <param name="newMessage"></param>
+    private void AddDisplayMessage(string newMessage)
+    {
+        MessageBanner.text = newMessage;
+        for (int i = _messageStack.Length - 1; i > 0; i--)
+        {
+            _messageStack[i] = _messageStack[i - 1];
+        }
+        _messageStack[0] = newMessage;
+
+        PreviousMessages.text = string.Concat(
+            _messageStack
+            .Select(m => m + "\n")
+            .Reverse()
+            );
+    }
+
+    /// <summary>
+    /// Initialize the contents of the tenant display panel with the Tenant's data
+    /// </summary>
+    private void InitializeTenantDisplay()
+    {
+        int panelCount = TenantsDataPanel.transform.childCount;
+        if (panelCount != _tenants.Count)
+        {
+            UnityEngine.Debug.Log("Tenant count does not match panel count!");
+            return;
+        }
+        for (int i = 0; i < panelCount; i++)
+        {
+            var panel = TenantsDataPanel.transform.GetChild(i);
+            Tenant tenant = _tenants[i];
+            var name = panel.Find("TenantName").GetComponent<Text>();
+            var status = panel.Find("Status").GetComponent<Text>();
+            var border = panel.Find("Border").GetComponent<Image>();
+            var image = panel.GetComponent<Image>();
+            status.text = "";
+            name.text = tenant.Name;
+            border.sprite = _regularBorder;
+            image.sprite = Resources.Load<Sprite>("Textures/" + tenant.Name.Split(' ')[0]);
+        }
+    }
+
+    /// <summary>
+    /// Update the contents of the tenant display panel with the Tenant's data
+    /// </summary>
+    private void UpdateTenantDisplay()
+    {
+        int panelCount = TenantsDataPanel.transform.childCount;
+
+        for (int i = 0; i < panelCount; i++)
+        {
+            var panel = TenantsDataPanel.transform.GetChild(i);
+            Tenant tenant = _tenants[i];
+            var status = panel.Find("Status").GetComponent<Text>();
+            var border = panel.Find("Border").GetComponent<Image>();
+            
+            if (tenant.OnSpace != null)
+            {
+                status.text = tenant.OnSpace.Name;
+                border.sprite = _activeBorder;
+
+            }
+            else
+            {
+                status.text = "";
+                border.sprite = _regularBorder;
+            }
+        }
+    }
+
     private void OnGUI()
     {
         GUI.skin = _skin;
@@ -694,5 +486,6 @@ public class PP_ManualEnvironment : MonoBehaviour
         //Draw Spaces tags
         DrawSpaceTags();
     }
+
     #endregion
 }
