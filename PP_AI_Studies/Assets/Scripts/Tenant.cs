@@ -15,17 +15,23 @@ public class Tenant : IEquatable<Tenant>
     VoxelGrid _grid;
     public PPSpace OnSpace;
 
-    //Area preferences are stored in a linear, 2 instances array. [0] = min, [1] = max
-    //This represents the area in square meters per person in the population occupying the space
+    /// <summary>
+    /// Area preferences are stored in a linear, 2 floats array. [0] = min, [1] = max
+    /// This represents the area in square meters per person in the population occupying the space
+    /// </summary>
     public Dictionary<SpaceFunction, float[]> AreaPreferences = new Dictionary<SpaceFunction, float[]>();
 
-    //The preferred area per individual in a population in square meters
-    //Inferred by program, to be updated over time
-    //Only one parameter, disregarding multiple functions
-    public float AreaPerIndInferred = 1f; 
+    /// <summary>
+    /// The preferred area per individual in a population in square meters. 
+    /// Inferred by program, to be updated over time, only one parameter, disregarding multiple functions
+    /// </summary>
+    public float AreaPerIndInferred = 1f;
 
-    //Connectivity preferences are stored in a linear, 2 instances array. [0] = min, [1] = max
-    //This represents the preffered Connectivity ratio of the space per function
+
+    /// <summary>
+    /// Connectivity preferences are stored in a linear, 2 floats array. [0] = min, [1] = max
+    /// This represents the preffered Connectivity ratio of the space per function
+    /// </summary>
     public Dictionary<SpaceFunction, float[]> ConnectivityPreferences = new Dictionary<SpaceFunction, float[]>();
 
     public string AreaPrefWork_S;
@@ -44,7 +50,8 @@ public class Tenant : IEquatable<Tenant>
         _userIcon.transform.localScale = _userIcon.transform.localScale * scale;
         _userIcon.transform.SetParent(_grid.GridGO.transform.parent);
         _userIcon.GetComponent<UserIcon>().SetTenant(this);
-        Color c = new Color(UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value);
+        //Color c = new Color(UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value);
+        Color c = Color.black;
         _userIcon.GetComponentInChildren<MeshRenderer>().material.SetColor("_BaseColor", c);
         SetGOVisibility(false);
     }

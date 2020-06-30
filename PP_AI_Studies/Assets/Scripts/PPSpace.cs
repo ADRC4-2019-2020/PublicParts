@@ -160,6 +160,7 @@ public class PPSpace : IEquatable<PPSpace>
     #endregion
 
     #region Constructors
+
     public PPSpace(VoxelGrid grid)
     {
         SpaceId = Guid.NewGuid();
@@ -286,7 +287,7 @@ public class PPSpace : IEquatable<PPSpace>
     }
 
     /// <summary>
-    /// Gets the information from the space
+    /// Gets all the information from the space
     /// </summary>
     /// <returns>The formated infomation</returns>
     public string GetSpaceDebugInfo()
@@ -408,15 +409,68 @@ public class PPSpace : IEquatable<PPSpace>
         string nameHeader = Name;
 
         string area = $"Area: {Area.ToString("F", new CultureInfo("en-US"))} m²";
-        string timesUsed = $"Times used: {TimesUsed.ToString()}";
         string areaScore = $"Area Score: {AreaScore.ToString()}";
+        string connectivityRatio = $"ConnectivityRatio: {ConnectionRatio.ToString()}";
         string connectivityScore = $"Connectivity Score: {ConnectivityScore.ToString()}";
+        string timesUsed = $"Times used: {TimesUsed.ToString()}";
 
         output = nameHeader + breakLine +
-            tab + area + breakLine +
             tab + areaScore + breakLine +
             tab + connectivityScore + breakLine +
             tab + timesUsed + breakLine;
+
+        return output;
+    }
+
+    /// <summary>
+    /// Gets formated information from the current state of the space
+    /// </summary>
+    /// <returns>Returns the data formated into a string</returns>
+    public string GetReconfigurationData()
+    {
+        string output;
+        string tab = "  ";
+        string breakLine = "\n";
+        string nameHeader = Name;
+
+        string areaReconfigText;
+        string connectivityReconfigText;
+
+        if (Reconfigure_Area)
+        {
+            if (_areaDecrease > _areaIncrease)
+            {
+                areaReconfigText = tab + $"Reduce Area" + breakLine;
+            }
+            else
+            {
+                areaReconfigText = tab + $"Increase Area" + breakLine;
+            }
+        }
+        else
+        {
+            areaReconfigText = "";
+        }
+
+        if (Reconfigure_Connectivity)
+        {
+            if (_connectivityDecrease > _connectivityIncrease)
+            {
+                connectivityReconfigText = tab + $"Reduce Connectivity";
+            }
+            else
+            {
+                connectivityReconfigText = tab + $"Increase Connectivity";
+            }
+        }
+        else
+        {
+            connectivityReconfigText = "";
+        }
+
+        output = nameHeader + breakLine +
+            areaReconfigText +
+            connectivityReconfigText;
 
         return output;
     }
@@ -627,16 +681,16 @@ public class PPSpace : IEquatable<PPSpace>
         //Reading and Evaluation is ok, positive feedback diferentiation / scale still not implemented
         var requestFunction = _usedRequest.Function;
         var tenantAreaPref = _occupyingTenant.AreaPreferences[requestFunction];
-        var tenantAreaMin = tenantAreaPref[0]; //This is voxel units per person
-        var tenantAreaMax = tenantAreaPref[1]; //This is voxel units per person
+        var tenantAreaMin = tenantAreaPref[0]; //This is m² per person
+        var tenantAreaMax = tenantAreaPref[1]; //This is m² per person
 
-        if (VoxelCount < tenantAreaMin * _usedRequest.Population)
+        if (Area < tenantAreaMin * _usedRequest.Population)
         {
             _areaIncrease++;
             //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too small");
             _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too small";
         }
-        else if (VoxelCount > tenantAreaMax * _usedRequest.Population)
+        else if (Area > tenantAreaMax * _usedRequest.Population)
         {
             _areaDecrease++;
             //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too big");

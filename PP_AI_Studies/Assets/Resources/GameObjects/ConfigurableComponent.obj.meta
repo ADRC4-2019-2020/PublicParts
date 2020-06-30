@@ -18,7 +18,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: 03_CONFIG_PART_PALLET_PARCEL_WHITE_TIMBERMat
-    second: {fileID: 2100000, guid: 6dc10f1e776abb448be848543615f615, type: 2}
+    second: {fileID: 2100000, guid: 8a96a454b66a51949a24d07532402777, type: 2}
   materials:
     materialImportMode: 1
     materialName: 0

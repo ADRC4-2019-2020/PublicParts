@@ -16,10 +16,10 @@ public class PP_ManualEnvironment : PP_Environment
     
     public Text MessageBanner;
     public Text PreviousMessages;
-    private string[] _messageStack = new string[8];
+    private string[] _messageStack = new string[6];
     public Text DataDisplay;
     public Text DayTimeDisplay;
-    public Text DisplayRequestTotal;
+    //public Text DisplayRequestTotal;
     private int _requestTotal = 0;
     public GameObject SpaceDataPanel;
     public GameObject TenantsDataPanel;
@@ -78,7 +78,7 @@ public class PP_ManualEnvironment : PP_Environment
         
 
         _gridSize = new Vector3Int(30, 1, 24);
-        MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true, true);
+        MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true, false);
         _boundaries = MainGrid.Boundaries;
         _gridGO = MainGrid.GridGO;
         _gridGO.transform.SetParent(transform);
@@ -237,9 +237,10 @@ public class PP_ManualEnvironment : PP_Environment
                         AddDisplayMessage(useReturn);
                     }
                 }
-                DisplayRequestTotal.text = $"Total of space requests: {_requestTotal.ToString("D4")}";
+                //DisplayRequestTotal.text = $"Total of space requests: {_requestTotal.ToString("D4")}";
                 UpdateTenantDisplay();
                 SendSpacesData();
+                //SendReconfigureData();
                 NextHour();
                 //UpdateSpaceData();
                 yield return new WaitForSeconds(_hourStep);
@@ -322,6 +323,7 @@ public class PP_ManualEnvironment : PP_Environment
         if (_spaces.Count(s => s.Reconfigure) >= 1)
         {
             AddDisplayMessage("Reconfiguration requested");
+            //SendReconfigureData();
             _timePause = true;
             _camControl.Navigate = _timePause;
         }
@@ -343,11 +345,13 @@ public class PP_ManualEnvironment : PP_Environment
                 space.ResetConnectivityEvaluation();
             }
         }
+        //SendReconfigureData();
     }
 
     #endregion
 
     #region Drawing and representing
+
     /// <summary>
     /// Draws the space tags
     /// </summary>
@@ -357,7 +361,7 @@ public class PP_ManualEnvironment : PP_Environment
         {
             var spaces = _spaces.Where(s => !s.IsSpare).ToArray();
             float tagHeight = 3.0f;
-            Vector2 tagSize = new Vector2(60, 15);
+            Vector2 tagSize = new Vector2(64, 22);
             foreach (var space in spaces)
             {
                 if (!space.IsSpare)
@@ -373,10 +377,10 @@ public class PP_ManualEnvironment : PP_Environment
             }
         }
     }
+
     #endregion
 
-
-    #region GUI Controls and Settings
+    #region UI Controls and Settings
 
     /// <summary>
     /// Sends space data to be displayed on the UI (based on text elements docked on panel)
@@ -405,23 +409,51 @@ public class PP_ManualEnvironment : PP_Environment
     }
 
     /// <summary>
+    /// Sends space data to be displayed on the UI (based on text elements docked on panel)
+    /// </summary>
+    private void SendReconfigureData()
+    {
+        var spaces = _spaces.Where(s => s.Reconfigure).ToArray();
+
+        int panelCount = RequestsDataPanel.transform.childCount;
+        int spaceCount = spaces.Length;
+        for (int i = 0; i < panelCount; i++)
+        {
+            var panel = RequestsDataPanel.transform.GetChild(i).GetComponent<Text>();
+            if (i < spaceCount)
+            {
+                var space = spaces[i];
+                panel.enabled = true;
+                panel.transform.GetChild(0).gameObject.SetActive(true);
+                panel.text = spaces[i].GetReconfigurationData();
+            }
+            else
+            {
+                panel.transform.GetChild(0).gameObject.SetActive(false);
+                panel.enabled = false;
+            }
+        }
+    }
+
+    /// <summary>
     /// Add messeges to be displyed on the UI, populating a message stack
     /// </summary>
     /// <param name="newMessage"></param>
     private void AddDisplayMessage(string newMessage)
     {
+        _messageStack[0] = MessageBanner.text;
         MessageBanner.text = newMessage;
         for (int i = _messageStack.Length - 1; i > 0; i--)
         {
             _messageStack[i] = _messageStack[i - 1];
         }
-        _messageStack[0] = newMessage;
 
-        PreviousMessages.text = string.Concat(
-            _messageStack
-            .Select(m => m + "\n")
-            .Reverse()
-            );
+        //string result = string.Concat(
+        //    _messageStack
+        //    .Select(m => m + "\n").Reverse());
+        string result = string.Join("\n",_messageStack.Reverse());
+        
+        PreviousMessages.text = result;
     }
 
     /// <summary>
@@ -446,7 +478,7 @@ public class PP_ManualEnvironment : PP_Environment
             status.text = "";
             name.text = tenant.Name;
             border.sprite = _regularBorder;
-            image.sprite = Resources.Load<Sprite>("Textures/" + tenant.Name.Split(' ')[0]);
+            //image.sprite = Resources.Load<Sprite>("Textures/" + tenant.Name.Split(' ')[0]);
         }
     }
 
@@ -466,7 +498,7 @@ public class PP_ManualEnvironment : PP_Environment
             
             if (tenant.OnSpace != null)
             {
-                status.text = tenant.OnSpace.Name;
+                status.text = "@ " + tenant.OnSpace.Name;
                 border.sprite = _activeBorder;
 
             }

@@ -2874,7 +2874,7 @@ MonoBehaviour:
     m_StretchHeight: 0
   - m_Name: spaceTag
     m_Normal:
-      m_Background: {fileID: 2800000, guid: 70c0858b8797f2840930648f27c9d61c, type: 3}
+      m_Background: {fileID: 2800000, guid: c10b97dc646e3764a85f5280dbfaaaa7, type: 3}
       m_ScaledBackgrounds: []
       m_TextColor: {r: 0.9058769, g: 1, b: 0.042452812, a: 1}
     m_Hover:
@@ -2925,18 +2925,18 @@ MonoBehaviour:
       m_Right: 0
       m_Top: 0
       m_Bottom: 0
-    m_Font: {fileID: 0}
-    m_FontSize: 11
+    m_Font: {fileID: 12800000, guid: 54b27c11dd68fd64f967ca8934f9138e, type: 3}
+    m_FontSize: 12
     m_FontStyle: 0
     m_Alignment: 4
     m_WordWrap: 1
     m_RichText: 1
     m_TextClipping: 0
     m_ImagePosition: 0
-    m_ContentOffset: {x: 0, y: 0}
+    m_ContentOffset: {x: 0, y: -1.6}
     m_FixedWidth: 0
     m_FixedHeight: 0
-    m_StretchWidth: 1
+    m_StretchWidth: 0
     m_StretchHeight: 0
   - m_Name: taskTitle
     m_Normal:
