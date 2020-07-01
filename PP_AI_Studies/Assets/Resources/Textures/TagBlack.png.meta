@@ -5,6 +5,9 @@ TextureImporter:
   - first:
       213: 3253869563862263674
     second: TagBlack_0
+  - first:
+      213: -8790812621106466079
+    second: TagBlack_0
   externalObjects: {}
   serializedVersion: 11
   mipmaps:
@@ -40,11 +43,11 @@ TextureImporter:
     mipBias: -100
     wrapU: 1
     wrapV: 1
-    wrapW: -1
+    wrapW: 1
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 0
   alignment: 0
@@ -147,15 +150,15 @@ TextureImporter:
         y: 0
         width: 128
         height: 128
-      alignment: 9
-      pivot: {x: 0.5, y: 0.5859375}
-      border: {x: 23, y: 45, z: 23, w: 23}
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 22, y: 42, z: 22, w: 22}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a77277be021182d20800000000000000
-      internalID: 3253869563862263674
+      spriteID: 1e2bdef2f72c00680800000000000000
+      internalID: -8790812621106466079
       vertices: []
       indices: 
       edges: []

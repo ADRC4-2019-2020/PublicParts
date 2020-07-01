@@ -1,14 +1,9 @@
 fileFormatVersion: 2
-guid: f8de87a25d2c61541b73b1db65a9d58c
+guid: eac11c975366c1743b656d1c34bb3dae
 ModelImporter:
   serializedVersion: 20100
   internalIDToNameTable: []
   externalObjects:
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: BlackTimber
-    second: {fileID: 2100000, guid: b9d938411b2a86b468525f158c5e189d, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -17,8 +12,23 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: WhiteTimber
-    second: {fileID: 2100000, guid: 71d629d498790744da398a4ff7fb58eb, type: 2}
+      name: LinearBlack
+    second: {fileID: 2100000, guid: f14594f1d7120d341a62c9eea034da81, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LinearWhite
+    second: {fileID: 2100000, guid: 18466fc795f656148a1d86ea5f467bff, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SlabBlack
+    second: {fileID: 2100000, guid: f14594f1d7120d341a62c9eea034da81, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SlabWhite
+    second: {fileID: 2100000, guid: 18466fc795f656148a1d86ea5f467bff, type: 2}
   materials:
     materialImportMode: 1
     materialName: 0

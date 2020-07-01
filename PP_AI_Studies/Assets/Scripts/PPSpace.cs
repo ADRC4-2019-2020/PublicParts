@@ -409,9 +409,9 @@ public class PPSpace : IEquatable<PPSpace>
         string nameHeader = Name;
 
         string area = $"Area: {Area.ToString("F", new CultureInfo("en-US"))} m²";
-        string areaScore = $"Area Score: {AreaScore.ToString()}";
-        string connectivityRatio = $"ConnectivityRatio: {ConnectionRatio.ToString()}";
-        string connectivityScore = $"Connectivity Score: {ConnectivityScore.ToString()}";
+        string areaScore = $"Area Score: {AreaScore.ToString("F", new CultureInfo("en-US"))}";
+        string connectivityRatio = $"ConnectivityRatio: {ConnectionRatio.ToString("F", new CultureInfo("en-US"))}";
+        string connectivityScore = $"Connectivity Score: {ConnectivityScore.ToString("F", new CultureInfo("en-US"))}";
         string timesUsed = $"Times used: {TimesUsed.ToString()}";
 
         output = nameHeader + breakLine +
@@ -647,6 +647,26 @@ public class PPSpace : IEquatable<PPSpace>
     }
 
     /// <summary>
+    /// Iterates the use of the space by a Tenant through time
+    /// </summary>
+    /// <returns>Result int array</returns>
+    public int[] UseSpaceGetFeedback()
+    {
+        if (_durationLeft == 0)
+        {
+            TimesUsed++;
+            int[] result = ReleaseSpaceGetFeedback();
+            return result;
+        }
+        else
+        {
+            _durationLeft--;
+            return null;
+        }
+    }
+
+
+    /// <summary>
     /// Releases the space from the tenant and request
     /// </summary>
     void ReleaseSpace()
@@ -660,6 +680,17 @@ public class PPSpace : IEquatable<PPSpace>
         //Debug.Log($"{Name} has been released");
     }
 
+    int[] ReleaseSpaceGetFeedback()
+    {
+        int[] result = EvaluateSpaceGetFeedback();
+        _occupyingTenant.ReleaseIcon();
+        Occupied = false;
+        _usedRequest = null;
+        _durationLeft = 0;
+        _occupyingTenant = null;
+        return result;
+    }
+
     #endregion
 
     #region Evaluation Methods
@@ -671,6 +702,96 @@ public class PPSpace : IEquatable<PPSpace>
     {
         EvaluateSpaceArea();
         EvaluateSpaceConnectivity();
+    }
+
+    /// <summary>
+    /// Returns an array with the feedback 
+    /// [area, connectivity]
+    /// </summary>
+    /// <returns></returns>
+    int[] EvaluateSpaceGetFeedback()
+    {
+        int areaResult = EvaluateSpaceAreaGetFeedback();
+        int connectivityResult = EvaluateSpaceConnectivityGetFeedback();
+        int[] result = new int[2] { areaResult, connectivityResult };
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Evaluates the space area based on the <see cref="Tenant"/>'s preferences
+    /// </summary>
+    int EvaluateSpaceAreaGetFeedback()
+    {
+        int result = 0;
+        //Reading and Evaluation is ok, positive feedback diferentiation / scale still not implemented
+        var requestFunction = _usedRequest.Function;
+        var tenantAreaPref = _occupyingTenant.AreaPreferences[requestFunction];
+        var tenantAreaMin = tenantAreaPref[0]; //This is m² per person
+        var tenantAreaMax = tenantAreaPref[1]; //This is m² per person
+
+        if (Area < tenantAreaMin * _usedRequest.Population)
+        {
+            _areaIncrease++;
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too small");
+            //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too small";
+
+        }
+        else if (Area > tenantAreaMax * _usedRequest.Population)
+        {
+            _areaDecrease++;
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too big");
+            //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too big";
+        }
+        else
+        {
+            _areaRating += 1.00f;
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough");
+            _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} good enough";
+            result = 1;
+        }
+
+        //Update area score
+        AreaScore = _areaRating / TimesUsed;
+        return result;
+    }
+
+    /// <summary>
+    /// Evaluates the space connectivity based on the <see cref="Tenant"/>'s preferences
+    /// </summary>
+    int EvaluateSpaceConnectivityGetFeedback()
+    {
+        int result = 0;
+
+        var requestFunction = _usedRequest.Function;
+        var tenantConnectPref = _occupyingTenant.ConnectivityPreferences[requestFunction];
+        var tenantConnectMin = tenantConnectPref[0]; //This is a float (percentage)
+        var tenantConnectMax = tenantConnectPref[1]; //This is a float (percentage)
+
+        if (ConnectionRatio < tenantConnectMin)
+        {
+            _connectivityIncrease++;
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin}, was {ConnectionRatio}");
+            //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin}, was {ConnectionRatio}";
+        }
+        else if (ConnectionRatio > tenantConnectMax)
+        {
+            _connectivityDecrease++;
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} not private enough");
+            //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} not private enough";
+        }
+        else
+        {
+            _connectivityRating += 1.00f;
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough");
+            //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} good enough";
+            result = 1;
+        }
+
+        //Update connectivity score
+        ConnectivityScore = _connectivityRating / TimesUsed;
+
+        return result;
     }
 
     /// <summary>
@@ -739,6 +860,7 @@ public class PPSpace : IEquatable<PPSpace>
         //Update connectivity score
         ConnectivityScore = _connectivityRating / TimesUsed;
     }
+
 
     /// <summary>
     /// Calls a reconfiguration to occur artificially, on demand.

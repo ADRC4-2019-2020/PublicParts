@@ -630,12 +630,10 @@ public class PP_Environment : MonoBehaviour
                 {
                     if (space != _selectedSpace)
                     {
-                        //color = new Color(0.7f, 0.1f, 0.1f, 0.70f);
                         color = acid;
                     }
                     else
                     {
-                        //color = new Color(0.90f, 0.70f, 0.0f, 0.70f);
                         color = acid;
                     }
                 }
@@ -643,18 +641,15 @@ public class PP_Environment : MonoBehaviour
                 {
                     if (space != _selectedSpace)
                     {
-                        //color = new Color(0.9f, 0.9f, 0.9f, 0.70f);
                         color = black;
                     }
                     else
                     {
-                        //color = new Color(0.85f, 1.0f, 0.0f, 0.70f);
                         color = black;
                     }
                 }
                 PP_Drawing.DrawSpaceBoundary(space, MainGrid, color, transform.position);
             }
-            
         }
     }
 

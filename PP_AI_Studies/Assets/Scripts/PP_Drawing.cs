@@ -251,6 +251,20 @@ class PP_Drawing : MonoBehaviour
         }
     }
 
+    public static void DrawSpaceSurface(PPSpace space, VoxelGrid grid, Color color, Vector3 origin)
+    {
+        var voxelSize = grid.VoxelSize;
+        _properties.SetColor("_BaseColor", color);
+        var indices = space.Indices;
+        foreach (var index in indices)
+        {
+            Vector3 position = ((index + new Vector3(0.5f, 1.1f, 0.5f)) * voxelSize) + origin;
+
+            DrawFace(position, Axis.Y, voxelSize, color);
+        }
+    }
+
+
     public static void DrawFace(Vector3 center, Axis direction, float size)
     {
         Quaternion rotation = Quaternion.identity;
@@ -279,6 +293,36 @@ class PP_Drawing : MonoBehaviour
         _instance._opaque.mainTexture = null;
         Graphics.DrawMesh(_unitFace, matrix, _instance._opaque, 0, null, 0);
         Graphics.DrawMesh(_unitFace, matrix, _instance._black, 0, null, 1);
+    }
+
+    public static void DrawFace(Vector3 center, Axis direction, float size, Color color)
+    {
+        Quaternion rotation = Quaternion.identity;
+
+        switch (direction)
+        {
+            case Axis.X:
+                rotation = Quaternion.Euler(0, 90, 0);
+                break;
+            case Axis.Y:
+                rotation = Quaternion.Euler(90, 0, 0);
+                break;
+            case Axis.Z:
+                rotation = Quaternion.Euler(0, 0, 0);
+                break;
+            default:
+                break;
+        }
+
+        var matrix = Matrix4x4.TRS(
+                center,
+                rotation,
+                Vector3.one * size
+                );
+
+        //_instance._opaque.mainTexture = null;
+        _properties.SetColor("_BaseColor", color);
+        Graphics.DrawMesh(_unitFace, matrix, _instance._transparent, 0, null, 0, _properties);
     }
 
     public static void DrawBar(Vector3 start, Vector3 end, float radius, float t)

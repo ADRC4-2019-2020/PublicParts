@@ -27,6 +27,8 @@ public class PP_ManualEnvironment : PP_Environment
 
     private Sprite _regularBorder;
     private Sprite _activeBorder;
+
+    private Dictionary<PPSpace, string> _spacesMessages;
     
     #endregion
 
@@ -34,6 +36,8 @@ public class PP_ManualEnvironment : PP_Environment
 
     private ConfigurablePartAgent _selectedComponent;
     private MainCamera _camControl;
+
+    private float _areaTransparency = 0;
     
     #endregion
     #endregion
@@ -93,6 +97,7 @@ public class PP_ManualEnvironment : PP_Environment
         //Create Configurable Parts
         PopulateRandomConfigurables(_nComponents);
         AnalyzeGridCreateNewSpaces();
+        RenewSpacesMesseges();
         SendSpacesData();
         StartCoroutine(DailyProgression());
     }
@@ -139,11 +144,15 @@ public class PP_ManualEnvironment : PP_Environment
             AnalyzeGridUpdateSpaces();
             SendSpacesData();
             ClearAllRequests();
+            RenewSpacesMesseges();
             _timePause = false;
             _camControl.Navigate = _timePause;
         }
 
         #endregion
+
+        //Oscilate the value of the transparency
+        _areaTransparency = (((Mathf.Sin(Time.time * 2f) + 1) / 2f) * 0.5f) + 0.25f;
 
         //DrawActiveComponent();
     }
@@ -191,6 +200,18 @@ public class PP_ManualEnvironment : PP_Environment
         return clicked;
     }
 
+    /// <summary>
+    /// Recreates the dictionary for the messages for each space after reconfiguration
+    /// </summary>
+    private void RenewSpacesMesseges()
+    {
+        _spacesMessages = new Dictionary<PPSpace, string>();
+        foreach (PPSpace space in _spaces)
+        {
+            _spacesMessages.Add(space, "");
+        }
+    }
+
     #endregion
 
     #region Space utilization functions and methods
@@ -205,14 +226,42 @@ public class PP_ManualEnvironment : PP_Environment
         {
             if (!_timePause)
             {
+                //Clears spaces messages in the beggining of each iteration
+                RenewSpacesMesseges();
+
                 if (_hour % 12 == 0)
                 {
                     CheckSpaces();
                     CheckForReconfiguration();
                 }
-                DayTimeDisplay.text = $"Day {_day.ToString("D3")}, "  +
-                    $"{_weekdaysNames[_currentWeekDay]}, " +
+
+                DayTimeDisplay.text = $"Day {_day.ToString("D3")}" + " | " +
+                    $"{_weekdaysNames[_currentWeekDay]}" + " | " +
                     $"{_hour}:00";
+
+                var occupiedSpaces = _spaces.Where(s => s.Occupied);
+                foreach (var space in occupiedSpaces)
+                {
+                    int[] useReturn = space.UseSpaceGetFeedback();
+                    if (useReturn != null)
+                    {
+                        //_activityLog = useReturn;
+                        //MessageBanner.text = useReturn;
+                        //AddDisplayMessage(useReturn);
+
+                        if (useReturn.Contains(0))
+                        {
+                            _spacesMessages[space] = "Feedback: Bad";
+                        }
+                        else if (useReturn[0] == 1 && useReturn[1] == 1)
+                        {
+                            _spacesMessages[space] = "Feedback Good";
+                        }
+
+
+                    }
+                }
+
                 float hourProbability = UnityEngine.Random.value;
                 foreach (var request in _spaceRequests)
                 {
@@ -226,17 +275,7 @@ public class PP_ManualEnvironment : PP_Environment
                         }
                     }
                 }
-                var occupiedSpaces = _spaces.Where(s => s.Occupied);
-                foreach (var space in occupiedSpaces)
-                {
-                    string useReturn = space.UseSpace();
-                    if (useReturn != "IGNORE")
-                    {
-                        //_activityLog = useReturn;
-                        //MessageBanner.text = useReturn;
-                        AddDisplayMessage(useReturn);
-                    }
-                }
+                
                 //DisplayRequestTotal.text = $"Total of space requests: {_requestTotal.ToString("D4")}";
                 UpdateTenantDisplay();
                 SendSpacesData();
@@ -274,12 +313,16 @@ public class PP_ManualEnvironment : PP_Environment
                 }
             }
             bestSuited.OccupySpace(request);
-            string newMessage = $"Assinged {bestSuited.Name} to {request.Tenant.Name} at {_hour.ToString("D2")}:00 for {request.ActivityName}";
-            AddDisplayMessage(newMessage);
+            //string newMessage = $"Assinged {bestSuited.Name} to {request.Tenant.Name} at {_hour.ToString("D2")}:00 for {request.ActivityName}";
+            string newMessage = $"Assinged to {request.Tenant.Name}";
+            _spacesMessages[bestSuited] = newMessage;
+
+
+            //AddDisplayMessage(newMessage);
         }
         else
         {
-            AddDisplayMessage("No available space found");
+            //AddDisplayMessage("No available space found");
         }
         
     }
@@ -322,7 +365,7 @@ public class PP_ManualEnvironment : PP_Environment
     {
         if (_spaces.Count(s => s.Reconfigure) >= 1)
         {
-            AddDisplayMessage("Reconfiguration requested");
+            //AddDisplayMessage("Reconfiguration requested");
             //SendReconfigureData();
             _timePause = true;
             _camControl.Navigate = _timePause;
@@ -360,23 +403,93 @@ public class PP_ManualEnvironment : PP_Environment
         if (_showSpaces)
         {
             var spaces = _spaces.Where(s => !s.IsSpare).ToArray();
-            float tagHeight = 3.0f;
-            Vector2 tagSize = new Vector2(64, 22);
+            float nameTagHeight = 3.0f;
+           
+            Vector2 nameTagSize = new Vector2(64, 22);
+
             foreach (var space in spaces)
             {
-                if (!space.IsSpare)
+                string spaceName = space.Name;
+                Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * nameTagHeight);
+
+                var t = _cam.WorldToScreenPoint(tagWorldPos);
+                Vector2 nameTagPos = new Vector2(t.x - (nameTagSize.x / 2), Screen.height - t.y);
+
+                GUI.Box(new Rect(nameTagPos, nameTagSize), spaceName, "spaceTag");
+
+                //Return if key is not present in dictionary
+                if (!_spacesMessages.ContainsKey(space)) return;
+
+                var spaceMessage = _spacesMessages[space];
+                if (spaceMessage != "")
                 {
-                    string spaceName = space.Name;
-                    Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * tagHeight);
+                    string tagText;
 
-                    var t = _cam.WorldToScreenPoint(tagWorldPos);
-                    Vector2 tagPos = new Vector2(t.x - (tagSize.x / 2), Screen.height - t.y);
+                    if (spaceMessage[0] == 'A')
+                    {
+                        Vector2 messageTagSize = new Vector2(120, 22);
+                        Vector2 messageTagPos = nameTagPos + new Vector2(+ nameTagSize.x/2 - messageTagSize.x/2, - messageTagSize.y - 4);
+                        tagText = spaceMessage;
+                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "assignedTag");
 
-                    GUI.Box(new Rect(tagPos, tagSize), spaceName, "spaceTag");
+                    }
+                    else if (spaceMessage.Contains("Bad"))
+                    {
+                        Vector2 messageTagSize = new Vector2(22, 22);
+                        Vector2 messageTagPos = nameTagPos + new Vector2(+nameTagSize.x / 2 - messageTagSize.x / 2, -messageTagSize.y - 4);
+                        tagText = ":(";
+                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "badTag");
+                    }
+                    else if (spaceMessage.Contains("Good"))
+                    {
+                        Vector2 messageTagSize = new Vector2(22, 22);
+                        Vector2 messageTagPos = nameTagPos + new Vector2(+nameTagSize.x / 2 - messageTagSize.x / 2, -messageTagSize.y - 4);
+                        tagText = ":)";
+                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "goodTag");
+                    }
                 }
             }
         }
     }
+
+    protected override void DrawSpaces()
+    {
+        foreach (var space in MainGrid.Spaces)
+        {
+            if (!space.IsSpare)
+            {
+                Color color;
+                Color black = Color.black;
+                Color white = Color.white;
+                Color acid = new Color(0.85f, 1.0f, 0.0f, _areaTransparency);
+                Color grey = new Color(0.85f, 0.85f, 0.85f, _areaTransparency);
+                if (space.Reconfigure)
+                {
+                    if (space != _selectedSpace)
+                    {
+                        color = acid;
+                    }
+                    else
+                    {
+                        color = acid;
+                    }
+                }
+                else
+                {
+                    if (space != _selectedSpace)
+                    {
+                        color = grey;
+                    }
+                    else
+                    {
+                        color = grey;
+                    }
+                }
+                PP_Drawing.DrawSpaceSurface(space, MainGrid, color, transform.position);
+            }
+        }
+    }
+
 
     #endregion
 
@@ -517,6 +630,9 @@ public class PP_ManualEnvironment : PP_Environment
 
         //Draw Spaces tags
         DrawSpaceTags();
+
+        //Draw spaces messages
+        //DrawSpaceMessage();
     }
 
     #endregion
