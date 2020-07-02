@@ -61,6 +61,7 @@ public static class JSONReader
         foreach (var tenant in tenantList.Tenants)
         {
             tenant.AssociateGrid(grid);
+            tenant.OnSpace = null;
             //Tenant Area Preferences
             tenant.AreaPreferences = new Dictionary<SpaceFunction, float[]>();
             var areaWorkPref = tenant.AreaPrefWork_S.Split('_').Select(p => float.Parse(p) / 10.00f).ToArray();

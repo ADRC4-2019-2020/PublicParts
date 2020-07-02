@@ -42,6 +42,7 @@ public class PP_ManualEnvironment : PP_Environment
     #endregion
 
     public ScreenRecorder ScreenRecorderInstance;
+    private bool _record = true;
 
     #endregion
 
@@ -62,6 +63,8 @@ public class PP_ManualEnvironment : PP_Environment
         _reconfigurationRequests = new List<ReconfigurationRequest>();
 
         _hourStep = 1f;
+        _hour = 8;
+
         InitializedAgents = 0;
         _showDebug = true;
         _compiledMessage = new string[2];
@@ -75,15 +78,16 @@ public class PP_ManualEnvironment : PP_Environment
 
         _regularBorder = Resources.Load<Sprite>("Textures/RectangularBorder");
         _activeBorder = Resources.Load<Sprite>("Textures/RectangularBorder_Active");
+
+        _cam = Camera.main;
+        _camControl = _cam.transform.GetComponent<MainCamera>();
+        _camControl.Navigate = _timePause;
+
+        SetRecorder(!_timePause);
     }
 
     private void Start()
     {
-        _cam = Camera.main;
-        _camControl = _cam.transform.GetComponent<MainCamera>();
-        _camControl.Navigate = _timePause;
-        
-
         _gridSize = new Vector3Int(30, 1, 24);
         MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true, false);
         _boundaries = MainGrid.Boundaries;
@@ -112,7 +116,7 @@ public class PP_ManualEnvironment : PP_Environment
         {
             DrawState();
         }
-        //DrawBoundaries();
+        
         if (_showRawBoundaries)
         {
             DrawBoundaries();
@@ -125,17 +129,30 @@ public class PP_ManualEnvironment : PP_Environment
 
         #region Control inputs
 
+        if (Input.GetKeyDown(KeyCode.V))
+        {
+            _showVoxels = !_showVoxels;
+            SetGameObjectsVisibility(_showVoxels);
+        }
+
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            _showRawBoundaries = !_showRawBoundaries;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
             ActivateComponent();
         }
-
+        
+        //Slow down simulation
         if (Input.GetKeyDown(KeyCode.KeypadMinus))
         {
             _hourStep += 0.05f;
             _hourStep = Mathf.Clamp(_hourStep, 0.05f, 1f);
             print(_hourStep);
         }
+        //Speed up simulation
         if (Input.GetKeyDown(KeyCode.KeypadPlus))
         {
             _hourStep -= 0.05f;
@@ -148,6 +165,8 @@ public class PP_ManualEnvironment : PP_Environment
         {
             _timePause = !_timePause;
             _camControl.Navigate = _timePause;
+
+            SetRecorder(!_timePause);
         }
 
         //Reconfigure and continue
@@ -160,7 +179,18 @@ public class PP_ManualEnvironment : PP_Environment
         #endregion
 
         //Oscilate the intensity of the colors used to represent the space
-        if (!_timePause)  _colorOscilator = ((Mathf.Sin(Time.time * 3f) + 1) / 2f);
+        if (!_timePause)
+        {
+            if (_record)
+            {
+                _colorOscilator = ((Mathf.Sin(Time.time * 0.65f) + 1) / 2f);
+            }
+            else
+            {
+                _colorOscilator = ((Mathf.Sin(Time.time * 3) + 1) / 2f);
+            }
+        }
+
     }
 
     #endregion
@@ -217,38 +247,7 @@ public class PP_ManualEnvironment : PP_Environment
         }
     }
 
-    private void FinilizeReconfiguration()
-    {
-        AnalyzeGridUpdateSpaces();
-        SendSpacesData();
-        ClearAllRequests();
-        RenewSpacesMesseges();
-        _timePause = false;
-        _camControl.Navigate = _timePause;
-    }
-
-    private IEnumerator FinilizeReconfigurationAnimated()
-    {
-        var parts = _existingParts.OfType<ConfigurablePart>();
-        var agents = parts.Select(p => p.CPAgent);
-        foreach (var agent in agents)
-        {
-            agent.PrepareAnimation();
-            while (agent.IsMoving)
-            {
-                agent.AnimateTransition(_hourStep);
-                yield return null;
-
-            }
-        }
-
-        AnalyzeGridUpdateSpaces();
-        SendSpacesData();
-        ClearAllRequests();
-        RenewSpacesMesseges();
-        _timePause = false;
-        _camControl.Navigate = _timePause;
-    }
+    
 
     #endregion
 
@@ -283,10 +282,6 @@ public class PP_ManualEnvironment : PP_Environment
                     int[] useReturn = space.UseSpaceGetFeedback();
                     if (useReturn != null)
                     {
-                        //_activityLog = useReturn;
-                        //MessageBanner.text = useReturn;
-                        //AddDisplayMessage(useReturn);
-
                         if (useReturn.Contains(0))
                         {
                             _spacesMessages[space] = "Feedback: Bad";
@@ -295,8 +290,6 @@ public class PP_ManualEnvironment : PP_Environment
                         {
                             _spacesMessages[space] = "Feedback Good";
                         }
-
-
                     }
                 }
 
@@ -313,14 +306,21 @@ public class PP_ManualEnvironment : PP_Environment
                         }
                     }
                 }
-                
-                //DisplayRequestTotal.text = $"Total of space requests: {_requestTotal.ToString("D4")}";
+               
                 UpdateTenantDisplay();
                 SendSpacesData();
-                //SendReconfigureData();
+
                 NextHour();
-                //UpdateSpaceData();
-                yield return new WaitForSeconds(_hourStep);
+
+                if (_record)
+                {
+                    yield return new WaitForSeconds(_hourStep * 4f);
+                }
+                else
+                {
+                    yield return new WaitForSeconds(_hourStep);
+                }
+                
             }
             else
             {
@@ -372,7 +372,7 @@ public class PP_ManualEnvironment : PP_Environment
     {
         foreach (var space in _spaces)
         {
-            if (space.TimesUsed > 10)
+            if (space.TimesUsed >= 5)
             {
                 if (space.AreaScore < 0.20f)
                 {
@@ -407,6 +407,7 @@ public class PP_ManualEnvironment : PP_Environment
             //SendReconfigureData();
 
             _timePause = true;
+            SetRecorder(!_timePause);
             _camControl.Navigate = _timePause;
 
             var parts = _existingParts.OfType<ConfigurablePart>();
@@ -435,6 +436,125 @@ public class PP_ManualEnvironment : PP_Environment
             }
         }
         //SendReconfigureData();
+    }
+
+    /// <summary>
+    /// Analyze the grid and update data without animating the process
+    /// </summary>
+    private void FinilizeReconfiguration()
+    {
+        AnalyzeGridUpdateSpaces();
+        SendSpacesData();
+        ClearAllRequests();
+        RenewSpacesMesseges();
+        _timePause = false;
+        _camControl.Navigate = _timePause;
+    }
+
+    /// <summary>
+    /// Animate the movement of the components, re-analyzing the grid afterwards
+    /// and populating the data panels
+    /// </summary>
+    /// <returns>The animation steps</returns>
+    private IEnumerator FinilizeReconfigurationAnimated()
+    {
+        var parts = _existingParts.OfType<ConfigurablePart>();
+        var agents = parts.Select(p => p.CPAgent);
+        
+
+        float animationSpeed = 1f / _hourStep;
+        float waitTime = 40 * (1f / (animationSpeed * 60f)); //40 = amount of frames in the animations
+
+        if (_record)
+        {
+            animationSpeed = 1f / (_hourStep * 4);
+            waitTime = 40 * (1f / (animationSpeed * 60f));
+        }
+
+        //Store target position and move component to initial state
+        foreach (var agent in agents)
+        {
+            agent.SetAnimatorSpeed(animationSpeed);
+            agent.PrepareAnimation();
+        }
+
+        //Restart recording
+        SetRecorder(true);
+        _camControl.Navigate = false;
+        yield return null;
+
+        //Individually animate all components
+        foreach (var agent in agents)
+        {
+            if (agent.TriggerAnimation())
+            {
+                yield return new WaitForSeconds(waitTime);
+
+                
+                
+                
+
+                while (agent.IsMoving)
+                {
+                    float moveSpeed = (0.5f / _hourStep) * Time.deltaTime;
+                    //print($"delta {Time.deltaTime}");
+                    var target = agent.GetTargetPosition();
+                    var targetX = new Vector3(target.x, agent.transform.position.y, agent.transform.position.z);
+                    var targetZ = new Vector3(agent.transform.position.x, agent.transform.position.y, target.z);
+
+                    if (agent.transform.position != targetX)
+                    {
+                        agent.transform.position = Vector3.MoveTowards(agent.transform.position, targetX, moveSpeed);
+
+                        if (Vector3.Distance(agent.transform.position, targetX) < 0.001f)
+                        {
+                            agent.transform.position = targetX;
+                        }
+                    }
+                    else if (agent.transform.position != targetZ)
+                    {
+                        agent.transform.position = Vector3.MoveTowards(agent.transform.position, targetZ, moveSpeed);
+
+                        if (Vector3.Distance(agent.transform.position, targetZ) < 0.001f)
+                        {
+                            agent.transform.position = targetZ;
+                        }
+                    }
+                    else
+                    {
+                        agent.IsMoving = false;
+                    }
+                    yield return null;
+                    
+                }
+
+                while (agent.IsRotating)
+                {
+                    float rotateSpeed = (10f / _hourStep) * Time.deltaTime;
+                    var target = agent.GetTargetRotationQ();
+                    agent.transform.localRotation = Quaternion.RotateTowards(agent.transform.localRotation, target, rotateSpeed);
+
+                    if (Quaternion.Angle(agent.transform.localRotation, target) < 0.001f)
+                    {
+                        agent.transform.localRotation = target;
+                        agent.IsRotating = false;
+                    }
+                    yield return null;
+                }
+
+                agent.EndAnimation();
+                yield return new WaitForSeconds(waitTime);
+            }
+
+        }
+
+        AnalyzeGridUpdateSpaces();
+        SendSpacesData();
+        ClearAllRequests();
+        RenewSpacesMesseges();
+        
+        _timePause = false;
+        SetRecorder(!_timePause);
     }
 
     #endregion
@@ -510,8 +630,8 @@ public class PP_ManualEnvironment : PP_Environment
                 Color color;
                 Color black = Color.black;
                 Color white = Color.white;
-                //Color acid = new Color(0.85f, 1.0f, 0.0f, _areaTransparency);
-                Color acid = new Color(0.85f * _colorOscilator, 1.0f * _colorOscilator, 0.0f * _colorOscilator, 0.5f);
+                Color acid = new Color(0.85f, 1.0f, 0.0f, 0.75f);
+                //Color acid = new Color(0.85f * _colorOscilator, 1.0f * _colorOscilator, 0.0f * _colorOscilator, 0.5f);
                 //Color grey = new Color(0f, 0f, 0f, _areaTransparency);
                 Color grey = new Color(_colorOscilator, _colorOscilator, _colorOscilator, 0.5f);
                 if (space.Reconfigure)
@@ -538,6 +658,23 @@ public class PP_ManualEnvironment : PP_Environment
                 }
                 PP_Drawing.DrawSpaceSurface(space, MainGrid, color, transform.position);
             }
+        }
+    }
+
+    /// <summary>
+    /// Changes the state of the screen recorder, if recording is allowed
+    /// </summary>
+    /// <param name="state">The state to be set</param>
+    private void SetRecorder(bool state)
+    {
+        if (_record)
+        {
+            _camControl.Speed = 1f;
+            ScreenRecorderInstance.Record = state;
+        }
+        else
+        {
+            ScreenRecorderInstance.Record = false;
         }
     }
 

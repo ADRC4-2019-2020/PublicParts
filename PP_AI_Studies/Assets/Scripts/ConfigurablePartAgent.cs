@@ -18,7 +18,11 @@ public class ConfigurablePartAgent : Agent
     private Vector3 _initRotation;
     private Vector3 _endRotation;
 
+    private Quaternion _initRotationQ;
+    private Quaternion _endRotationQ;
+
     public bool IsMoving = false;
+    public bool IsRotating = false;
 
     #endregion
 
@@ -557,82 +561,64 @@ public class ConfigurablePartAgent : Agent
     public void StoreInitialPosition()
     {
         _initPosition = transform.position;
-        _initRotation = transform.localEulerAngles;
+        _initRotationQ = transform.localRotation;
     }
 
     public void PrepareAnimation()
     {
+        //Stores current position and rotation as target
         _endPosition = transform.position;
-        _endRotation = transform.localEulerAngles;
-        if (_initPosition != _endPosition || _initRotation != _endRotation)
-        {
-            transform.position = _initPosition;
-            transform.localEulerAngles = _initRotation;
-            Anim.SetBool("isMoving", true);
-            IsMoving = true;
-        }
+        _endRotationQ = transform.localRotation;
+        
+        //Moves the component back to the initial state
+        transform.position = _initPosition;
+        transform.localRotation = _initRotationQ;
     }
 
-    private bool _moveDone = false;
-    private bool _rotationDone = false;
-
-    public void AnimateTransition(float currentSpeed)
+    public bool TriggerAnimation()
     {
-        bool animationState = Anim.GetCurrentAnimatorStateInfo(0).length >= Anim.GetCurrentAnimatorStateInfo(0).normalizedTime;
-        if (!_moveDone)
+        //Check if position is different than the initial one
+        if (_initPosition != _endPosition)
         {
-            if (!animationState)
-            {
-                transform.position = Vector3.MoveTowards(transform.position, _endPosition, 0.01f);
-
-                if (Vector3.Distance(transform.position, _endPosition) < 0.0001f)
-                {
-                    transform.position = _endPosition;
-                    _moveDone = true;
-                }
-                return;
-            }
+            IsMoving = true;
         }
-        else
+        //Check if rotation is different than the initial one
+        if (_initRotationQ != _endRotationQ)
         {
-            Anim.SetBool("isMoving", false);
+            IsRotating = true;
         }
 
-        // THIS SHOULD BE ANOTHER IENUMERATOR, IT DOESEN'T WORK OTHERWISE
-
-        if (!animationState)
+        //Analyze if any animation is required
+        if (IsMoving || IsRotating)
         {
-
+            Anim.SetBool("isMoving", true);
+            return true;
         }
-        
+        else return false;
+    }
+
+    public void EndAnimation()
+    {
+        Anim.SetBool("isMoving", false);
+        IsMoving = false;
+        IsRotating = false;
+    }
 
 
+    public Vector3 GetTargetPosition()
+    {
+        return _endPosition;
+    }
 
 
+    public Quaternion GetTargetRotationQ()
+    {
+        return _endRotationQ;
+    }
 
-
-
-
-        //if (!animationState)
-        //{
-        //    if (transform.position != _endPosition)
-        //    {
-        //        transform.position = Vector3.MoveTowards(transform.position, _endPosition, 0.01f);
-
-        //        if (Vector3.Distance(transform.position, _endPosition) < 0.0001f)
-        //        {
-        //            transform.position = _endPosition;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        Anim.SetBool("isMoving", false);
-        //    }
-        //}
-        //else
-        //{
-        //    IsMoving = false;
-        //}
+    public void SetAnimatorSpeed(float speed)
+    {
+        Anim.speed = speed;
     }
 
     #endregion
