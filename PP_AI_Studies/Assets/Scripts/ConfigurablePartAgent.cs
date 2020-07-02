@@ -9,6 +9,19 @@ using Unity.MLAgents.Sensors;
 /// </summary>
 public class ConfigurablePartAgent : Agent
 {
+    #region Unity properties
+
+    public Animator Anim { get; private set; }
+
+    private Vector3 _initPosition;
+    private Vector3 _endPosition;
+    private Vector3 _initRotation;
+    private Vector3 _endRotation;
+
+    public bool IsMoving = false;
+
+    #endregion
+
     #region Properties
 
     private ConfigurablePart _part;
@@ -462,6 +475,11 @@ public class ConfigurablePartAgent : Agent
 
     #region Unity Methods
 
+    private void Awake()
+    {
+        Anim = GetComponent<Animator>();
+    }
+
     /// <summary>
     /// Method utilized to move the components in manual mode
     /// </summary>
@@ -515,6 +533,12 @@ public class ConfigurablePartAgent : Agent
                     transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
                 }
             }
+
+            if (Input.GetKeyDown(KeyCode.T))
+            {
+                Anim.speed = 5f;
+                Anim.SetBool("isMoving", true);
+            }
         }
         
     }
@@ -525,6 +549,90 @@ public class ConfigurablePartAgent : Agent
         {
             RequestDecision();
         }
+    }
+
+    /// <summary>
+    /// Tells the agent to store its current position
+    /// </summary>
+    public void StoreInitialPosition()
+    {
+        _initPosition = transform.position;
+        _initRotation = transform.localEulerAngles;
+    }
+
+    public void PrepareAnimation()
+    {
+        _endPosition = transform.position;
+        _endRotation = transform.localEulerAngles;
+        if (_initPosition != _endPosition || _initRotation != _endRotation)
+        {
+            transform.position = _initPosition;
+            transform.localEulerAngles = _initRotation;
+            Anim.SetBool("isMoving", true);
+            IsMoving = true;
+        }
+    }
+
+    private bool _moveDone = false;
+    private bool _rotationDone = false;
+
+    public void AnimateTransition(float currentSpeed)
+    {
+        bool animationState = Anim.GetCurrentAnimatorStateInfo(0).length >= Anim.GetCurrentAnimatorStateInfo(0).normalizedTime;
+        if (!_moveDone)
+        {
+            if (!animationState)
+            {
+                transform.position = Vector3.MoveTowards(transform.position, _endPosition, 0.01f);
+
+                if (Vector3.Distance(transform.position, _endPosition) < 0.0001f)
+                {
+                    transform.position = _endPosition;
+                    _moveDone = true;
+                }
+                return;
+            }
+        }
+        else
+        {
+            Anim.SetBool("isMoving", false);
+        }
+
+        // THIS SHOULD BE ANOTHER IENUMERATOR, IT DOESEN'T WORK OTHERWISE
+
+        if (!animationState)
+        {
+
+        }
+        
+
+
+
+
+
+
+
+
+        //if (!animationState)
+        //{
+        //    if (transform.position != _endPosition)
+        //    {
+        //        transform.position = Vector3.MoveTowards(transform.position, _endPosition, 0.01f);
+
+        //        if (Vector3.Distance(transform.position, _endPosition) < 0.0001f)
+        //        {
+        //            transform.position = _endPosition;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        Anim.SetBool("isMoving", false);
+        //    }
+        //}
+        //else
+        //{
+        //    IsMoving = false;
+        //}
     }
 
     #endregion

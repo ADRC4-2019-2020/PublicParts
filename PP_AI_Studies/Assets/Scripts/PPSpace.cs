@@ -404,20 +404,15 @@ public class PPSpace : IEquatable<PPSpace>
     public string GetSpaceData()
     {
         string output;
-        string tab = "  ";
         string breakLine = "\n";
-        string nameHeader = Name;
 
-        string area = $"Area: {Area.ToString("F", new CultureInfo("en-US"))} m²";
         string areaScore = $"Area Score: {AreaScore.ToString("F", new CultureInfo("en-US"))}";
-        string connectivityRatio = $"ConnectivityRatio: {ConnectionRatio.ToString("F", new CultureInfo("en-US"))}";
         string connectivityScore = $"Connectivity Score: {ConnectivityScore.ToString("F", new CultureInfo("en-US"))}";
         string timesUsed = $"Times used: {TimesUsed.ToString()}";
 
-        output = nameHeader + breakLine +
-            tab + areaScore + breakLine +
-            tab + connectivityScore + breakLine +
-            tab + timesUsed + breakLine;
+        output = areaScore + breakLine +
+            connectivityScore + breakLine +
+            timesUsed + breakLine;
 
         return output;
     }
@@ -610,6 +605,18 @@ public class PPSpace : IEquatable<PPSpace>
         _connectivityDecrease = other._connectivityDecrease;
     }
 
+    public string GetTenantActivity()
+    {
+        string result = "";
+
+        if (_usedRequest != null)
+        {
+            result = _usedRequest.ActivityName;
+        }
+
+        return result;
+    }
+
     #endregion
 
     #region Occupation Methods
@@ -647,6 +654,20 @@ public class PPSpace : IEquatable<PPSpace>
     }
 
     /// <summary>
+    /// Releases the space from the tenant and request
+    /// </summary>
+    void ReleaseSpace()
+    {
+        EvaluateSpace();
+        _occupyingTenant.ReleaseIcon();
+        Occupied = false;
+        _usedRequest = null;
+        _durationLeft = 0;
+        _occupyingTenant = null;
+        //Debug.Log($"{Name} has been released");
+    }
+
+    /// <summary>
     /// Iterates the use of the space by a Tenant through time
     /// </summary>
     /// <returns>Result int array</returns>
@@ -665,21 +686,10 @@ public class PPSpace : IEquatable<PPSpace>
         }
     }
 
-
     /// <summary>
-    /// Releases the space from the tenant and request
+    /// Releases the space from the tenant and the request
     /// </summary>
-    void ReleaseSpace()
-    {
-        EvaluateSpace();
-        _occupyingTenant.ReleaseIcon();
-        Occupied = false;
-        _usedRequest = null;
-        _durationLeft = 0;
-        _occupyingTenant = null;
-        //Debug.Log($"{Name} has been released");
-    }
-
+    /// <returns>Returns the evaluation [0] = Area, [1] = Connectivity</returns>
     int[] ReleaseSpaceGetFeedback()
     {
         int[] result = EvaluateSpaceGetFeedback();
@@ -724,7 +734,7 @@ public class PPSpace : IEquatable<PPSpace>
     int EvaluateSpaceAreaGetFeedback()
     {
         int result = 0;
-        //Reading and Evaluation is ok, positive feedback diferentiation / scale still not implemented
+
         var requestFunction = _usedRequest.Function;
         var tenantAreaPref = _occupyingTenant.AreaPreferences[requestFunction];
         var tenantAreaMin = tenantAreaPref[0]; //This is m² per person
@@ -733,20 +743,27 @@ public class PPSpace : IEquatable<PPSpace>
         if (Area < tenantAreaMin * _usedRequest.Population)
         {
             _areaIncrease++;
-            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too small");
+            _occupyingTenant.AreaPerIndInferred = Mathf.Clamp(_occupyingTenant.AreaPerIndInferred - 0.05f, 0.25f, 10f);
+            //Debug.Log($"New Preference {_occupyingTenant.Name} { _occupyingTenant.AreaPerIndInferred }");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too small, " +
+            //    $"wanted { tenantAreaMin * _usedRequest.Population} or { tenantAreaMax * _usedRequest.Population} got {Area}");
             //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too small";
 
         }
         else if (Area > tenantAreaMax * _usedRequest.Population)
         {
             _areaDecrease++;
-            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too big");
+            _occupyingTenant.AreaPerIndInferred = Mathf.Clamp(_occupyingTenant.AreaPerIndInferred + 0.05f, 0.25f, 10f);
+            //Debug.Log($"New Preference {_occupyingTenant.Name} { _occupyingTenant.AreaPerIndInferred }");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too big, " +
+            //    $"wanted { tenantAreaMin * _usedRequest.Population} or { tenantAreaMax * _usedRequest.Population} got {Area}");
             //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too big";
         }
         else
         {
             _areaRating += 1.00f;
-            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough, " +
+            //    $"wanted { tenantAreaMin * _usedRequest.Population} or { tenantAreaMax * _usedRequest.Population} got {Area}");
             _operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} good enough";
             result = 1;
         }
@@ -771,19 +788,19 @@ public class PPSpace : IEquatable<PPSpace>
         if (ConnectionRatio < tenantConnectMin)
         {
             _connectivityIncrease++;
-            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin}, was {ConnectionRatio}");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin} or {tenantConnectMax}, was {ConnectionRatio}");
             //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin}, was {ConnectionRatio}";
         }
         else if (ConnectionRatio > tenantConnectMax)
         {
             _connectivityDecrease++;
-            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} not private enough");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too connected, wanted {tenantConnectMin} or {tenantConnectMax}, was {ConnectionRatio}");
             //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} not private enough";
         }
         else
         {
             _connectivityRating += 1.00f;
-            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough");
+            //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough, wanted {tenantConnectMin} or {tenantConnectMax}, was {ConnectionRatio}");
             //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} good enough";
             result = 1;
         }

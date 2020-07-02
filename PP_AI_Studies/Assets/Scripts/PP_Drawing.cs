@@ -264,7 +264,6 @@ class PP_Drawing : MonoBehaviour
         }
     }
 
-
     public static void DrawFace(Vector3 center, Axis direction, float size)
     {
         Quaternion rotation = Quaternion.identity;

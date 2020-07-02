@@ -37,9 +37,12 @@ public class PP_ManualEnvironment : PP_Environment
     private ConfigurablePartAgent _selectedComponent;
     private MainCamera _camControl;
 
-    private float _areaTransparency = 0;
-    
+    private float _colorOscilator = 0;
+
     #endregion
+
+    public ScreenRecorder ScreenRecorderInstance;
+
     #endregion
 
     #region Unity methods
@@ -58,7 +61,7 @@ public class PP_ManualEnvironment : PP_Environment
         _spaceRequests = new List<PPSpaceRequest>();
         _reconfigurationRequests = new List<ReconfigurationRequest>();
 
-        _hourStep = 0.1f;
+        _hourStep = 1f;
         InitializedAgents = 0;
         _showDebug = true;
         _compiledMessage = new string[2];
@@ -127,38 +130,40 @@ public class PP_ManualEnvironment : PP_Environment
             ActivateComponent();
         }
 
-        if (Input.GetKeyDown(KeyCode.V))
+        if (Input.GetKeyDown(KeyCode.KeypadMinus))
         {
-            _showVoxels = !_showVoxels;
-            SetGameObjectsVisibility(_showVoxels);
+            _hourStep += 0.05f;
+            _hourStep = Mathf.Clamp(_hourStep, 0.05f, 1f);
+            print(_hourStep);
+        }
+        if (Input.GetKeyDown(KeyCode.KeypadPlus))
+        {
+            _hourStep -= 0.05f;
+            _hourStep = Mathf.Clamp(_hourStep, 0.05f, 1f);
+            print(_hourStep);
         }
 
+        //Manual pause trigger
         if (Input.GetKeyDown(KeyCode.P))
         {
             _timePause = !_timePause;
             _camControl.Navigate = _timePause;
         }
 
+        //Reconfigure and continue
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            AnalyzeGridUpdateSpaces();
-            SendSpacesData();
-            ClearAllRequests();
-            RenewSpacesMesseges();
-            _timePause = false;
-            _camControl.Navigate = _timePause;
+            //FinilizeReconfiguration();
+            StartCoroutine(FinilizeReconfigurationAnimated());
         }
 
         #endregion
 
-        //Oscilate the value of the transparency
-        _areaTransparency = (((Mathf.Sin(Time.time * 2f) + 1) / 2f) * 0.5f) + 0.25f;
-
-        //DrawActiveComponent();
+        //Oscilate the intensity of the colors used to represent the space
+        if (!_timePause)  _colorOscilator = ((Mathf.Sin(Time.time * 3f) + 1) / 2f);
     }
 
     #endregion
-
 
     #region Architectural functions and methods
     
@@ -210,6 +215,39 @@ public class PP_ManualEnvironment : PP_Environment
         {
             _spacesMessages.Add(space, "");
         }
+    }
+
+    private void FinilizeReconfiguration()
+    {
+        AnalyzeGridUpdateSpaces();
+        SendSpacesData();
+        ClearAllRequests();
+        RenewSpacesMesseges();
+        _timePause = false;
+        _camControl.Navigate = _timePause;
+    }
+
+    private IEnumerator FinilizeReconfigurationAnimated()
+    {
+        var parts = _existingParts.OfType<ConfigurablePart>();
+        var agents = parts.Select(p => p.CPAgent);
+        foreach (var agent in agents)
+        {
+            agent.PrepareAnimation();
+            while (agent.IsMoving)
+            {
+                agent.AnimateTransition(_hourStep);
+                yield return null;
+
+            }
+        }
+
+        AnalyzeGridUpdateSpaces();
+        SendSpacesData();
+        ClearAllRequests();
+        RenewSpacesMesseges();
+        _timePause = false;
+        _camControl.Navigate = _timePause;
     }
 
     #endregion
@@ -302,12 +340,12 @@ public class PP_ManualEnvironment : PP_Environment
 
         if (availableSpaces.Count() > 0)
         {
-            PPSpace bestSuited = availableSpaces.MaxBy(s => s.VoxelCount);
+            PPSpace bestSuited = availableSpaces.MaxBy(s => s.Area);
             foreach (var space in availableSpaces)
             {
                 var spaceArea = space.Area;
 
-                if (spaceArea >= requestArea && spaceArea < bestSuited.VoxelCount)
+                if (spaceArea >= requestArea && spaceArea < bestSuited.Area)
                 {
                     bestSuited = space;
                 }
@@ -367,8 +405,16 @@ public class PP_ManualEnvironment : PP_Environment
         {
             //AddDisplayMessage("Reconfiguration requested");
             //SendReconfigureData();
+
             _timePause = true;
             _camControl.Navigate = _timePause;
+
+            var parts = _existingParts.OfType<ConfigurablePart>();
+            var agents = parts.Select(p => p.CPAgent);
+            foreach (var agent in agents)
+            {
+                agent.StoreInitialPosition();
+            }
         }
     }
 
@@ -452,6 +498,9 @@ public class PP_ManualEnvironment : PP_Environment
         }
     }
 
+    /// <summary>
+    /// Modified the display of the spaces
+    /// </summary>
     protected override void DrawSpaces()
     {
         foreach (var space in MainGrid.Spaces)
@@ -461,8 +510,10 @@ public class PP_ManualEnvironment : PP_Environment
                 Color color;
                 Color black = Color.black;
                 Color white = Color.white;
-                Color acid = new Color(0.85f, 1.0f, 0.0f, _areaTransparency);
-                Color grey = new Color(0.85f, 0.85f, 0.85f, _areaTransparency);
+                //Color acid = new Color(0.85f, 1.0f, 0.0f, _areaTransparency);
+                Color acid = new Color(0.85f * _colorOscilator, 1.0f * _colorOscilator, 0.0f * _colorOscilator, 0.5f);
+                //Color grey = new Color(0f, 0f, 0f, _areaTransparency);
+                Color grey = new Color(_colorOscilator, _colorOscilator, _colorOscilator, 0.5f);
                 if (space.Reconfigure)
                 {
                     if (space != _selectedSpace)
@@ -490,7 +541,6 @@ public class PP_ManualEnvironment : PP_Environment
         }
     }
 
-
     #endregion
 
     #region UI Controls and Settings
@@ -506,17 +556,83 @@ public class PP_ManualEnvironment : PP_Environment
         int spaceCount = spaces.Length;
         for (int i = 0; i < panelCount; i++)
         {
-            var panel = SpaceDataPanel.transform.GetChild(i).GetComponent<Text>();
+            var panel = SpaceDataPanel.transform.GetChild(i);
+            var name = panel.Find("Name").GetComponent<Text>();
+            var data = panel.Find("Data").GetComponent<Text>();
+            var reconfigBanner = panel.Find("ReconfigBanner");
+            var reconfigText = reconfigBanner.Find("ReconfigText").GetComponent<Text>();
+
             if (i < spaceCount)
             {
-                panel.enabled = true;
-                panel.transform.GetChild(0).gameObject.SetActive(true);
-                panel.text = spaces[i].GetSpaceData();
+                var space = spaces[i];
+                //Enable border
+                panel.GetComponent<Image>().enabled = true;
+
+                //Enable text
+                name.enabled = true;
+                data.enabled = true;
+
+                //Set text content
+                name.text = space.Name;
+                data.text = space.GetSpaceData();
+
+                
+                if (space.Reconfigure)
+                {
+                    reconfigBanner.gameObject.SetActive(true);
+
+                    string areaResult = "";
+                    string connectResult = "";
+
+                    if (space.Reconfigure_Area)
+                    {
+                        if (space._areaIncrease > space._areaDecrease)
+                        {
+                            areaResult = "+A";
+                        }
+                        else
+                        {
+                            areaResult = "-A";
+                        }
+                    }
+
+                    if (space.Reconfigure_Connectivity)
+                    {
+                        if (space._connectivityIncrease > space._connectivityDecrease)
+                        {
+                            connectResult = "+C";
+                        }
+                        else
+                        {
+                            connectResult = "-C";
+                        }
+                    }
+
+                    string resultReconfig;
+                    if (areaResult != "" && connectResult != "")
+                    {
+                        areaResult = areaResult + " | ";
+                    }
+                    resultReconfig = areaResult + connectResult;
+                    reconfigText.text = resultReconfig;
+                }
+                else
+                {
+                    reconfigBanner.gameObject.SetActive(false);
+                }
+
+                
             }
             else
             {
-                panel.transform.GetChild(0).gameObject.SetActive(false);
-                panel.enabled = false;
+                //Disable border
+                panel.GetComponent<Image>().enabled = false;
+
+                //Disable text
+                name.enabled = false;
+                data.enabled = false;
+
+                reconfigBanner.gameObject.SetActive(false);
             }
         }
     }
@@ -586,10 +702,13 @@ public class PP_ManualEnvironment : PP_Environment
             Tenant tenant = _tenants[i];
             var name = panel.Find("TenantName").GetComponent<Text>();
             var status = panel.Find("Status").GetComponent<Text>();
+            var activity = panel.Find("Activity").GetComponent<Text>();
             var border = panel.Find("Border").GetComponent<Image>();
+            
             var image = panel.GetComponent<Image>();
             status.text = "";
             name.text = tenant.Name;
+            activity.text = "";
             border.sprite = _regularBorder;
             //image.sprite = Resources.Load<Sprite>("Textures/" + tenant.Name.Split(' ')[0]);
         }
@@ -608,16 +727,18 @@ public class PP_ManualEnvironment : PP_Environment
             Tenant tenant = _tenants[i];
             var status = panel.Find("Status").GetComponent<Text>();
             var border = panel.Find("Border").GetComponent<Image>();
-            
+            var activity = panel.Find("Activity").GetComponent<Text>();
+
             if (tenant.OnSpace != null)
             {
                 status.text = "@ " + tenant.OnSpace.Name;
+                activity.text = tenant.OnSpace.GetTenantActivity();
                 border.sprite = _activeBorder;
-
             }
             else
             {
                 status.text = "";
+                activity.text = "";
                 border.sprite = _regularBorder;
             }
         }

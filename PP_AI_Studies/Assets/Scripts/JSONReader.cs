@@ -63,8 +63,8 @@ public static class JSONReader
             tenant.AssociateGrid(grid);
             //Tenant Area Preferences
             tenant.AreaPreferences = new Dictionary<SpaceFunction, float[]>();
-            var areaWorkPref = tenant.AreaPrefWork_S.Split('_').Select(p => float.Parse(p)).ToArray();
-            var areaLeisurePref = tenant.AreaPrefLeisure_S.Split('_').Select(p => float.Parse(p)).ToArray();
+            var areaWorkPref = tenant.AreaPrefWork_S.Split('_').Select(p => float.Parse(p) / 10.00f).ToArray();
+            var areaLeisurePref = tenant.AreaPrefLeisure_S.Split('_').Select(p => float.Parse(p) / 10.00f).ToArray();
             tenant.AreaPreferences.Add(SpaceFunction.Work, areaWorkPref);
             tenant.AreaPreferences.Add(SpaceFunction.Leisure, areaLeisurePref);
 

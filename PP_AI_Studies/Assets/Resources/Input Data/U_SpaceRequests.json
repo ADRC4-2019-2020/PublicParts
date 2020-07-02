@@ -2,7 +2,7 @@
   "Requests": [
     {
       "TenantName": "Tenant A",
-      "Population": 1,
+      "Population": 2,
       "FunctionName": "Work",
       "Duration": 4,
       "StartTime": 8,
@@ -11,7 +11,7 @@
     },
     {
       "TenantName": "Tenant A",
-      "Population": 10,
+      "Population": 4,
       "FunctionName": "Leisure",
       "Duration": 3,
       "StartTime": 14,
@@ -29,7 +29,7 @@
     },
     {
       "TenantName": "Tenant B",
-      "Population": 15,
+      "Population": 4,
       "FunctionName": "Leisure",
       "Duration": 3,
       "StartTime": 14,
@@ -47,7 +47,7 @@
     },
     {
       "TenantName": "Tenant C",
-      "Population": 8,
+      "Population": 4,
       "FunctionName": "Work",
       "Duration": 2,
       "StartTime": 20,
@@ -61,7 +61,7 @@
       "Duration": 4,
       "StartTime": 8,
       "Probabilities_S": "99_99_99_99_99_0_0",
-      "ActivityName": "Matcha latte drinking"
+      "ActivityName": "Matcha latte appreciation"
     },
     {
       "TenantName": "Tenant D",

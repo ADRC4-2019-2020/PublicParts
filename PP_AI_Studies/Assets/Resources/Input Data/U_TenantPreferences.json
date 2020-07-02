@@ -2,31 +2,31 @@
   "Tenants": [
     {
       "Name": "Tenant A",
-      "AreaPrefWork_S": "4.5_6.0",
-      "AreaPrefLeisure_S": "4.5_6.0",
-      "ConnectivityPrefWork_S": "1_10",
-      "ConnectivityPrefLeisure_S": "1_10"
+      "AreaPrefWork_S": "2.0_4.0",
+      "AreaPrefLeisure_S": "2.0_4.0",
+      "ConnectivityPrefWork_S": "10_40",
+      "ConnectivityPrefLeisure_S": "10_40"
     },
     {
       "Name": "Tenant B",
-      "AreaPrefWork_S": "4.5_6.0",
-      "AreaPrefLeisure_S": "4.5_6.0",
-      "ConnectivityPrefWork_S": "1_10",
-      "ConnectivityPrefLeisure_S": "1_10"
+      "AreaPrefWork_S": "2.0_4.0",
+      "AreaPrefLeisure_S": "2.0_4.0",
+      "ConnectivityPrefWork_S": "10_40",
+      "ConnectivityPrefLeisure_S": "10_40"
     },
     {
       "Name": "Tenant C",
-      "AreaPrefWork_S": "4.5_6.0",
-      "AreaPrefLeisure_S": "4.5_6.0",
-      "ConnectivityPrefWork_S": "1_10",
-      "ConnectivityPrefLeisure_S": "1_10"
+      "AreaPrefWork_S": "2.0_4.0",
+      "AreaPrefLeisure_S": "2.0_4.0",
+      "ConnectivityPrefWork_S": "10_40",
+      "ConnectivityPrefLeisure_S": "10_40"
     },
     {
       "Name": "Tenant D",
-      "AreaPrefWork_S": "4.5_6.0",
-      "AreaPrefLeisure_S": "4.5_6.0",
-      "ConnectivityPrefWork_S": "1_10",
-      "ConnectivityPrefLeisure_S": "1_10"
+      "AreaPrefWork_S": "2.0_4.0",
+      "AreaPrefLeisure_S": "2.0_4.0",
+      "ConnectivityPrefWork_S": "10_40",
+      "ConnectivityPrefLeisure_S": "10_40"
     }
   ]
 }
