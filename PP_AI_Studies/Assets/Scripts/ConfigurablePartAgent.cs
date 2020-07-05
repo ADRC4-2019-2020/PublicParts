@@ -15,8 +15,6 @@ public class ConfigurablePartAgent : Agent
 
     private Vector3 _initPosition;
     private Vector3 _endPosition;
-    private Vector3 _initRotation;
-    private Vector3 _endRotation;
 
     private Quaternion _initRotationQ;
     private Quaternion _endRotationQ;

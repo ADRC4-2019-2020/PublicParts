@@ -9,9 +9,6 @@ using System.IO.Abstractions;
 
 public class PP_TrainingEnvironment : PP_Environment
 {
-    
-
-
     #region Unity methods
 
     /// <summary>
@@ -46,7 +43,7 @@ public class PP_TrainingEnvironment : PP_Environment
         _cam = Camera.main;
 
         _gridSize = new Vector3Int(30, 1, 24);
-        MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true);
+        MainGrid = new VoxelGrid(_gridSize, _voxelSize, transform.position, true, true);
         _boundaries = MainGrid.Boundaries;
         _gridGO = MainGrid.GridGO;
         _gridGO.transform.SetParent(transform);
@@ -131,6 +128,7 @@ public class PP_TrainingEnvironment : PP_Environment
 
 
     #region Architectural functions and methods
+
     /// <summary>
     /// Initializes blank, not yet applied to the grid, <see cref="ConfigurablePart"/>
     /// </summary>
@@ -148,6 +146,7 @@ public class PP_TrainingEnvironment : PP_Environment
 
 
     #region GUI Controls and Settings
+    
     private void OnGUI()
     {
         GUI.skin = _skin;
@@ -160,10 +159,113 @@ public class PP_TrainingEnvironment : PP_Environment
         int i = 1;
 
         //Draw Spaces tags
-        DrawSpaceTags();
+        //DrawSpaceTags();
     }
 
+    #endregion
 
+    #region Drawing and visualization
+
+    /// <summary>
+    /// Draws the current VoxelGrid state with mesh voxels
+    /// </summary>
+    protected override void DrawState()
+    {
+        for (int x = 0; x < _gridSize.x; x++)
+        {
+            for (int y = 0; y < _gridSize.y; y++)
+            {
+                for (int z = 0; z < _gridSize.z; z++)
+                {
+                    Vector3 index = new Vector3(x + 0.5f, y + 0.5f, z + 0.5f) * _voxelSize;
+                    //Vector3 index = new Vector3(x , y , z) * _voxelSize;
+                    if (MainGrid.Voxels[x, y, z].IsOccupied)
+                    {
+                        for (int i = 0; i < 8; i++)
+                        {
+                            var voxel = MainGrid.Voxels[x, y, z];
+                            if (voxel.Part.Type == PartType.Configurable)
+                            {
+                                //PP_Drawing.DrawConfigurable(transform.position + _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawConfigurable(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), MainGrid.VoxelSize, Color.black);
+                            }
+                            else
+                            {
+                                //PP_Drawing.DrawCube(transform.position +  _grid.Voxels[x, y, z].Center + new Vector3(0, (i + 1) * _voxelSize, 0), _grid.VoxelSize, 1);
+                                PP_Drawing.DrawCube(transform.position + index + new Vector3(0, (i + 1) * _voxelSize, 0), MainGrid.VoxelSize, 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Modified the display of the spaces
+    /// </summary>
+    protected override void DrawSpaces()
+    {
+        foreach (var space in MainGrid.Spaces)
+        {
+            if (!space.IsSpare)
+            {
+                Color color;
+                Color acid = new Color(0.85f, 1.0f, 0.0f, 0.5f);
+                Color grey = new Color(0f, 0f, 0f, 0.5f);
+
+                if (space.Reconfigure)
+                {
+                    if (space != _selectedSpace)
+                    {
+                        color = acid;
+                    }
+                    else
+                    {
+                        color = acid;
+                    }
+                }
+                else
+                {
+                    if (space != _selectedSpace)
+                    {
+                        color = grey;
+                    }
+                    else
+                    {
+                        color = grey;
+                    }
+                }
+                PP_Drawing.DrawSpaceSurface(space, MainGrid, color, transform.position);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Draws the space tags
+    /// </summary>
+    protected override void DrawSpaceTags()
+    {
+        if (_showSpaces)
+        {
+            var spaces = _spaces.Where(s => !s.IsSpare).ToArray();
+            float tagHeight = 2.0f;
+            Vector2 tagSize = new Vector2(64, 20);
+            foreach (var space in spaces)
+            {
+                if (!space.IsSpare)
+                {
+                    string spaceName = space.Name;
+                    Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * tagHeight);
+
+                    var t = _cam.WorldToScreenPoint(tagWorldPos);
+                    Vector2 tagPos = new Vector2(t.x - (tagSize.x / 2), Screen.height - t.y);
+
+                    GUI.Box(new Rect(tagPos, tagSize), spaceName, "spaceTag2");
+                }
+            }
+        }
+    }
 
     #endregion
 }

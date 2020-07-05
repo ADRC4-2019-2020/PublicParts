@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System;
 using System.IO.Abstractions;
 using UnityEngine.UI;
+using System.Globalization;
 
 public class PP_ManualEnvironment : PP_Environment
 {
@@ -19,6 +20,7 @@ public class PP_ManualEnvironment : PP_Environment
     private string[] _messageStack = new string[6];
     public Text DataDisplay;
     public Text DayTimeDisplay;
+    public Text SpeedDisplay;
     //public Text DisplayRequestTotal;
     private int _requestTotal = 0;
     public GameObject SpaceDataPanel;
@@ -104,9 +106,12 @@ public class PP_ManualEnvironment : PP_Environment
         //Create Configurable Parts
         PopulateRandomConfigurables(_nComponents);
         AnalyzeGridCreateNewSpaces();
+        RenameSpaces();
         RenewSpacesMesseges();
         SendSpacesData();
         StartCoroutine(DailyProgression());
+
+        UpdateSpeedDisplay();
     }
 
     private void Update()
@@ -150,14 +155,16 @@ public class PP_ManualEnvironment : PP_Environment
         {
             _hourStep += 0.05f;
             _hourStep = Mathf.Clamp(_hourStep, 0.05f, 1f);
-            print(_hourStep);
+            UpdateSpeedDisplay();
+            //print(_hourStep);
         }
         //Speed up simulation
         if (Input.GetKeyDown(KeyCode.KeypadPlus))
         {
             _hourStep -= 0.05f;
             _hourStep = Mathf.Clamp(_hourStep, 0.05f, 1f);
-            print(_hourStep);
+            UpdateSpeedDisplay();
+            //print(_hourStep);
         }
 
         //Manual pause trigger
@@ -299,7 +306,7 @@ public class PP_ManualEnvironment : PP_Environment
                     if (request.StartTime == _hour)
                     {
                         var rProbability = request.RequestProbability[_currentWeekDay];
-                        if (rProbability >= hourProbability)
+                        if (rProbability >= hourProbability && request.Tenant.OnSpace == null)
                         {
                             RequestSpace(request);
                             _requestTotal++;
@@ -391,6 +398,11 @@ public class PP_ManualEnvironment : PP_Environment
                 {
                     space.Reconfigure_Connectivity = false;
                 }
+            }
+            else if (space.TimesUsed == 0 && space.TimesSurvived > 5)
+            {
+                space.Reconfigure_Area = true;
+                space.Reconfigure_Connectivity = true;
             }
         }
     }
@@ -490,10 +502,6 @@ public class PP_ManualEnvironment : PP_Environment
             {
                 yield return new WaitForSeconds(waitTime);
 
-                
-                
-                
-
                 while (agent.IsMoving)
                 {
                     float moveSpeed = (0.5f / _hourStep) * Time.deltaTime;
@@ -549,6 +557,7 @@ public class PP_ManualEnvironment : PP_Environment
         }
 
         AnalyzeGridUpdateSpaces();
+        RenameSpaces();
         SendSpacesData();
         ClearAllRequests();
         RenewSpacesMesseges();
@@ -557,66 +566,21 @@ public class PP_ManualEnvironment : PP_Environment
         SetRecorder(!_timePause);
     }
 
+    private void RenameSpaces()
+    {
+        var ordered = _spaces.OrderBy(s => s.IsSpare);
+
+        int count = 0;
+        foreach (PPSpace space in ordered)
+        {
+            space.Name = $"Space_{count}";
+            count++;
+        }
+    }
+
     #endregion
 
     #region Drawing and representing
-
-    /// <summary>
-    /// Draws the space tags
-    /// </summary>
-    protected override void DrawSpaceTags()
-    {
-        if (_showSpaces)
-        {
-            var spaces = _spaces.Where(s => !s.IsSpare).ToArray();
-            float nameTagHeight = 3.0f;
-           
-            Vector2 nameTagSize = new Vector2(64, 22);
-
-            foreach (var space in spaces)
-            {
-                string spaceName = space.Name;
-                Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * nameTagHeight);
-
-                var t = _cam.WorldToScreenPoint(tagWorldPos);
-                Vector2 nameTagPos = new Vector2(t.x - (nameTagSize.x / 2), Screen.height - t.y);
-
-                GUI.Box(new Rect(nameTagPos, nameTagSize), spaceName, "spaceTag");
-
-                //Return if key is not present in dictionary
-                if (!_spacesMessages.ContainsKey(space)) return;
-
-                var spaceMessage = _spacesMessages[space];
-                if (spaceMessage != "")
-                {
-                    string tagText;
-
-                    if (spaceMessage[0] == 'A')
-                    {
-                        Vector2 messageTagSize = new Vector2(120, 22);
-                        Vector2 messageTagPos = nameTagPos + new Vector2(+ nameTagSize.x/2 - messageTagSize.x/2, - messageTagSize.y - 4);
-                        tagText = spaceMessage;
-                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "assignedTag");
-
-                    }
-                    else if (spaceMessage.Contains("Bad"))
-                    {
-                        Vector2 messageTagSize = new Vector2(22, 22);
-                        Vector2 messageTagPos = nameTagPos + new Vector2(+nameTagSize.x / 2 - messageTagSize.x / 2, -messageTagSize.y - 4);
-                        tagText = ":(";
-                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "badTag");
-                    }
-                    else if (spaceMessage.Contains("Good"))
-                    {
-                        Vector2 messageTagSize = new Vector2(22, 22);
-                        Vector2 messageTagPos = nameTagPos + new Vector2(+nameTagSize.x / 2 - messageTagSize.x / 2, -messageTagSize.y - 4);
-                        tagText = ":)";
-                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "goodTag");
-                    }
-                }
-            }
-        }
-    }
 
     /// <summary>
     /// Modified the display of the spaces
@@ -750,7 +714,14 @@ public class PP_ManualEnvironment : PP_Environment
                     {
                         areaResult = areaResult + " | ";
                     }
+                    
                     resultReconfig = areaResult + connectResult;
+
+                    if (space.Reconfigure_Area && space.Reconfigure_Connectivity && (space.TimesUsed == 0 && space.TimesSurvived > 5))
+                    {
+                        resultReconfig = "NO USE";
+                    }
+
                     reconfigText.text = resultReconfig;
                 }
                 else
@@ -877,6 +848,71 @@ public class PP_ManualEnvironment : PP_Environment
                 status.text = "";
                 activity.text = "";
                 border.sprite = _regularBorder;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the formated speed display
+    /// </summary>
+    private void UpdateSpeedDisplay()
+    {
+        SpeedDisplay.text = $"{(1f / _hourStep).ToString("F1", CultureInfo.InvariantCulture)} X";
+    }
+
+    /// <summary>
+    /// Draws the space tags
+    /// </summary>
+    protected override void DrawSpaceTags()
+    {
+        if (_showSpaces)
+        {
+            var spaces = _spaces.Where(s => !s.IsSpare).ToArray();
+            float nameTagHeight = 3.0f;
+
+            Vector2 nameTagSize = new Vector2(64, 22);
+
+            foreach (var space in spaces)
+            {
+                string spaceName = space.Name;
+                Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * nameTagHeight);
+
+                var t = _cam.WorldToScreenPoint(tagWorldPos);
+                Vector2 nameTagPos = new Vector2(t.x - (nameTagSize.x / 2), Screen.height - t.y);
+
+                GUI.Box(new Rect(nameTagPos, nameTagSize), spaceName, "spaceTag");
+
+                //Return if key is not present in dictionary
+                if (!_spacesMessages.ContainsKey(space)) return;
+
+                var spaceMessage = _spacesMessages[space];
+                if (spaceMessage != "")
+                {
+                    string tagText;
+
+                    if (spaceMessage[0] == 'A')
+                    {
+                        Vector2 messageTagSize = new Vector2(120, 22);
+                        Vector2 messageTagPos = nameTagPos + new Vector2(+nameTagSize.x / 2 - messageTagSize.x / 2, -messageTagSize.y - 4);
+                        tagText = spaceMessage;
+                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "assignedTag");
+
+                    }
+                    else if (spaceMessage.Contains("Bad"))
+                    {
+                        Vector2 messageTagSize = new Vector2(24, 24);
+                        Vector2 messageTagPos = nameTagPos + new Vector2(+nameTagSize.x / 2 - messageTagSize.x / 2, -messageTagSize.y - 4);
+                        tagText = "";
+                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "badTag");
+                    }
+                    else if (spaceMessage.Contains("Good"))
+                    {
+                        Vector2 messageTagSize = new Vector2(24, 24);
+                        Vector2 messageTagPos = nameTagPos + new Vector2(+nameTagSize.x / 2 - messageTagSize.x / 2, -messageTagSize.y - 4);
+                        tagText = "";
+                        GUI.Box(new Rect(messageTagPos, messageTagSize), tagText, "goodTag");
+                    }
+                }
             }
         }
     }

@@ -424,10 +424,10 @@ public class PP_Environment : MonoBehaviour
                 float hourProbability = UnityEngine.Random.value;
                 foreach (var request in _spaceRequests)
                 {
-                    if (request.StartTime == _hour)
+                    if (request.StartTime == _hour )
                     {
                         var rProbability = request.RequestProbability[_currentWeekDay];
-                        if (rProbability >= hourProbability)
+                        if (rProbability >= hourProbability && request.Tenant.OnSpace == null)
                         {
                             RequestSpace(request);
                         }
