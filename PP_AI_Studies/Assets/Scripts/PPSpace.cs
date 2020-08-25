@@ -878,7 +878,6 @@ public class PPSpace : IEquatable<PPSpace>
         ConnectivityScore = _connectivityRating / TimesUsed;
     }
 
-
     /// <summary>
     /// Calls a reconfiguration to occur artificially, on demand.
     /// Direction == 0 => no reconfiguration required

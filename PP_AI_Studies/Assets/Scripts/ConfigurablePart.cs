@@ -527,29 +527,17 @@ public class ConfigurablePart : Part
     {
         Random.InitState(seed);
         //Clean the voxels, just to be safe
-        foreach (Voxel voxel in OccupiedVoxels)
-        {
-            if (voxel != null)
-            {
-                voxel.IsOccupied = false;
-                voxel.Part = null;
-            }
-        }
-        //foreach (var index in OccupiedIndexes)
+        //foreach (Voxel voxel in OccupiedVoxels)
         //{
-        //    if ((index.x > 0 && index.x < Grid.Size.x) && (index.y > 0 && index.y < Grid.Size.y) && (index.z > 0 && index.z < Grid.Size.z))
+        //    if (voxel != null)
         //    {
-        //        var voxel = Grid.Voxels[index.x, index.y, index.z];
-        //        if (voxel != null)
-        //        {
-        //            voxel.IsOccupied = false;
-        //            voxel.Part = null;
-        //        }
+        //        voxel.IsOccupied = false;
+        //        voxel.Part = null;
         //    }
         //}
 
-        OccupiedVoxels = new Voxel[nVoxels];
-        OccupiedIndexes = new Vector3Int[nVoxels];
+        //OccupiedVoxels = new Voxel[nVoxels];
+        //OccupiedIndexes = new Vector3Int[nVoxels];
 
         success = false;
 
@@ -614,6 +602,21 @@ public class ConfigurablePart : Part
         OccupyVoxels();
         SetGOTransformations();
         success = true;
+    }
+
+    public void ResetPosition()
+    {
+        foreach (Voxel voxel in OccupiedVoxels)
+        {
+            if (voxel != null)
+            {
+                voxel.IsOccupied = false;
+                voxel.Part = null;
+            }
+        }
+
+        OccupiedVoxels = new Voxel[nVoxels];
+        OccupiedIndexes = new Vector3Int[nVoxels];
     }
 
     #endregion
@@ -778,8 +781,6 @@ public class ConfigurablePart : Part
         //Call to Update the slab in the environment
         if (updateSpaces) _environment.AnalyzeGridUpdateSpaces();
 
-        
-        
         return validMovement;
     }
 

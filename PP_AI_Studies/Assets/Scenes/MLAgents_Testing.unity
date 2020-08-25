@@ -97,7 +97,8 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 0}
+  m_LightingDataAsset: {fileID: 112000000, guid: db8e14ade401bcd49a80a857bb66a1a5,
+    type: 2}
   m_LightingSettings: {fileID: 4890085278179872738, guid: f7eaaef8085eaf64c89af327a01099f6,
     type: 2}
 --- !u!196 &4
@@ -202,12 +203,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 152161898}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3e2be8661885d474a8905c726a54ad27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Navigate: 1
+  Navigate: 0
   Speed: 0
 --- !u!81 &152161903
 AudioListener:
@@ -390,7 +391,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 255751958}
   m_LocalRotation: {x: 0.5, y: -0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: 10, y: 0, z: 20.5}
+  m_LocalPosition: {x: 4.79, y: 0, z: 4.67}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 152161899}
@@ -427,7 +428,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Record: 0
-  FolderName: TrainingSimNT4
+  FolderName: TrainingSimNT7
 --- !u!4 &277805906
 Transform:
   m_ObjectHideFlags: 0
@@ -639,10 +640,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 974eca304f0d7de4381c52dfef0db9f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _skin: {fileID: 11400000, guid: ecbe29542ad82cd4193ccaa49156b029, type: 2}
   _cameraPivot: {fileID: 255751959}
   PopSeed: 10
   InitializedAgents: 0
+  _skin: {fileID: 11400000, guid: ecbe29542ad82cd4193ccaa49156b029, type: 2}
 --- !u!1 &1079467140
 GameObject:
   m_ObjectHideFlags: 0
@@ -846,7 +847,7 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30

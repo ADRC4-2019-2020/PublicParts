@@ -24,12 +24,15 @@ public class ConfigurablePartAgent : Agent
 
     #endregion
 
-    #region Properties
+    #region Agent properties
 
     private ConfigurablePart _part;
     private PP_Environment _environment;
     public bool Frozen;
     private ReconfigurationRequest _activeRequest = new ReconfigurationRequest();
+    private int _stepsTaken = 0;
+    private int _stepsCap = 10;
+    public bool StepsEnded = false;
     
     //Rewards and penalties
     private float _destroyedPenalty = -1f;
@@ -39,7 +42,7 @@ public class ConfigurablePartAgent : Agent
     private float _successReward = 1f;
 
     private bool _training = true;
-    private bool _manual = true;
+    private bool _manualAnimation = false;
 
     #endregion
 
@@ -117,12 +120,12 @@ public class ConfigurablePartAgent : Agent
     /// </summary>
     public override void OnEpisodeBegin()
     {
-        //Code for the start of the episode
         FreezeAgent();
+        _part.ResetPosition();
         ClearRequest();
-        //_part.FindNewPosition(_environment.PopSeed);
+        _stepsTaken = 0;
+        StepsEnded = false;
         if (_training) _environment.InitializedAgents++;
-        //print($"Initialized agent of {_part.Name}");
     }
 
     /// <summary>
@@ -131,7 +134,7 @@ public class ConfigurablePartAgent : Agent
     /// <param name="actionsOut"></param>
     public override void Heuristic(float[] actionsOut)
     {
-        if (!_manual)
+        if (!_manualAnimation)
         {
             //Code for heuristic mode
             float command = 10f;
@@ -175,7 +178,7 @@ public class ConfigurablePartAgent : Agent
     /// <param name="sensor"></param>
     public override void CollectObservations(VectorSensor sensor)
     {
-        if (!_manual)
+        if (!_manualAnimation)
         {
             //Code for observation collection [9 OBSERVATIONS TOTAL]
 
@@ -200,6 +203,8 @@ public class ConfigurablePartAgent : Agent
             sensor.AddObservation(_part.Grid.Size.y);
             //Amount of spaces
             sensor.AddObservation(_part.Grid.Spaces.Count);
+
+            //Add a representation of the current state
         }
     }
 
@@ -216,49 +221,29 @@ public class ConfigurablePartAgent : Agent
     /// <param name="vectorAction"></param>
     public override void OnActionReceived(float[] vectorAction)
     {
-        if (!_manual)
+        if (!_manualAnimation)
         {
+            _stepsTaken++;
             //Parse the vectorAction to int
             int movement = Mathf.RoundToInt(vectorAction[0]);
 
-            //Store the existing spaces to apply
-            //List<PPSpace> existingSpaces = _environment.GetCurrentSpaces();
-
             if (movement == 0)
             {
-                FreezeAgent();
-                _activeRequest.UnfreezeRandomAgent();
+                //FreezeAgent();
+                //_activeRequest.UnfreezeRandomAgent();
 
+                //Idle
+                return;
             }
 
-            if (movement == 1)
+            else if (movement == 1)
             {
                 //Tries to move +1 in X
-                if (_part.MoveInX(1))
+                if (_part.MoveInX(1, false, false))
                 {
-                    //Check if action didn't destroy the space
-                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                    if (actionResult != 2)
-                    {
-                        //Action was valid, apply to gameobject
-                        transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
-                        if (actionResult == 1)
-                        {
-                            //Action acheived desired reconfiguration
-                            TriggerEndEpisode(_successReward);
-                        }
-                        else
-                        {
-                            AddReward(_validReward);
-                        }
-                    }
-                    //Space was destroyed, undo action
-                    else
-                    {
-                        //print("Action destroyed space, undid action.");
-                        TriggerEndEpisode(_destroyedPenalty);
-                        //apply penalty
-                    }
+                    //Action was valid, apply to gameobject
+                    transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
+                    AddReward(_validReward);
                 }
                 else
                 {
@@ -270,66 +255,27 @@ public class ConfigurablePartAgent : Agent
             else if (movement == 2)
             {
                 //Tries to move -1 in X
-                if (_part.MoveInX(-1))
+                if (_part.MoveInX(-1, false, false))
                 {
-                    //Check if action didn't destroy the space
-                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                    if (actionResult != 2)
-                    {
-                        //Action was valid, apply to gameobject
-                        transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
-                        if (actionResult == 1)
-                        {
-                            //Action acheived desired reconfiguration
-                            TriggerEndEpisode(_successReward);
-                        }
-                        else
-                        {
-                            AddReward(_validReward);
-                        }
-                    }
-                    //Space was destroyed, undo action
-                    else
-                    {
-                        //print("Action destroyed space, undid action.");
-                        TriggerEndEpisode(_destroyedPenalty);
-                    }
+                    //Action was valid, apply to gameobject
+                    transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
+                    AddReward(_validReward);
                 }
                 else
                 {
                     //tried an illegal movement, apply penalty
                     AddReward(_invalidMovementPenalty);
                 }
-
             }
 
             else if (movement == 3)
             {
                 //Tries to move +1 in Z
-                if (_part.MoveInZ(1))
+                if (_part.MoveInZ(1, false, false))
                 {
-                    //Check if action didn't destroy the space
-                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                    if (actionResult != 2)
-                    {
-                        //Action was valid, apply to gameobject
-                        transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
-                        if (actionResult == 1)
-                        {
-                            //Action acheived desired reconfiguration
-                            TriggerEndEpisode(_successReward);
-                        }
-                        else
-                        {
-                            AddReward(_validReward);
-                        }
-                    }
-                    //Space was destroyed, undo action
-                    else
-                    {
-                        //print("Action destroyed space, undid action.");
-                        TriggerEndEpisode(_destroyedPenalty);
-                    }
+                    //Action was valid, apply to gameobject
+                    transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
+                    AddReward(_validReward);
                 }
                 else
                 {
@@ -341,30 +287,11 @@ public class ConfigurablePartAgent : Agent
             else if (movement == 4)
             {
                 //Tries to move -1 in Z
-                if (_part.MoveInZ(-1))
+                if (_part.MoveInZ(-1, false, false))
                 {
-                    //Check if action didn't destroy the space
-                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                    if (actionResult != 2)
-                    {
-                        //Action was valid, apply to gameobject
-                        transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
-                        if (actionResult == 1)
-                        {
-                            //Action acheived desired reconfiguration
-                            TriggerEndEpisode(_successReward);
-                        }
-                        else
-                        {
-                            AddReward(_validReward);
-                        }
-                    }
-                    //Space was destroyed, undo action
-                    else
-                    {
-                        //print("Action destroyed space, undid action.");
-                        TriggerEndEpisode(_destroyedPenalty);
-                    }
+                    //Action was valid, apply to gameobject
+                    transform.position += new Vector3(0, 0, -1) * _part.Grid.VoxelSize;
+                    AddReward(_validReward);
                 }
                 else
                 {
@@ -376,31 +303,12 @@ public class ConfigurablePartAgent : Agent
             else if (movement == 5)
             {
                 //Tries to rotate component clockwise
-                if (_part.RotateComponent(1))
+                if (_part.RotateComponent(1, false, false))
                 {
-                    //Check if action didn't destroy the space
-                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                    if (actionResult != 2)
-                    {
-                        //Action was valid, apply to gameobject
-                        var currentRotation = transform.rotation;
-                        transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
-                        if (actionResult == 1)
-                        {
-                            //Action acheived desired reconfiguration
-                            TriggerEndEpisode(_successReward);
-                        }
-                        else
-                        {
-                            AddReward(_validReward);
-                        }
-                    }
-                    //Space was destroyed, undo action
-                    else
-                    {
-                        //print("Action destroyed space, undid action.");
-                        TriggerEndEpisode(_destroyedPenalty);
-                    }
+                    //Action was valid, apply to gameobject
+                    var currentRotation = transform.rotation;
+                    transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y + 90f, currentRotation.eulerAngles.z);
+                    AddReward(_validReward);
                 }
                 else
                 {
@@ -411,37 +319,25 @@ public class ConfigurablePartAgent : Agent
 
             else if (movement == 6)
             {
-                if (_part.RotateComponent(-1))
+                if (_part.RotateComponent(-1, false, false))
                 {
-                    //Check if action didn't destroy the space
-                    int actionResult = _environment.CheckResultFromRequest(_activeRequest);
-                    if (actionResult != 2)
-                    {
-                        //Action was valid, apply to gameobject
-                        var currentRotation = transform.rotation;
-                        transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
-                        if (actionResult == 1)
-                        {
-                            //Action acheived desired reconfiguration
-                            TriggerEndEpisode(_successReward);
-                        }
-                        else
-                        {
-                            AddReward(_validReward);
-                        }
-                    }
-                    //Space was destroyed, undo action
-                    else
-                    {
-                        //print("Action destroyed space, undid action.");
-                        TriggerEndEpisode(_destroyedPenalty);
-                    }
+                    //Action was valid, apply to gameobject
+                    var currentRotation = transform.rotation;
+                    transform.rotation = Quaternion.Euler(currentRotation.eulerAngles.x, currentRotation.eulerAngles.y - 90f, currentRotation.eulerAngles.z);
+                    AddReward(_validReward);
                 }
                 else
                 {
                     //tried an illegal movement, apply penalty
                     AddReward(_invalidMovementPenalty);
                 }
+            }
+
+            //Freeze the agent once it reaches the step cap
+            if (_stepsTaken >= _stepsCap)
+            {
+                StepsEnded = true;
+                FreezeAgent();
             }
         }
         
@@ -454,10 +350,42 @@ public class ConfigurablePartAgent : Agent
     {
         Frozen = true;
     }
-
+     
+    /// <summary>
+    /// Unfreezes this agent 
+    /// </summary>
     public void UnfreezeAgent()
     {
         Frozen = false;
+    }
+
+    /// <summary>
+    /// Triggers the analysis of the grid and evaluates the result
+    /// </summary>
+    private void VerifyResult()
+    {
+        //_environment.AnalyzeGridUpdateSpaces();
+        //Check the result of the actions
+        int actionResult = _environment.CheckResultFromRequest(_activeRequest);
+        if (actionResult != 2)
+        {
+            //Action was valid, apply to gameobject
+            if (actionResult == 1)
+            {
+                //Action acheived desired reconfiguration
+                TriggerEndEpisode(_successReward);
+            }
+            else
+            {
+                AddReward(_validReward);
+            }
+        }
+        //Space was destroyed, undo action
+        else
+        {
+            //print("Action destroyed space, undid action.");
+            TriggerEndEpisode(_destroyedPenalty);
+        }
     }
 
     /// <summary>
@@ -470,24 +398,15 @@ public class ConfigurablePartAgent : Agent
         bool success = false;
         if (reward > 0) success = true;
         _environment.ResetGrid(_activeRequest, success);
-        //EndEpisode();
-    }
-
-    #endregion
-
-    #region Unity Methods
-
-    private void Awake()
-    {
-        Anim = GetComponent<Animator>();
     }
 
     /// <summary>
-    /// Method utilized to move the components in manual mode
+    /// Controls for the movement of the components for manual animation scenarion
+    /// regular WASD
     /// </summary>
-    private void Update()
+    private void ManualAnimationMovement()
     {
-        if (_manual && !Frozen)
+        if (_manualAnimation && !Frozen)
         {
             if (Input.GetKeyDown(KeyCode.A))
             {
@@ -496,21 +415,21 @@ public class ConfigurablePartAgent : Agent
                     transform.position += new Vector3(-1, 0, 0) * _part.Grid.VoxelSize;
                 }
             }
-            if (Input.GetKeyDown(KeyCode.D))
+            else if (Input.GetKeyDown(KeyCode.D))
             {
                 if (_part.MoveInX(1, false, false))
                 {
                     transform.position += new Vector3(1, 0, 0) * _part.Grid.VoxelSize;
                 }
             }
-            if (Input.GetKeyDown(KeyCode.W))
+            else if (Input.GetKeyDown(KeyCode.W))
             {
                 if (_part.MoveInZ(1, false, false))
                 {
                     transform.position += new Vector3(0, 0, 1) * _part.Grid.VoxelSize;
                 }
             }
-            if (Input.GetKeyDown(KeyCode.S))
+            else if (Input.GetKeyDown(KeyCode.S))
             {
                 if (_part.MoveInZ(-1, false, false))
                 {
@@ -518,7 +437,7 @@ public class ConfigurablePartAgent : Agent
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.E))
+            else if (Input.GetKeyDown(KeyCode.E))
             {
                 if (_part.RotateComponent(1, false, false))
                 {
@@ -527,7 +446,7 @@ public class ConfigurablePartAgent : Agent
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.Q))
+            else if (Input.GetKeyDown(KeyCode.Q))
             {
                 if (_part.RotateComponent(-1, false, false))
                 {
@@ -536,43 +455,66 @@ public class ConfigurablePartAgent : Agent
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.T))
+            else if (Input.GetKeyDown(KeyCode.T))
             {
                 Anim.speed = 5f;
                 Anim.SetBool("isMoving", true);
             }
         }
-        
+    }
+
+    #endregion
+
+    #region Unity Methods
+
+    private void Awake()
+    {
+        FreezeAgent();
+        Anim = GetComponent<Animator>();
+    }
+
+    private void Update()
+    {
+        ManualAnimationMovement();
     }
 
     private void FixedUpdate()
     {
-        if (!Frozen && !_manual)
+        if (!Frozen && !_manualAnimation)
         {
             RequestDecision();
         }
     }
 
+    #endregion
+
+    #region Animation Methods
+
     /// <summary>
-    /// Tells the agent to store its current position
+    /// Stores the current position and rotation as the initial state
     /// </summary>
-    public void StoreInitialPosition()
+    public void StoreInitialState()
     {
         _initPosition = transform.position;
         _initRotationQ = transform.localRotation;
     }
 
+    /// <summary>
+    /// Stores the current position and rotation as the target state of the animation
+    /// </summary>
     public void PrepareAnimation()
     {
-        //Stores current position and rotation as target
         _endPosition = transform.position;
         _endRotationQ = transform.localRotation;
         
-        //Moves the component back to the initial state
         transform.position = _initPosition;
         transform.localRotation = _initRotationQ;
     }
 
+    /// <summary>
+    /// Triggers the start of the animation
+    /// </summary>
+    /// <returns>The bool that determines if the animation is necessary</returns>
     public bool TriggerAnimation()
     {
         //Check if position is different than the initial one
@@ -595,6 +537,9 @@ public class ConfigurablePartAgent : Agent
         else return false;
     }
 
+    /// <summary>
+    /// Finilizes the animation
+    /// </summary>
     public void EndAnimation()
     {
         Anim.SetBool("isMoving", false);
@@ -602,18 +547,28 @@ public class ConfigurablePartAgent : Agent
         IsRotating = false;
     }
 
-
+    /// <summary>
+    /// Returns the target position of the animation
+    /// </summary>
+    /// <returns><see cref="_endPosition"/> of the reconfiguration of this agent</returns>
     public Vector3 GetTargetPosition()
     {
         return _endPosition;
     }
 
-
+    /// <summary>
+    /// Returns the target rotation of the animation
+    /// </summary>
+    /// <returns>the <see cref="_endRotationQ"/> of the reconfiguration of this agent as a quaternion</returns>
     public Quaternion GetTargetRotationQ()
     {
         return _endRotationQ;
     }
 
+    /// <summary>
+    /// Modifies the speed that the animation should be played in
+    /// </summary>
+    /// <param name="speed">The new speed</param>
     public void SetAnimatorSpeed(float speed)
     {
         Anim.speed = speed;

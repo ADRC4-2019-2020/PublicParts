@@ -5,7 +5,6 @@ using System.Linq;
 using UnityEngine;
 using System.Diagnostics;
 using System;
-using System.IO.Abstractions;
 
 /// <summary>
 /// Class to manage the environment in which a simulation occurs
@@ -16,11 +15,9 @@ public class PP_Environment : MonoBehaviour
 
     #region Basic
 
-    public GUISkin _skin;
     public Transform _cameraPivot;
     protected Camera _cam;
     protected VoxelGrid MainGrid;
-    private VoxelGrid _paralellGrid;
     protected Vector3Int _gridSize;
 
     #endregion
@@ -28,11 +25,8 @@ public class PP_Environment : MonoBehaviour
     #region Grid setup
 
     protected GameObject _gridGO;
-    //Seed to run the population method
-    protected int[] _availableSeeds;
     public int PopSeed;
     protected int _nComponents;
-
     protected float _voxelSize;
 
     #endregion
@@ -49,8 +43,8 @@ public class PP_Environment : MonoBehaviour
     #endregion
 
     #region Simulation properties
+    
     protected int _frame = 0;
-
     protected int _day = 0;
     protected int _hour = 0;
     protected float _hourStep; //in seconds, represents a virtual hour
@@ -91,7 +85,7 @@ public class PP_Environment : MonoBehaviour
 
     protected PPSpace _selectedSpace;
 
-    protected bool _saveImageSteps;
+    //protected bool _saveImageSteps;
 
     #endregion
 
@@ -174,13 +168,11 @@ public class PP_Environment : MonoBehaviour
     }
 
     /// <summary>
-    /// UPDATE THIS TO RUN ON EVIRONMENT Gets the space that the Arrow object represents 
+    /// Gets the space that the Arrow object represents by clicking on the InfoArrow
     /// </summary>
-    /// <returns>The PPSpace object</returns>
+    /// <returns>The <see cref="PPSpace"/> object</returns>
     protected virtual PPSpace GetSpaceFromArrow()
     {
-        //This method allows clicking on the InfoArrow
-        //and returns its respective space
         PPSpace clicked = null;
         Ray ClickRay = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
@@ -189,7 +181,6 @@ public class PP_Environment : MonoBehaviour
             if (hit.collider.gameObject.transform != null && hit.collider.gameObject.tag == "InfoArrow")
             {
                 clicked = hit.collider.gameObject.GetComponent<InfoArrow>().GetSpace();
-                //print($"Clicked on {clicked.Name}'s arrow");
                 _showSpaceData = true;
                 _spaceData = clicked.GetSpaceDebugInfo();
                 _cameraPivot.position = hit.collider.gameObject.transform.position;
@@ -204,123 +195,6 @@ public class PP_Environment : MonoBehaviour
             _cameraPivot.position = new Vector3(_gridSize.x / 2, 0, _gridSize.z / 2) * _voxelSize;
         }
         return clicked;
-    }
-
-    /// <summary>
-    /// Checks the results of the latest reconfiguration against the requests that were made
-    /// </summary>
-    public void CheckReconfigurationResults()
-    {
-        //foreach (var request in _reconfigurationRequests)
-        for (int i = 0; i < _reconfigurationRequests.Count; i++)
-        {
-            var request = _reconfigurationRequests[i];
-            Guid spaceId = request.SpaceId;
-            PPSpace space = MainGrid.GetSpaceById(spaceId);
-            if (space != null)
-            {
-                bool success = request.ReconfigurationSuccessful(space);
-                if (success)
-                {
-                    //print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-                    space.Reconfigure_Area = false;
-                    space.Reconfigure_Connectivity = false;
-
-                    _reconfigurationRequests.Remove(request);
-                }
-                else
-                {
-                    //print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-
-                }
-            }
-            else
-            {
-                //Currently not allowing the space to be destroyed, so actions are being undone
-                //request.OnSpaceDestruction();
-                //_reconfigurationRequests.Remove(request);
-                //print($"{request.SpaceName} was destroyed.");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Checks if the reconfiguration subject of a request is still valid
-    /// or has been destroyed
-    /// </summary>
-    /// <param name="request">The request to be assessed</param>
-    /// <returns>The validity of the reconfiguration</returns>
-    public int CheckResultFromRequest(ReconfigurationRequest request)
-    {
-        //Return an integer representing the result of the action
-        //0 = valid
-        //1 = successful
-        //2 = destroyed the space
-        int result = 0;
-        Guid spaceId = request.SpaceId;
-        int checkCount = _spaces.Count(s => s.SpaceId == spaceId);
-        if (checkCount == 1)
-        {
-            PPSpace space = MainGrid.GetSpaceById(spaceId);
-            if (space != null)
-            {
-                //Space still exists, evaluate if reconfiguration was successful
-                bool success = request.ReconfigurationSuccessful(space);
-                request.CurrentIndices = space.Indices.ToArray();
-                if (success)
-                {
-                    result = 1;
-                    //print($"{space.Name} reconfiguration was successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-                    space.Reconfigure_Area = false;
-                    space.Reconfigure_Connectivity = false;
-                    _reconfigurationRequests.Remove(request);
-                }
-                else
-                {
-                    result = 0;
-                    //print($"{space} reconfiguration was not successful. wanted {request.TargetArea}, got {space.VoxelCount}");
-
-                }
-            }
-        }
-        else if (checkCount > 1)
-        {
-            //print($"{request.SpaceName} was split.");
-            //Space was destroyed and split into 2 or more. Differentiate new spaces
-            foreach (var space in _spaces.Where(s => s.SpaceId == spaceId))
-            {
-                space.SpaceId = Guid.NewGuid();
-                space.Reconfigure_Area = false;
-                space.Reconfigure_Connectivity = false;
-            }
-            //request.OnSpaceDestruction();
-            _reconfigurationRequests.Remove(request);
-            result = 2;
-        }
-        else
-        {
-            //Space was destroyed, return false
-            //print($"{request.SpaceName} was destroyed.");
-            //request.OnSpaceDestruction();
-            _reconfigurationRequests.Remove(request);
-            result = 2;
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Forces reseting the Spaces list to a previous state, only to be used after undoing an action
-    /// </summary>
-    /// <param name="previousSpaces">The list to be used</param>
-    public void ForceResetSpaces(List<PPSpace> previousSpaces)
-    {
-        _spaces = previousSpaces;
-        //foreach (var space in _spaces)
-        //{
-        //    space.CreateArrow();
-        //}
-        MainGrid.ForceSpaceReset(previousSpaces);
     }
 
     /// <summary>
@@ -343,27 +217,33 @@ public class PP_Environment : MonoBehaviour
         else _completedColor = Color.red;
 
         StartCoroutine(AnimateCompletionAndRestart());
-        //MainGrid.RestartGrid();
-        //_spaces = new List<PPSpace>();
-        //_boundaries = new List<Voxel>();
-        //foreach (ConfigurablePartAgent partAgent in _existingParts.OfType<ConfigurablePart>().Select(p => p.CPAgent))
-        //{
-        //    partAgent.EndEpisode();
-        //}
+
+        MainGrid.RestartGrid();
+        _spaces = MainGrid.Spaces;
+        _boundaries = MainGrid.Boundaries;
+        foreach (ConfigurablePartAgent partAgent in _existingParts.OfType<ConfigurablePart>().Select(p => p.CPAgent))
+        {
+            partAgent.EndEpisode();
+        }
     }
 
+    /// <summary>
+    /// Animates the completion of the training episode by waiting for half a second
+    /// </summary>
+    /// <returns></returns>
     protected virtual IEnumerator AnimateCompletionAndRestart()
     {
         yield return new WaitForSeconds(0.5f);
         _showCompleted = false;
         _completedIndices = null;
-        MainGrid.RestartGrid();
-        _spaces = new List<PPSpace>();
-        _boundaries = new List<Voxel>();
-        foreach (ConfigurablePartAgent partAgent in _existingParts.OfType<ConfigurablePart>().Select(p => p.CPAgent))
-        {
-            partAgent.EndEpisode();
-        }
+        //MainGrid.RestartGrid();
+        //_spaces = MainGrid.Spaces;
+        //_boundaries = MainGrid.Boundaries;
+
+        //foreach (ConfigurablePartAgent partAgent in _existingParts.OfType<ConfigurablePart>().Select(p => p.CPAgent))
+        //{
+        //    partAgent.EndEpisode();
+        //}
     }
 
     #endregion
@@ -377,13 +257,68 @@ public class PP_Environment : MonoBehaviour
     {
         ReconfigurationRequest rr = new ReconfigurationRequest(_selectedSpace, 1, 0);
         _reconfigurationRequests.Add(rr);
-        //_selectedSpace.ArtificialReconfigureRequest(0, 1);
+    }
+
+    /// <summary>
+    /// Checks if the reconfiguration subject of a request is still valid or has been destroyed
+    /// </summary>
+    /// <param name="request">The request to be assessed</param>
+    /// <returns>An integer representing the result of the action
+    /// 0 = valid;
+    /// 1 = successful;
+    /// 2 = destroyed the space</returns>
+    public int CheckResultFromRequest(ReconfigurationRequest request)
+    {
+        int result = 1;
+        Guid spaceId = request.SpaceId;
+        int checkCount = _spaces.Count(s => s.SpaceId == spaceId);
+        if (checkCount == 1)
+        {
+            PPSpace space = MainGrid.GetSpaceById(spaceId);
+            if (space != null)
+            {
+                //Space still exists, evaluate if reconfiguration was successful
+                bool success = request.ReconfigurationSuccessful(space);
+                request.CurrentIndices = space.Indices.ToArray();
+                if (success)
+                {
+                    _reconfigurationRequests.Remove(request);
+                }
+                else
+                {
+                    result = 0;
+                }
+                space.Reconfigure_Area = false;
+                space.Reconfigure_Connectivity = false;
+                _reconfigurationRequests.Remove(request);
+            }
+        }
+        else if (checkCount > 1)
+        {
+            //Space was destroyed and split into 2 or more. Differentiate new spaces
+            foreach (var space in _spaces.Where(s => s.SpaceId == spaceId))
+            {
+                space.SpaceId = Guid.NewGuid();
+                space.Reconfigure_Area = false;
+                space.Reconfigure_Connectivity = false;
+            }
+            _reconfigurationRequests.Remove(request);
+            result = 2;
+        }
+        else
+        {
+            //Space was destroyed, return false
+            _reconfigurationRequests.Remove(request);
+            result = 2;
+        }
+
+        return result;
     }
 
     /// <summary>
     /// Sets one of the existing spaces to be reconfigured
     /// </summary>
-    protected virtual void SetRandomSpaceToReconfigure() 
+    protected virtual void SetRandomSpaceToReconfigure(int areaDirection, int connectivityDirection) 
     {
         PPSpace space =  new PPSpace();
         bool validRequest = false;
@@ -400,9 +335,9 @@ public class PP_Environment : MonoBehaviour
         }
         
         //Set area to be increased
-        ReconfigurationRequest rr = new ReconfigurationRequest(space, 1, 0);
+        ReconfigurationRequest rr = new ReconfigurationRequest(space, areaDirection, connectivityDirection);
+        _reconfigurationRequests = new List<ReconfigurationRequest>();
         _reconfigurationRequests.Add(rr);
-        //space.ArtificialReconfigureRequest(0, 1);
     }
 
     /// <summary>
@@ -485,16 +420,9 @@ public class PP_Environment : MonoBehaviour
     }
 
     /// <summary>
-    /// Check if there are enough reconfiguration requests to reconfigure the whole plan
-    /// NOTE: TEMPORARY METHOD
+    /// Placeholder method, to be implemented in the particular environments
     /// </summary>
-    protected virtual void CheckForReconfiguration()
-    {
-        if (_spaces.Count(s => s.Reconfigure) >= 2)
-        {
-            //ExecuteAI();
-        }
-    }
+    protected virtual void CheckForReconfiguration() {}
 
     /// <summary>
     /// Attempts to assign a space to a request made by a Tenant

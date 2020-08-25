@@ -1230,10 +1230,11 @@ MonoBehaviour:
   agentParameters:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
-  MaxStep: 5000
+  MaxStep: 50
   IsMoving: 0
   IsRotating: 0
   Frozen: 0
+  StepsEnded: 0
 --- !u!65 &1455778188928867484
 BoxCollider:
   m_ObjectHideFlags: 0

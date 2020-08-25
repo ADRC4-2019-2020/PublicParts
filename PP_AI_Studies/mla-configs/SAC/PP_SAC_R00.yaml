@@ -1,3 +1,5 @@
+# This is version R00 of the training configuration
+# Using SAC
 behaviors:
   ConfigurablePart:
     trainer_type: sac
@@ -17,4 +19,4 @@ behaviors:
         strength: 1.0
     max_steps: 500000
     time_horizon: 64
-    summary_freq: 10000
+    summary_freq: 1000

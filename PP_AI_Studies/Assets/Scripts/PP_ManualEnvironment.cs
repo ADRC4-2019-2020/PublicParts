@@ -5,7 +5,6 @@ using System.Linq;
 using UnityEngine;
 using System.Diagnostics;
 using System;
-using System.IO.Abstractions;
 using UnityEngine.UI;
 using System.Globalization;
 
@@ -14,7 +13,8 @@ public class PP_ManualEnvironment : PP_Environment
     #region Fields and properties
 
     #region UI amd HUD
-    
+
+    public GUISkin _skin;
     public Text MessageBanner;
     public Text PreviousMessages;
     private string[] _messageStack = new string[6];
@@ -43,8 +43,12 @@ public class PP_ManualEnvironment : PP_Environment
 
     #endregion
 
+    #region Recording
+
     public ScreenRecorder ScreenRecorderInstance;
     private bool _record = true;
+
+    #endregion
 
     #endregion
 
@@ -75,7 +79,7 @@ public class PP_ManualEnvironment : PP_Environment
         _showSpaceData = false;
         _showVoxels = false;
         _activityLog = "";
-        _saveImageSteps = false;
+        //_saveImageSteps = false;
         _timePause = true;
 
         _regularBorder = Resources.Load<Sprite>("Textures/RectangularBorder");
@@ -101,6 +105,7 @@ public class PP_ManualEnvironment : PP_Environment
         //Load tenants and requests data
         _tenants = JSONReader.ReadTenantsWithPreferences("Input Data/U_TenantPreferences", MainGrid);
         _spaceRequests = JSONReader.ReadSpaceRequests("Input Data/U_SpaceRequests", _tenants);
+        //_spaceRequests = JSONReader.ReadSpaceRequests("Input Data/U_SpaceRequests_BigPop", _tenants);
         InitializeTenantDisplay();
 
         //Create Configurable Parts
@@ -181,6 +186,12 @@ public class PP_ManualEnvironment : PP_Environment
         {
             //FinilizeReconfiguration();
             StartCoroutine(FinilizeReconfigurationAnimated());
+        }
+
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            _hourStep = 0.025f;
+            UpdateSpeedDisplay();
         }
 
         #endregion
@@ -316,7 +327,6 @@ public class PP_ManualEnvironment : PP_Environment
                
                 UpdateTenantDisplay();
                 SendSpacesData();
-
                 NextHour();
 
                 if (_record)
@@ -408,16 +418,13 @@ public class PP_ManualEnvironment : PP_Environment
     }
 
     /// <summary>
-    /// Check if there are enough reconfiguration requests to reconfigure the whole plan
-    /// NOTE: TEMPORARY METHOD
+    /// Check if there are enough requests to initialize reconfiguration. If so, pauses simulation
+    /// and tells the agents to store their current positions
     /// </summary>
     protected override void CheckForReconfiguration()
     {
         if (_spaces.Count(s => s.Reconfigure) >= 1)
         {
-            //AddDisplayMessage("Reconfiguration requested");
-            //SendReconfigureData();
-
             _timePause = true;
             SetRecorder(!_timePause);
             _camControl.Navigate = _timePause;
@@ -426,7 +433,7 @@ public class PP_ManualEnvironment : PP_Environment
             var agents = parts.Select(p => p.CPAgent);
             foreach (var agent in agents)
             {
-                agent.StoreInitialPosition();
+                agent.StoreInitialState();
             }
         }
     }
@@ -566,6 +573,9 @@ public class PP_ManualEnvironment : PP_Environment
         SetRecorder(!_timePause);
     }
 
+    /// <summary>
+    /// Renames the spaces that are not spare in an orderly fashion for display purposes
+    /// </summary>
     private void RenameSpaces()
     {
         var ordered = _spaces.OrderBy(s => s.IsSpare);
@@ -580,7 +590,7 @@ public class PP_ManualEnvironment : PP_Environment
 
     #endregion
 
-    #region Drawing and representing
+    #region Drawing and representation
 
     /// <summary>
     /// Modified the display of the spaces

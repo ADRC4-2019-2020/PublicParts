@@ -367,10 +367,6 @@ public class VoxelGrid : MonoBehaviour
                     break;
                 }
             }
-            //foreach (var eSpace in existingSpaces)
-            //{
-                
-            //}
         }
         Spaces = newSpaces;
         SetSpacesToConfigurableParts();

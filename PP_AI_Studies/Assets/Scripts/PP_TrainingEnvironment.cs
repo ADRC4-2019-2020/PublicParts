@@ -3,12 +3,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
-using System.Diagnostics;
-using System;
-using System.IO.Abstractions;
+
 
 public class PP_TrainingEnvironment : PP_Environment
 {
+    #region Fields and Properties
+
+    public GUISkin _skin;
+    private int[] _availableSeeds;
+
+    #endregion
+
     #region Unity methods
 
     /// <summary>
@@ -35,7 +40,7 @@ public class PP_TrainingEnvironment : PP_Environment
         _showSpaceData = false;
         _showVoxels = true;
         _activityLog = "";
-        _saveImageSteps = false;
+        //_saveImageSteps = false;
     }
     
     private void Start()
@@ -51,77 +56,72 @@ public class PP_TrainingEnvironment : PP_Environment
         //Load tenants and requests data
         _tenants = JSONReader.ReadTenantsWithPreferences("Input Data/U_TenantPreferences", MainGrid);
         _spaceRequests = JSONReader.ReadSpaceRequests("Input Data/U_SpaceRequests", _tenants);
-        _cameraPivot.position = new Vector3(MainGrid.Size.x / 2, 0, MainGrid.Size.z / 2) * _voxelSize;
 
-        //Create Configurable Parts
-        //PopulateRandomConfigurables(_nComponents);
-        //AnalyzeGridCreateNewSpaces();
-
-
-        //UPDATING
-        //Create the configurable
-        //PopSeed = 22;
         CreateBlankConfigurables();
     }
 
     private void Update()
     {
-        
-        if (_showVoxels)
-        {
-            DrawState();
-        }
-        //DrawBoundaries();
-        if (_showRawBoundaries)
-        {
-            DrawBoundaries();
-        }
+        if (_showVoxels) DrawState();
 
-        if (_showSpaces)
-        {
-            DrawSpaces();
-        }
+        if (_showRawBoundaries) DrawBoundaries();
 
-        if (Input.GetMouseButtonDown(0))
-        {
-            GetSpaceFromArrow();
-        }
+        if (_showSpaces) DrawSpaces();
+
+        if (Input.GetMouseButtonDown(0)) GetSpaceFromArrow();
 
         if (Input.GetKeyDown(KeyCode.V))
         {
             _showVoxels = !_showVoxels;
             SetGameObjectsVisibility(_showVoxels);
         }
-        if (_showCompleted)
-        {
-            DrawCompletedSpace();
-        }
 
-        //DrawActiveComponent();
+        if (_showCompleted) DrawCompletedSpace();
 
-        //Check number of initialized agents and evaluate grid
+        //Check number of initialized agents and evaluate grid in the start of an episode
         if (InitializedAgents == _nComponents)
         {
-            PopSeed = _availableSeeds[UnityEngine.Random.Range(0, 4)];
-            foreach (ConfigurablePart part in _existingParts.OfType<ConfigurablePart>())
+            //print("Initializing");
+            InitializeGrid();
+        }
+
+        //Check if the reconfiguration request is finished
+        if (_reconfigurationRequests[0] != null)
+        {
+            var request = _reconfigurationRequests[0];
+            if (request.AllAgentsFinished())
             {
-                int attempt = 0;
-                bool success = false;
-                while (!success)
+                //print("Checking result");
+                AnalyzeGridUpdateSpaces();
+                int reconfigResult = CheckResultFromRequest(request);
+
+                if (reconfigResult == 0)
                 {
-                    part.FindNewPosition(PopSeed + attempt, out success);
-                    attempt++;
+                    //Reconfiguration was just valid, slight penalty to all agents
+                    request.ApplyReward(-0.1f);
+                    ResetGrid(request, false);
+                }
+                else if (reconfigResult == 1)
+                {
+                    //Reconfiguration was successful, add reward to all agents
+                    request.ApplyReward(1.0f);
+                    ResetGrid(request, true);
+                }
+                else if (reconfigResult == 2)
+                {
+                    //Reconfiguration destroyed the space, heavy penalty to all agents
+                    request.ApplyReward(-1.0f);
+                    ResetGrid(request, false);
                 }
 
+                _reconfigurationRequests = new List<ReconfigurationRequest>();
             }
-            foreach (ConfigurablePart part in _existingParts.OfType<ConfigurablePart>())
-            {
-                part.OccupyVoxels();
-            }
-            AnalyzeGridCreateNewSpaces();
-            SetRandomSpaceToReconfigure();
-            InitializedAgents = 0;
         }
+    }
+
+    private void FixedUpdate()
+    {
+        
     }
 
     #endregion
@@ -142,8 +142,36 @@ public class PP_TrainingEnvironment : PP_Environment
         }
     }
 
-    #endregion
+    /// <summary>
+    /// Initializes the grid by assigning new positions for the components given the <see cref="_availableSeeds"/>,
+    /// commits their positions, analyze the grid to create the spaces and sets a random space to be reconfigured
+    /// </summary>
+    private void InitializeGrid()
+    {
+        InitializedAgents = 0;
+        PopSeed = _availableSeeds[UnityEngine.Random.Range(0, 4)];
+        foreach (ConfigurablePart part in _existingParts.OfType<ConfigurablePart>())
+        {
+            int attempt = 0;
+            bool success = false;
+            while (!success)
+            {
+                part.FindNewPosition(PopSeed + attempt, out success);
+                attempt++;
+            }
+            //part.OccupyVoxels();
+        }
 
+        //foreach (ConfigurablePart part in _existingParts.OfType<ConfigurablePart>())
+        //{
+        //    part.OccupyVoxels();
+        //}
+        AnalyzeGridCreateNewSpaces();
+        SetRandomSpaceToReconfigure(1, 0);
+        //InitializedAgents = 0;
+    }
+
+    #endregion
 
     #region GUI Controls and Settings
     
@@ -151,13 +179,6 @@ public class PP_TrainingEnvironment : PP_Environment
     {
         GUI.skin = _skin;
         GUI.depth = 2;
-        int leftPad = 20;
-        int topPad = 200;
-        int fieldHeight = 25;
-        int fieldTitleWidth = 110;
-        int textFieldWidth = 125;
-        int i = 1;
-
         //Draw Spaces tags
         //DrawSpaceTags();
     }
@@ -211,8 +232,8 @@ public class PP_TrainingEnvironment : PP_Environment
             if (!space.IsSpare)
             {
                 Color color;
-                Color acid = new Color(0.85f, 1.0f, 0.0f, 0.5f);
-                Color grey = new Color(0f, 0f, 0f, 0.5f);
+                Color acid = new Color(0.85f, 1.0f, 0.0f, 0.85f);
+                Color grey = new Color(0f, 0f, 0f, 0.25f);
 
                 if (space.Reconfigure)
                 {
@@ -250,18 +271,19 @@ public class PP_TrainingEnvironment : PP_Environment
         {
             var spaces = _spaces.Where(s => !s.IsSpare).ToArray();
             float tagHeight = 2.0f;
-            Vector2 tagSize = new Vector2(64, 20);
+            Vector2 tagSize = new Vector2(38, 38);
             foreach (var space in spaces)
             {
                 if (!space.IsSpare)
                 {
                     string spaceName = space.Name;
+                    spaceName = $"[{spaceName[spaceName.Length - 1]}]";
                     Vector3 tagWorldPos = transform.position + space.GetCenter() + (Vector3.up * tagHeight);
 
                     var t = _cam.WorldToScreenPoint(tagWorldPos);
                     Vector2 tagPos = new Vector2(t.x - (tagSize.x / 2), Screen.height - t.y);
 
-                    GUI.Box(new Rect(tagPos, tagSize), spaceName, "spaceTag2");
+                    GUI.Box(new Rect(tagPos, tagSize), spaceName, "spaceTag3");
                 }
             }
         }

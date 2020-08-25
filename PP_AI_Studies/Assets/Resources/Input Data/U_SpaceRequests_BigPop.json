@@ -1,0 +1,184 @@
+{
+  "Requests": [
+    {
+      "TenantName": "Tenant A",
+      "Population": 8,
+      "FunctionName": "Work",
+      "Duration": 3,
+      "StartTime": 8,
+      "Probabilities_S": "90_90_90_90_90_50_50",
+      "ActivityName": "Office work"
+    },
+    {
+      "TenantName": "Tenant A",
+      "Population": 8,
+      "FunctionName": "Work",
+      "Duration": 5,
+      "StartTime": 14,
+      "Probabilities_S": "90_90_90_90_90_50_50",
+      "ActivityName": "Office work"
+    },
+    {
+      "TenantName": "Tenant A",
+      "Population": 8,
+      "FunctionName": "Leisure",
+      "Duration": 2,
+      "StartTime": 9,
+      "Probabilities_S": "60_60_60_60_60_70_70",
+      "ActivityName": "Playing with child"
+    },
+    {
+      "TenantName": "Tenant A",
+      "Population": 8,
+      "FunctionName": "Leisure",
+      "Duration": 2,
+      "StartTime": 20,
+      "Probabilities_S": "70_70_70_70_70_40_40",
+      "ActivityName": "Music practice"
+    },
+    {
+      "TenantName": "Tenant A",
+      "Population": 5,
+      "FunctionName": "Leisure",
+      "Duration": 6,
+      "StartTime": 1,
+      "Probabilities_S": "90_90_90_90_90_90_90",
+      "ActivityName": "Rest"
+    },
+    {
+      "TenantName": "Tenant B",
+      "Population": 3,
+      "FunctionName": "Work",
+      "Duration": 1,
+      "StartTime": 16,
+      "Probabilities_S": "90_90_90_90_90_10_10",
+      "ActivityName": "Virtual meeting"
+    },
+    {
+      "TenantName": "Tenant B",
+      "Population": 4,
+      "FunctionName": "Work",
+      "Duration": 8,
+      "StartTime": 14,
+      "Probabilities_S": "80_80_80_80_80_80_80",
+      "ActivityName": "Group work"
+    },
+    {
+      "TenantName": "Tenant B",
+      "Population": 10,
+      "FunctionName": "Leisure",
+      "Duration": 4,
+      "StartTime": 7,
+      "Probabilities_S": "80_80_80_80_80_10_10",
+      "ActivityName": "Communal daycare"
+    },
+    {
+      "TenantName": "Tenant B",
+      "Population": 10,
+      "FunctionName": "Leisure",
+      "Duration": 4,
+      "StartTime": 3,
+      "Probabilities_S": "10_10_10_15_10_10_10",
+      "ActivityName": "Contemplating the void"
+    },
+    {
+      "TenantName": "Tenant B",
+      "Population": 10,
+      "FunctionName": "Leisure",
+      "Duration": 5,
+      "StartTime": 2,
+      "Probabilities_S": "90_90_90_90_90_90_90",
+      "ActivityName": "Rest"
+    },
+    {
+      "TenantName": "Tenant C",
+      "Population": 8,
+      "FunctionName": "Work",
+      "Duration": 5,
+      "StartTime": 6,
+      "Probabilities_S": "50_50_50_50_50_50_50",
+      "ActivityName": "Sewing work"
+    },
+    {
+      "TenantName": "Tenant C",
+      "Population": 6,
+      "FunctionName": "Work",
+      "Duration": 4,
+      "StartTime": 18,
+      "Probabilities_S": "90_10_90_10_90_10_10",
+      "ActivityName": "Poetry workshop"
+    },
+    {
+      "TenantName": "Tenant C",
+      "Population": 10,
+      "FunctionName": "Leisure",
+      "Duration": 4,
+      "StartTime": 19,
+      "Probabilities_S": "70_70_70_70_70_70_70",
+      "ActivityName": "Date night"
+    },
+    {
+      "TenantName": "Tenant C",
+      "Population": 10,
+      "FunctionName": "Leisure",
+      "Duration": 3,
+      "StartTime": 20,
+      "Probabilities_S": "20_20_20_20_50_90_50",
+      "ActivityName": "Community dinner"
+    },
+    {
+      "TenantName": "Tenant C",
+      "Population": 8,
+      "FunctionName": "Leisure",
+      "Duration": 8,
+      "StartTime": 1,
+      "Probabilities_S": "90_90_90_90_90_70_70",
+      "ActivityName": "Rest"
+    },
+    {
+      "TenantName": "Tenant D",
+      "Population": 8,
+      "FunctionName": "Leisure",
+      "Duration": 2,
+      "StartTime": 16,
+      "Probabilities_S": "80_80_80_80_80_80_80",
+      "ActivityName": "Matcha latte appreciation"
+    },
+    {
+      "TenantName": "Tenant D",
+      "Population": 10,
+      "FunctionName": "Work",
+      "Duration": 4,
+      "StartTime": 7,
+      "Probabilities_S": "10_10_10_10_10_90_90",
+      "ActivityName": "Graphic design workshop"
+    },
+    {
+      "TenantName": "Tenant D",
+      "Population": 6,
+      "FunctionName": "Work",
+      "Duration": 4,
+      "StartTime": 14,
+      "Probabilities_S": "99_99_99_99_99_0_0",
+      "ActivityName": "Meeting"
+    },
+    {
+      "TenantName": "Tenant D",
+      "Population": 6,
+      "FunctionName": "Leisure",
+      "Duration": 2,
+      "StartTime": 1,
+      "Probabilities_S": "20_20_20_20_20_20_20",
+      "ActivityName": "Watch pro marble racing"
+    },
+    {
+      "TenantName": "Tenant D",
+      "Population": 6,
+      "FunctionName": "Leisure",
+      "Duration": 7,
+      "StartTime": 1,
+      "Probabilities_S": "20_20_20_20_20_20_20",
+      "ActivityName": "Rest"
+    }
+  ]
+}

@@ -13,16 +13,21 @@ public class ReconfigurationRequest
 
     //The GUID of the space that needs to be reconfigured
     public Guid SpaceId { get; private set; }
+    
     //The name of the space that needs to be reconfigured
     public string SpaceName { get; private set; }
+    
     //The current indices occupied by the space
     public Vector3Int[] CurrentIndices;
+    
     //The target parameters for the space
     public int TargetArea { get; private set; } = 0;
     public int TargetConnections { get; private set; } = 0;
+    
     //The evaluation parameters, to add or remove accordingly
     private int _areaModifier = 8;
     private int _connectivityModifier = 2;
+    
     //The components to be reconfigured
     private ConfigurablePartAgent[] _agents2Reconfigure;
 
@@ -60,14 +65,13 @@ public class ReconfigurationRequest
         else if (connectivityDirection == -1) TargetConnections = currentConnectivity - _connectivityModifier;
         else if (connectivityDirection == 0) TargetConnections = 0;
 
-        //Debug.Log($"Reconfiguration requested for {space.Name}. Area from {currentArea} to {TargetArea}");
-
         _agents2Reconfigure = space.BoundaryParts.Select(p => p.CPAgent).ToArray();
         foreach (var part in _agents2Reconfigure)
         {
             part.SetRequest(this);
         }
-        UnfreezeRandomAgent();
+        //UnfreezeRandomAgent();
+        UnfreezeAgents();
     }
 
     /// <summary>
@@ -127,14 +131,31 @@ public class ReconfigurationRequest
         //If not, continue with request open
         else
         {
-            UnfreezeRandomAgent();
+            //UnfreezeRandomAgent();
             return false;
         }
+    }
+
+    /// <summary>
+    /// Checks if the all the agents have finilized their steps
+    /// </summary>
+    /// <returns>The bool representing it</returns>
+    public bool AllAgentsFinished()
+    {
+        return _agents2Reconfigure.All(a => a.StepsEnded);
     }
 
     #endregion
 
     #region Exterior objects methods
+
+    public void ApplyReward(float val)
+    {
+        foreach (var agent in _agents2Reconfigure)
+        {
+            agent.AddReward(val);
+        }
+    }
 
     /// <summary>
     /// Sets the <see cref="ConfigurablePartAgent"/>s of all the parts to be reconfigured ans Unfrozen
@@ -143,7 +164,6 @@ public class ReconfigurationRequest
     {
         foreach (var part in _agents2Reconfigure)
         {
-            //Unfreeze the agents so they can make decisions
             part.UnfreezeAgent();
         }
     }
