@@ -31,6 +31,8 @@ public class ReconfigurationRequest
     //The components to be reconfigured
     private ConfigurablePartAgent[] _agents2Reconfigure;
 
+    private int _currentAgent = 0;
+
     #endregion
 
     #region Constructors
@@ -148,6 +150,23 @@ public class ReconfigurationRequest
     #endregion
 
     #region Exterior objects methods
+
+    /// <summary>
+    /// Allows to call the next agent to take an action externally
+    /// </summary>
+    public void RequestNextAction()
+    {
+        if (_agents2Reconfigure.Length >= 0)
+        {
+            if (_currentAgent >= _agents2Reconfigure.Length)
+            {
+                _currentAgent = 0;
+            }
+
+            _agents2Reconfigure[_currentAgent++].RequestDecision();
+            //_currentAgent++;
+        }
+    }
 
     public void ApplyReward(float val)
     {

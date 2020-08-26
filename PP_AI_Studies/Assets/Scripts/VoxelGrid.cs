@@ -326,6 +326,7 @@ public class VoxelGrid : MonoBehaviour
     {
         //Stopwatch aiStopwatch = new Stopwatch();
         //aiStopwatch.Start();
+
         //Copy the existing spaces
         List<PPSpace> existingSpaces = new List<PPSpace>(Spaces);
         //Copy the existing indices
@@ -473,20 +474,21 @@ public class VoxelGrid : MonoBehaviour
                 newSpaces.Add(space);
             }
         }
-
+        int bb = 0;
         //Allocate boundary voxel to the smallest neighbouring space
-        while (Boundaries.Any(b => !b.InSpace))
+        while (Boundaries.Any(b => !b.InSpace) && Boundaries.All(v => v.GetFaceNeighbours().All(n => !n.InSpace)))
         {
             Voxels2SmallestNeighbour(Boundaries.Where(b => !b.InSpace));
         }
+        int c = 0;
         foreach (var space in newSpaces)
         {
             if (space.IsSpare)
             {
                 space.HideArrow();
-            }
-            
+            } 
         }
+        int d = 0;
         return newSpaces;
         //_activityLog = $"AI Message: Generated {Spaces.Count} Spaces";
     }
@@ -797,20 +799,20 @@ public class VoxelGrid : MonoBehaviour
     public void RestartGrid()
     {
         //Should clear the grid, keeping only the existing parts
-        foreach (Voxel voxel in Voxels)
-        {
-            voxel.IsOccupied = false;
-            voxel.InSpace = false;
-            voxel.ParentSpace = null;
-            voxel.Part = null;
-        }
-        foreach (var space in Spaces)
-        {
-            space.DestroySpace();
-        }
+        //foreach (Voxel voxel in Voxels)
+        //{
+        //    voxel.ClearStatus();
+        //}
+        //foreach (var space in Spaces)
+        //{
+        //    space.DestroySpace();
+        //}
+
+        SetupVoxels();
+        
         Spaces = new List<PPSpace>();
         Boundaries = new List<Voxel>();
-
+        ExistingParts = new List<Part>();
     }
 
     public void EnsurePartInGrid(ConfigurablePart part)

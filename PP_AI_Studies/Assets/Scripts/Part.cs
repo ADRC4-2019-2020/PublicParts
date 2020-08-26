@@ -40,7 +40,7 @@ public class Part : System.IEquatable<Part>
             voxel.Part = this;
             OccupiedVoxels[i] = voxel;
         }
-        CalculateCenter();
+        //CalculateCenter();
     }
     protected void CalculateCenter()
     {

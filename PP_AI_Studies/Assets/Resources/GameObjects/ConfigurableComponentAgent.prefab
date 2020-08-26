@@ -1215,6 +1215,7 @@ MonoBehaviour:
   m_BehaviorName: ConfigurablePart
   TeamId: 0
   m_UseChildSensors: 1
+  m_ObservableAttributeHandling: 0
 --- !u!114 &8974619968224603883
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1230,7 +1231,7 @@ MonoBehaviour:
   agentParameters:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
-  MaxStep: 50
+  MaxStep: 5000
   IsMoving: 0
   IsRotating: 0
   Frozen: 0

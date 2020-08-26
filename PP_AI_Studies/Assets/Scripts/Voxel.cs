@@ -117,4 +117,14 @@ public class Voxel : IEquatable<Voxel>
         return newVoxel;
     }
 
+    /// <summary>
+    /// Clears all the relevant status for this voxel
+    /// </summary>
+    public void ClearStatus()
+    {
+        IsOccupied = false;
+        InSpace = false;
+        ParentSpace = null;
+        Part = null;
+    }
 }

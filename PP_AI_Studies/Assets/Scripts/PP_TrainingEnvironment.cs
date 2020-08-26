@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Unity.MLAgents;
 using UnityEngine;
 
 
@@ -78,15 +79,46 @@ public class PP_TrainingEnvironment : PP_Environment
 
         if (_showCompleted) DrawCompletedSpace();
 
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            var request = _reconfigurationRequests[0];
+
+            AnalyzeGridUpdateSpaces();
+            int reconfigResult = CheckResultFromRequest(request);
+
+            if (reconfigResult == 0)
+            {
+                //Reconfiguration was just valid, slight penalty to all agents
+                request.ApplyReward(-0.1f);
+                ResetGrid(request, false);
+            }
+            else if (reconfigResult == 1)
+            {
+                //Reconfiguration was successful, add reward to all agents
+                request.ApplyReward(1.0f);
+                ResetGrid(request, true);
+            }
+            else if (reconfigResult == 2)
+            {
+                //Reconfiguration destroyed the space, heavy penalty to all agents
+                request.ApplyReward(-1.0f);
+                ResetGrid(request, false);
+            }
+
+            _reconfigurationRequests = new List<ReconfigurationRequest>();
+        }
+    }
+
+    private void FixedUpdate()
+    {
         //Check number of initialized agents and evaluate grid in the start of an episode
         if (InitializedAgents == _nComponents)
         {
-            //print("Initializing");
             InitializeGrid();
         }
 
         //Check if the reconfiguration request is finished
-        if (_reconfigurationRequests[0] != null)
+        else if (_reconfigurationRequests != null && _reconfigurationRequests[0] != null)
         {
             var request = _reconfigurationRequests[0];
             if (request.AllAgentsFinished())
@@ -116,12 +148,11 @@ public class PP_TrainingEnvironment : PP_Environment
 
                 _reconfigurationRequests = new List<ReconfigurationRequest>();
             }
+            else
+            {
+                request.RequestNextAction();
+            }
         }
-    }
-
-    private void FixedUpdate()
-    {
-        
     }
 
     #endregion

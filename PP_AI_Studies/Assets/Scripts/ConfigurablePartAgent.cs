@@ -227,17 +227,20 @@ public class ConfigurablePartAgent : Agent
             //Parse the vectorAction to int
             int movement = Mathf.RoundToInt(vectorAction[0]);
 
+            //movement = Random.Range(0, 7);
+            //movement = 4;
+
             if (movement == 0)
             {
-                //FreezeAgent();
-                //_activeRequest.UnfreezeRandomAgent();
+                //print(_part.Name + " Idle");
 
                 //Idle
-                return;
+                //return;
             }
 
             else if (movement == 1)
             {
+                //print(_part.Name + " Pos X");
                 //Tries to move +1 in X
                 if (_part.MoveInX(1, false, false))
                 {
@@ -254,6 +257,7 @@ public class ConfigurablePartAgent : Agent
 
             else if (movement == 2)
             {
+                //print(_part.Name + " Neg X");
                 //Tries to move -1 in X
                 if (_part.MoveInX(-1, false, false))
                 {
@@ -270,6 +274,7 @@ public class ConfigurablePartAgent : Agent
 
             else if (movement == 3)
             {
+                //print(_part.Name + " Pos Z");
                 //Tries to move +1 in Z
                 if (_part.MoveInZ(1, false, false))
                 {
@@ -286,6 +291,7 @@ public class ConfigurablePartAgent : Agent
 
             else if (movement == 4)
             {
+                //print(_part.Name + " Neg Z");
                 //Tries to move -1 in Z
                 if (_part.MoveInZ(-1, false, false))
                 {
@@ -302,6 +308,7 @@ public class ConfigurablePartAgent : Agent
 
             else if (movement == 5)
             {
+                //print(_part.Name + " Rot CW");
                 //Tries to rotate component clockwise
                 if (_part.RotateComponent(1, false, false))
                 {
@@ -319,6 +326,7 @@ public class ConfigurablePartAgent : Agent
 
             else if (movement == 6)
             {
+                //print(_part.Name + " Rot CCW");
                 if (_part.RotateComponent(-1, false, false))
                 {
                     //Action was valid, apply to gameobject
@@ -339,6 +347,8 @@ public class ConfigurablePartAgent : Agent
                 StepsEnded = true;
                 FreezeAgent();
             }
+
+            //_activeRequest.RequestNextAction();
         }
         
     }
@@ -482,7 +492,7 @@ public class ConfigurablePartAgent : Agent
     {
         if (!Frozen && !_manualAnimation)
         {
-            RequestDecision();
+            //RequestDecision();
         }
     }
 

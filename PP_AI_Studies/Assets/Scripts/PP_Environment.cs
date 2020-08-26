@@ -216,7 +216,7 @@ public class PP_Environment : MonoBehaviour
         if (success) _completedColor = Color.green;
         else _completedColor = Color.red;
 
-        StartCoroutine(AnimateCompletionAndRestart());
+        //StartCoroutine(AnimateCompletionAndRestart());
 
         MainGrid.RestartGrid();
         _spaces = MainGrid.Spaces;
@@ -236,14 +236,6 @@ public class PP_Environment : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
         _showCompleted = false;
         _completedIndices = null;
-        //MainGrid.RestartGrid();
-        //_spaces = MainGrid.Spaces;
-        //_boundaries = MainGrid.Boundaries;
-
-        //foreach (ConfigurablePartAgent partAgent in _existingParts.OfType<ConfigurablePart>().Select(p => p.CPAgent))
-        //{
-        //    partAgent.EndEpisode();
-        //}
     }
 
     #endregion
@@ -251,7 +243,7 @@ public class PP_Environment : MonoBehaviour
     #region Space utilization functions and methods
 
     /// <summary>
-    /// Manually sets a space to be reconfigured
+    /// Manually sets the selected space to be reconfigured
     /// </summary>
     protected virtual void SetSpaceToReconfigure()
     {
@@ -338,6 +330,9 @@ public class PP_Environment : MonoBehaviour
         ReconfigurationRequest rr = new ReconfigurationRequest(space, areaDirection, connectivityDirection);
         _reconfigurationRequests = new List<ReconfigurationRequest>();
         _reconfigurationRequests.Add(rr);
+        
+        //Start requesting the first action
+        //rr.RequestNextAction();
     }
 
     /// <summary>
@@ -642,7 +637,8 @@ public class PP_Environment : MonoBehaviour
             Vector3 realIndex = new Vector3(index.x + 0.5f, index.y + 1.5f, index.z + 0.5f) * _voxelSize;
             PP_Drawing.DrawCube(transform.position + realIndex, MainGrid.VoxelSize, _completedColor);
         }
-        
+        _showCompleted = false;
+        _completedIndices = null;
     }
 
     #endregion

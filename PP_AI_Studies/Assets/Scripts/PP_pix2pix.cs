@@ -10,11 +10,15 @@ using Unity.Barracuda;
 /// </summary>
 public class PP_pix2pix
 {
-    //Fields and parameters
+    #region Fields and parameters
+
     NNModel _modelAsset;
     Model _loadedModel;
     IWorker _worker;
 
+    #endregion
+
+    #region Constructor
     /// <summary>
     /// Constructs the PP_pix2pix engine, loading the model and creating the Worker responsible for
     /// inferring results
@@ -34,7 +38,9 @@ public class PP_pix2pix
         _worker = WorkerFactory.CreateWorker(WorkerFactory.Type.ComputePrecompiled, _loadedModel);
     }
 
-    //Main methods
+    #endregion
+
+    #region Main methods
 
     /// <summary>
     /// Generates a prediction from an input Texture2D obeject
@@ -57,10 +63,18 @@ public class PP_pix2pix
         //Normalize the output tensor
         var outputNormalized = NormalizeTensorUp(outputTensor);
 
-        return Tensor2Image(outputNormalized, inputTexture);
+        Texture2D result = Tensor2Image(outputNormalized, inputTexture);
+
+        tensor.Dispose();
+        normalizedTensor.Dispose();
+        outputNormalized.Dispose();
+
+        return result;
     }
 
-    //Auxiliary methods
+    #endregion
+
+    #region Auxiliary methods
 
     /// <summary>
     /// Normalizes an input tensor from (0, 1) to (-1, 1) to be processed by the Pix2Pix worker
@@ -144,4 +158,6 @@ public class PP_pix2pix
 
         return resultTexture;
     }
+
+    #endregion
 }

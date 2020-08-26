@@ -604,6 +604,9 @@ public class ConfigurablePart : Part
         success = true;
     }
 
+    /// <summary>
+    /// Properly resets the position data of the part befor finding a new position on the grid
+    /// </summary>
     public void ResetPosition()
     {
         foreach (Voxel voxel in OccupiedVoxels)
@@ -795,6 +798,74 @@ public class ConfigurablePart : Part
     /// <returns>The boolean representing if movement was successful</returns>
     public bool MoveInZ(int distance, bool updateSpaces = true, bool freezeAgent = true)
     {
+        ////Boolean to evalute the validity of the movement
+        //bool validMovement = true;
+        //Vector3Int[] tempIndexes = new Vector3Int[OccupiedIndexes.Length];
+        //if (distance == 1 || distance == -1)
+        //{
+        //    //Temporarily store the position of the new indexes
+        //    //While checking their validity
+
+        //    for (int i = 0; i < OccupiedIndexes.Length; i++)
+        //    {
+        //        int x = OccupiedIndexes[i].x;
+        //        int y = OccupiedIndexes[i].y;
+
+        //        int z = OccupiedIndexes[i].z + distance;
+        //        // If new z position is beyond grid, return false
+        //        if (z < 0 || z > Grid.Size.z -1) return false;
+        //        var voxel = Grid.Voxels[x, y, z];
+
+        //        //If the movement includes a voxel that is not active or
+        //        //is occupied by a part that isn't this, return false
+        //        if (!voxel.IsActive || (voxel.IsOccupied && voxel.Part != this))
+        //        {
+        //            validMovement = false;
+        //            return validMovement;
+        //        }
+        //        //If everything is ok, add new index to temporary array
+        //        tempIndexes[i] = new Vector3Int(x, y, z);
+        //    }
+        //}
+        //else
+        //{
+        //    //If distance is not +1 or -1, return false
+        //    validMovement = false;
+        //    return validMovement;
+        //}
+
+        ////Apply movement to grid
+        //for (int i = 0; i < OccupiedIndexes.Length; i++)
+        //{
+        //    var preVoxel = Grid.Voxels[OccupiedIndexes[i].x, OccupiedIndexes[i].y, OccupiedIndexes[i].z];
+        //    preVoxel.IsOccupied = false;
+        //    preVoxel.Part = null;
+
+        //}
+
+        //for (int i = 0; i < OccupiedIndexes.Length; i++)
+        //{
+        //    var newIndex = tempIndexes[i];
+        //    var newVoxel = Grid.Voxels[newIndex.x, newIndex.y, newIndex.z];
+        //    newVoxel.IsOccupied = true;
+        //    newVoxel.Part = this;
+
+        //    OccupiedIndexes[i] = newIndex;
+        //}
+
+        ////Move reference index and Pivot
+        //ReferenceIndex += new Vector3Int(0, 0, distance);
+        //SetPivot();
+
+        //if (freezeAgent) CPAgent.FreezeAgent();
+        ////Call to Update the slab in the environment
+        //if (updateSpaces)
+        //{
+        //    _environment.AnalyzeGridUpdateSpaces();
+        //}
+
+        //return validMovement;
+
         //Boolean to evalute the validity of the movement
         bool validMovement = true;
         Vector3Int[] tempIndexes = new Vector3Int[OccupiedIndexes.Length];
@@ -807,9 +878,11 @@ public class ConfigurablePart : Part
             {
                 int x = OccupiedIndexes[i].x;
                 int y = OccupiedIndexes[i].y;
+
                 int z = OccupiedIndexes[i].z + distance;
-                // If new z position is beyond grid, return false
-                if (z < 0 || z > Grid.Size.z -1) return false;
+                // If new x position is beyond grid, return false
+                if (z < 0 || z > Grid.Size.z - 1) return false;
+
                 var voxel = Grid.Voxels[x, y, z];
 
                 //If the movement includes a voxel that is not active or
@@ -848,17 +921,13 @@ public class ConfigurablePart : Part
 
             OccupiedIndexes[i] = newIndex;
         }
-
         //Move reference index and Pivot
         ReferenceIndex += new Vector3Int(0, 0, distance);
         SetPivot();
 
         if (freezeAgent) CPAgent.FreezeAgent();
         //Call to Update the slab in the environment
-        if (updateSpaces)
-        {
-            _environment.AnalyzeGridUpdateSpaces();
-        }
+        if (updateSpaces) _environment.AnalyzeGridUpdateSpaces();
 
         return validMovement;
     }
