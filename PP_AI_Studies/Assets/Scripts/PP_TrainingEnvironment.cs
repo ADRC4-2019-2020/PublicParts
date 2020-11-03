@@ -18,7 +18,7 @@ public class PP_TrainingEnvironment : PP_Environment
     #region Unity methods
 
     /// <summary>
-    /// Configures the Environment, based on 
+    /// Configures the Environment before start
     /// </summary>
     private void Awake()
     {
@@ -109,6 +109,9 @@ public class PP_TrainingEnvironment : PP_Environment
         }
     }
 
+    /// <summary>
+    /// Used to keep the actions, initializations and rewards synchronized with the agents
+    /// </summary>
     private void FixedUpdate()
     {
         //Check number of initialized agents and evaluate grid in the start of an episode
@@ -130,19 +133,19 @@ public class PP_TrainingEnvironment : PP_Environment
                 if (reconfigResult == 0)
                 {
                     //Reconfiguration was just valid, slight penalty to all agents
-                    request.ApplyReward(-0.1f);
+                    request.ApplyReward(-0.5f);
                     ResetGrid(request, false);
                 }
                 else if (reconfigResult == 1)
                 {
                     //Reconfiguration was successful, add reward to all agents
-                    request.ApplyReward(1.0f);
+                    request.ApplyReward(2.0f);
                     ResetGrid(request, true);
                 }
                 else if (reconfigResult == 2)
                 {
                     //Reconfiguration destroyed the space, heavy penalty to all agents
-                    request.ApplyReward(-1.0f);
+                    request.ApplyReward(-2.0f);
                     ResetGrid(request, false);
                 }
 
@@ -159,19 +162,6 @@ public class PP_TrainingEnvironment : PP_Environment
 
 
     #region Architectural functions and methods
-
-    /// <summary>
-    /// Initializes blank, not yet applied to the grid, <see cref="ConfigurablePart"/>
-    /// </summary>
-    private void CreateBlankConfigurables()
-    {
-        for (int i = 0; i < _nComponents; i++)
-        {
-            ConfigurablePart p = new ConfigurablePart(MainGrid, !_showVoxels, $"CP_{i}");
-            MainGrid.ExistingParts.Add(p);
-            _existingParts.Add(p);
-        }
-    }
 
     /// <summary>
     /// Initializes the grid by assigning new positions for the components given the <see cref="_availableSeeds"/>,
@@ -198,7 +188,11 @@ public class PP_TrainingEnvironment : PP_Environment
         //    part.OccupyVoxels();
         //}
         AnalyzeGridCreateNewSpaces();
-        SetRandomSpaceToReconfigure(1, 0);
+        //int areaRequest = Random.Range(-1, 2);
+        int areaRequest = 0;
+        int connectivityRequest = Random.Range(-1, 2);
+        //int connectivityRequest = 0;
+        SetRandomSpaceToReconfigure(areaRequest, connectivityRequest);
         //InitializedAgents = 0;
     }
 

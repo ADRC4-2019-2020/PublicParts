@@ -19,6 +19,7 @@ public class VoxelGrid : MonoBehaviour
     public Face[][,,] Faces { get; private set; }
     public float VoxelSize { get; private set; }
     public Vector3 Origin { get; private set; }
+    public RenderTexture CurrentRenderTexture { get; private set; }
 
     #endregion
 
@@ -44,6 +45,12 @@ public class VoxelGrid : MonoBehaviour
 
     #endregion
 
+    #region Image Recording parameters
+
+    int _iterationCounter = 0;
+
+    #endregion
+
     #endregion
 
     #region Constructors
@@ -64,6 +71,7 @@ public class VoxelGrid : MonoBehaviour
         Spaces = new List<PPSpace>();
         Boundaries = new List<Voxel>();
         _showVoxels = !GOvisibility;
+        
         if (Size == new Vector3Int(30, 1, 24))
         {
             _pix2pix = new PP_pix2pix("30x24");
@@ -79,6 +87,8 @@ public class VoxelGrid : MonoBehaviour
         {
             InstantiateGenericGO();
         }
+
+        StoresCurrentRenderTexture64();
     }
 
     /// <summary>
@@ -295,20 +305,26 @@ public class VoxelGrid : MonoBehaviour
     /// <summary>
     /// Executes a new analysis and generates new spaces
     /// </summary>
-    public void RunAnalysisCreateNewSpaces()
+    public void RunAnalysisCreateNewSpaces(bool saveImages = false)
     {
         //Stopwatch aiStopwatch = new Stopwatch();
         //aiStopwatch.Start();
         Boundaries = new List<Voxel>();
-        var gridImage = GetStateImage();
-
-        string folder = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\helpers\";
+        var gridImage = GetStateImage256();
 
         var analysisResult = _pix2pix.GeneratePrediction(gridImage);
-        //ImageReadWrite.SaveImage2Path(analysisResult, folder + "p2pOutput");
 
         var resultTexture = ProcessAnalysisResult(analysisResult);
-        //ImageReadWrite.SaveImage2Path(resultTexture, folder + "postprosOutput");
+
+        if (saveImages)
+        {
+            string folderIN = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\IN\";
+            string folderOUT = @"D:\GitRepo\PublicParts\PP_AI_Studies\temp_en\OUT\";
+
+            ImageReadWrite.SaveImage2Path(gridImage, folderIN + "Iteration_" + _iterationCounter.ToString("D4"));
+            ImageReadWrite.SaveImage2Path(resultTexture, folderOUT + "Iteration_" + _iterationCounter.ToString("D4"));
+            _iterationCounter++;
+        }
 
         PassBoundaryToList(resultTexture);
         DestroySpaces();
@@ -343,7 +359,7 @@ public class VoxelGrid : MonoBehaviour
 
         //Generate new spaces
         Boundaries = new List<Voxel>();
-        var gridImage = GetStateImage();
+        var gridImage = GetStateImage256();
         var analysisResult = _pix2pix.GeneratePrediction(gridImage);
         var resultTexture = ProcessAnalysisResult(analysisResult);
         PassBoundaryToList(resultTexture);
@@ -447,7 +463,7 @@ public class VoxelGrid : MonoBehaviour
             }
         }
         space.Name = $"Space_{number.ToString()}";
-        space.ValidadeSpace();
+        space.ValidateSpace();
         return space;
         //Spaces.Add(space);
     }
@@ -656,12 +672,21 @@ public class VoxelGrid : MonoBehaviour
     }
 
     /// <summary>
-    /// Gets the image from the grid
+    /// Gets the image from the grid in a 4x upscaled 256 x 256 format
     /// </summary>
-    /// <returns></returns>
-    private Texture2D GetStateImage()
+    /// <returns>The resulting <see cref="Texture2D"/></returns>
+    private Texture2D GetStateImage256()
     {
-        return ImageReadWrite.TextureFromGrid(this);
+        return ImageReadWrite.TextureFromGrid256(this);
+    }
+
+    /// <summary>
+    /// Stores the current state of the grid into a RenderTexture, accessed through the <see cref="CurrentRenderTexture"/> property
+    /// </summary>
+    public void StoresCurrentRenderTexture64()
+    {
+        CurrentRenderTexture = ImageReadWrite.RenderTextureFromGrid64(this);
+        CurrentRenderTexture.Create();
     }
 
     /// <summary>
@@ -799,20 +824,30 @@ public class VoxelGrid : MonoBehaviour
     public void RestartGrid()
     {
         //Should clear the grid, keeping only the existing parts
-        //foreach (Voxel voxel in Voxels)
-        //{
-        //    voxel.ClearStatus();
-        //}
-        //foreach (var space in Spaces)
-        //{
-        //    space.DestroySpace();
-        //}
-
         SetupVoxels();
         
         Spaces = new List<PPSpace>();
         Boundaries = new List<Voxel>();
         ExistingParts = new List<Part>();
+    }
+
+    /// <summary>
+    /// Sets the name of the grid and the Target RenderTexture to store it's state
+    /// </summary>
+    /// <param name="name"></param>
+    public void SetGridNameAndTexture(string name)
+    {
+        _gridName = name;
+        CurrentRenderTexture = Resources.Load<RenderTexture>("temp/GridState_" + name);
+    }
+
+    /// <summary>
+    /// Gets the grid name
+    /// </summary>
+    /// <returns></returns>
+    public string GetGridName()
+    {
+        return _gridName;
     }
 
     public void EnsurePartInGrid(ConfigurablePart part)

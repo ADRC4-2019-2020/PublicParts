@@ -26,12 +26,15 @@ public class ReconfigurationRequest
     
     //The evaluation parameters, to add or remove accordingly
     private int _areaModifier = 8;
-    private int _connectivityModifier = 2;
+    private int _connectivityModifier = 4;
     
     //The components to be reconfigured
     private ConfigurablePartAgent[] _agents2Reconfigure;
 
     private int _currentAgent = 0;
+
+    //The centre of the target space
+    private Vector3Int _spaceCenter;
 
     #endregion
 
@@ -49,10 +52,14 @@ public class ReconfigurationRequest
     /// <param name="connectivityDirection"></param>
     public ReconfigurationRequest(PPSpace space, int areaDirection, int connectivityDirection)
     {
+        space.ValidateSpace();
         SpaceId = space.SpaceId;
         SpaceName = space.Name;
+        _spaceCenter = new Vector3Int((int)space.GetCenter().x, 0, (int)space.GetCenter().z);
         CurrentIndices = space.Indices.ToArray();
+        //Area defined by the Voxel count
         int currentArea = space.VoxelCount;
+        //Conectivity defined by the number of connections [voxels]
         int currentConnectivity = space.NumberOfConnections;
 
         space.ArtificialReconfigureRequest(areaDirection, connectivityDirection);
@@ -70,6 +77,7 @@ public class ReconfigurationRequest
         _agents2Reconfigure = space.BoundaryParts.Select(p => p.CPAgent).ToArray();
         foreach (var part in _agents2Reconfigure)
         {
+            part.ClearRequest();
             part.SetRequest(this);
         }
         //UnfreezeRandomAgent();
@@ -98,27 +106,28 @@ public class ReconfigurationRequest
     /// <returns>The result if the reconfiguration was successful</returns>
     public bool ReconfigurationSuccessful(PPSpace space)
     {
-        //Get the current parameters
+        //Get the current parameters [area = Voxel count; connectivity = number of connections]
         int currentArea = space.VoxelCount;
         int currentConnectivity = space.NumberOfConnections;
 
-        //Create the result validators
+        //Create the result validators, starting with true
         bool areaSuccessful = true;
         bool connectivitySuccessful = true;
         
+        //Check if reconfiguration was successful, within a margin of +- 50% of the target parameter
         //Check if area objective has been reached [0 = no area reconfiguration requested]
-        if (TargetArea > 0 )
+        if (TargetArea != 0 )
         {
-            if (currentArea < TargetArea - 4 || currentArea > TargetArea + 4)
+            if (currentArea < TargetArea - (_areaModifier / 2) || currentArea > TargetArea + (_areaModifier / 2))
             {
                 areaSuccessful = false;
             }
         }
 
         //Check if connectivity objective has been reached [0 = no connectivity reconfiguration requested]
-        if (TargetConnections > 0)
+        if (TargetConnections != 0)
         {
-            if (currentConnectivity != TargetConnections)
+            if (currentConnectivity < TargetConnections - (_connectivityModifier / 2) || currentConnectivity > TargetConnections + (_connectivityModifier / 2))
             {
                 connectivitySuccessful = false;
             }
@@ -130,7 +139,6 @@ public class ReconfigurationRequest
             //OnReconfigurationSuccessful();
             return true;
         }
-        //If not, continue with request open
         else
         {
             //UnfreezeRandomAgent();
@@ -168,6 +176,10 @@ public class ReconfigurationRequest
         }
     }
 
+    /// <summary>
+    /// Apply the same reward to the agents associated with this request
+    /// </summary>
+    /// <param name="val">The reward value</param>
     public void ApplyReward(float val)
     {
         foreach (var agent in _agents2Reconfigure)
@@ -230,6 +242,37 @@ public class ReconfigurationRequest
         //{
         //    agnt.SetAsComplete(true);
         //}
+    }
+
+    /// <summary>
+    /// Get the <see cref="Vector3Int"/> of the space's average center
+    /// </summary>
+    /// <returns>The center as a <see cref="Vector3Int"/></returns>
+    public Vector3Int GetTargetSpaceCenter()
+    {
+        return _spaceCenter;
+    }
+
+    /// <summary>
+    /// Get the names of the parts associated with the agents associaciated with this request
+    /// </summary>
+    /// <returns>A single string with all names</returns>
+    public string GetAgentsNames()
+    {
+        string names = "";
+        foreach (var agent in _agents2Reconfigure)
+        {
+            names += ", " + agent.GetPart().Name;
+        }
+        return names;
+    }
+
+    public void ReleaseAgents()
+    {
+        foreach (var agent in _agents2Reconfigure)
+        {
+            agent.ClearRequest();
+        }
     }
 
     #endregion

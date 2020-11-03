@@ -1,0 +1,32 @@
+{
+  "Tenants": [
+    {
+      "Name": "Tenant A",
+      "AreaPrefWork_S": "5.0_7.0",
+      "AreaPrefLeisure_S": "4.0_6.0",
+      "ConnectivityPrefWork_S": "2_55",
+      "ConnectivityPrefLeisure_S": "2_55"
+    },
+    {
+      "Name": "Tenant B",
+      "AreaPrefWork_S": "2.0_3.0",
+      "AreaPrefLeisure_S": "2.0_4.0",
+      "ConnectivityPrefWork_S": "2_55",
+      "ConnectivityPrefLeisure_S": "2_55"
+    },
+    {
+      "Name": "Tenant C",
+      "AreaPrefWork_S": "3.0_5.0",
+      "AreaPrefLeisure_S": "3.0_5.0",
+      "ConnectivityPrefWork_S": "2_55",
+      "ConnectivityPrefLeisure_S": "2_55"
+    },
+    {
+      "Name": "Tenant D",
+      "AreaPrefWork_S": "2.0_4.0",
+      "AreaPrefLeisure_S": "2.0_3.0",
+      "ConnectivityPrefWork_S": "2_55",
+      "ConnectivityPrefLeisure_S": "2_55"
+    }
+  ]
+}

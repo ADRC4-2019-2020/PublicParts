@@ -39,6 +39,7 @@ public class PP_Environment : MonoBehaviour
     protected List<Tenant> _tenants;
     protected List<PPSpaceRequest> _spaceRequests;
     protected List<ReconfigurationRequest> _reconfigurationRequests;
+    protected List<ConfigurablePartAgent> _agents;
 
     #endregion
 
@@ -96,9 +97,9 @@ public class PP_Environment : MonoBehaviour
     /// <summary>
     /// Runs the analyze, creating new spaces
     /// </summary>
-    public void AnalyzeGridCreateNewSpaces()
+    public void AnalyzeGridCreateNewSpaces(bool saveInAndOut = false)
     {
-        MainGrid.RunAnalysisCreateNewSpaces();
+        MainGrid.RunAnalysisCreateNewSpaces(saveInAndOut);
         _boundaries = MainGrid.Boundaries;
         _spaces = MainGrid.Spaces;
     }
@@ -236,6 +237,34 @@ public class PP_Environment : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
         _showCompleted = false;
         _completedIndices = null;
+    }
+
+    /// <summary>
+    /// Initializes blank, not yet applied to the grid, <see cref="ConfigurablePart"/>
+    /// </summary>
+    protected void CreateBlankConfigurables()
+    {
+        for (int i = 0; i < _nComponents; i++)
+        {
+            ConfigurablePart p = new ConfigurablePart(MainGrid, !_showVoxels, $"CP_{i}");
+            MainGrid.ExistingParts.Add(p);
+            _existingParts.Add(p);
+            _agents.Add(p.CPAgent);
+        }
+    }
+
+    /// <summary>
+    /// Clears all the reconfiguration evaluation on the spaces
+    /// reseting them to default.
+    /// </summary>
+    protected virtual void ResetSpacesEvaluation()
+    {
+        foreach (var space in _spaces)
+        {
+            space.ResetAreaEvaluation();
+            space.ResetConnectivityEvaluation();
+            //space.TimesUsed = 0;
+        }
     }
 
     #endregion

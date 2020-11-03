@@ -604,6 +604,27 @@ public class ConfigurablePart : Part
         success = true;
     }
 
+    public void JumpToNewPosition(int seed, out bool success)
+    {
+        foreach (Voxel voxel in OccupiedVoxels)
+        {
+            if (voxel != null)
+            {
+                voxel.IsOccupied = false;
+                voxel.Part = null;
+                var index = voxel.Index;
+                var onGrid = Grid.Voxels[index.x, index.y, index.z];
+                onGrid.IsOccupied = false;
+                onGrid.Part = null;
+            }
+        }
+
+        OccupiedVoxels = new Voxel[nVoxels];
+        OccupiedIndexes = new Vector3Int[nVoxels];
+        //success = true;
+        FindNewPosition(seed, out success);
+    }
+
     /// <summary>
     /// Properly resets the position data of the part befor finding a new position on the grid
     /// </summary>

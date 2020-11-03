@@ -68,6 +68,8 @@ public class PP_pix2pix
         tensor.Dispose();
         normalizedTensor.Dispose();
         outputNormalized.Dispose();
+        outputTensor.Dispose();
+        
 
         return result;
     }

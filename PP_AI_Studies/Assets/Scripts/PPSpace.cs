@@ -78,10 +78,14 @@ public class PPSpace : IEquatable<PPSpace>
     /// <summary>
     /// Get from the boundary voxels, the ones that represent connections to other spaces
     /// </summary>
-    public IEnumerable<Voxel> ConnectionVoxels => 
-        BoundaryVoxels.Where(v => 
+    public IEnumerable<Voxel> ConnectionVoxels =>
+        BoundaryVoxels.Where(v =>
         v.GetFaceNeighbours()
-        .Any(n => n.ParentSpace != this && n.InSpace));
+        .Any(n => !n.InSpace && !n.IsOccupied && n.IsActive));
+    //public IEnumerable<Voxel> ConnectionVoxels => 
+    //    BoundaryVoxels.Where(v => 
+    //    v.GetFaceNeighbours()
+    //    .Any(n => n.ParentSpace != this && n.InSpace));
 
     /// <summary>
     /// The number of voxels connecting this space to others
@@ -91,7 +95,7 @@ public class PPSpace : IEquatable<PPSpace>
     /// <summary>
     /// The ratio (0.00 -> 1.00) between the number of voxels on the boundary of the space and the amount of voxels that are connected to other spaces
     /// </summary>
-    public float ConnectionRatio => (float)Math.Round((float)NumberOfConnections / BoundaryVoxels.Length, 2);
+    public float ConnectionRatio => ((float) NumberOfConnections / (float) BoundaryVoxels.Length) * 100.00f;
 
     /// <summary>
     /// The spaces that are connected to this one
@@ -233,7 +237,7 @@ public class PPSpace : IEquatable<PPSpace>
     /// <summary>
     /// Unified method for space validation, creating its InfoArrow and calculating its variables
     /// </summary>
-    public void ValidadeSpace()
+    public void ValidateSpace()
     {
         CalculateSortedBoundary();
         //CreateArrow();
@@ -487,8 +491,10 @@ public class PPSpace : IEquatable<PPSpace>
     /// <returns>The comparison boolean result</returns>
     public bool CompareSpaces(PPSpace other, HashSet<Vector3Int> otherIndexes)
     {
-        float percentCap = 0.8f;
-        int sizeCap = 8;
+        //float percentCap = 0.8f;
+        float percentCap = 0.6f;
+        //int sizeCap = 8;
+        int sizeCap = 12;
         float big;
         float small;
         //First check if the size is beyond cap
@@ -595,6 +601,7 @@ public class PPSpace : IEquatable<PPSpace>
         Name = other.Name;
         SpaceId = other.SpaceId;
         TimesSurvived = other.TimesSurvived + 1;
+        TimesUsed = other.TimesUsed;
         
         Reconfigure_Area = other.Reconfigure_Area;
         _areaIncrease = other._areaIncrease;
@@ -789,18 +796,21 @@ public class PPSpace : IEquatable<PPSpace>
         {
             _connectivityIncrease++;
             //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin} or {tenantConnectMax}, was {ConnectionRatio}");
+            //Debug.Log($"{NumberOfConnections}");
             //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} too isolated, wanted {tenantConnectMin}, was {ConnectionRatio}";
         }
         else if (ConnectionRatio > tenantConnectMax)
         {
             _connectivityDecrease++;
             //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} too connected, wanted {tenantConnectMin} or {tenantConnectMax}, was {ConnectionRatio}");
+            //Debug.Log($"{NumberOfConnections}");
             //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} not private enough";
         }
         else
         {
             _connectivityRating += 1.00f;
             //Debug.Log($"{_occupyingTenant.Name} Feedback: {Name} good enough, wanted {tenantConnectMin} or {tenantConnectMax}, was {ConnectionRatio}");
+            //Debug.Log($"{NumberOfConnections}");
             //_operationMessage = $"Tenant {_occupyingTenant.Name} Feedback: {Name} good enough";
             result = 1;
         }

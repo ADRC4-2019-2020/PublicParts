@@ -30,19 +30,22 @@ public class ConfigurablePartAgent : Agent
     private PP_Environment _environment;
     public bool Frozen;
     private ReconfigurationRequest _activeRequest = new ReconfigurationRequest();
-    private int _stepsTaken = 0;
-    private int _stepsCap = 10;
+    public int _stepsTaken = 0;
+    private int _stepsCap = 11;
     public bool StepsEnded = false;
     
     //Rewards and penalties
     private float _destroyedPenalty = -1f;
     private float _existentialPenalty = -0.1f;
-    private float _invalidMovementPenalty = -0.1f;
-    private float _validReward = 0.1f;
+    private float _invalidMovementPenalty = -0.25f;
+    private float _validReward = 0.01f;
     private float _successReward = 1f;
 
     private bool _training = true;
     private bool _manualAnimation = false;
+
+    private RenderTextureSensorComponent _rtSensor;
+    private RenderTexture _currentTexture;
 
     #endregion
 
@@ -109,6 +112,8 @@ public class ConfigurablePartAgent : Agent
     public void ClearRequest()
     {
         _activeRequest = new ReconfigurationRequest();
+        _stepsTaken = 0;
+        StepsEnded = false;
     }
 
     #endregion
@@ -121,10 +126,11 @@ public class ConfigurablePartAgent : Agent
     public override void OnEpisodeBegin()
     {
         FreezeAgent();
-        _part.ResetPosition();
+        if (_training)
+        {
+            _part.ResetPosition();
+        } 
         ClearRequest();
-        _stepsTaken = 0;
-        StepsEnded = false;
         if (_training) _environment.InitializedAgents++;
     }
 
@@ -180,7 +186,7 @@ public class ConfigurablePartAgent : Agent
     {
         if (!_manualAnimation)
         {
-            //Code for observation collection [9 OBSERVATIONS TOTAL]
+            //Code for observation collection [37 OBSERVATIONS TOTAL]
 
             //Current orientation of the part Horizontal = 0, vertical  = 1. [1 OBSERVATION]
             if (_part.Orientation == PartOrientation.Horizontal) sensor.AddObservation(0f);
@@ -197,14 +203,74 @@ public class ConfigurablePartAgent : Agent
             sensor.AddObservation(_activeRequest.TargetArea);
             sensor.AddObservation(_activeRequest.TargetConnections);
 
-            //The properties of the grid [3 OBSERVATIONS]
+            //The properties of the grid [2 OBSERVATIONS]
             //Size
             sensor.AddObservation(_part.Grid.Size.x);
             sensor.AddObservation(_part.Grid.Size.y);
             //Amount of spaces
-            sensor.AddObservation(_part.Grid.Spaces.Count);
+            //sensor.AddObservation(_part.Grid.Spaces.Count);
 
-            //Add a representation of the current state
+            //Add all the X and Z coordinates of the 12 current occupied indexes [24 OBSERVATIONS]
+            for (int i = 0; i < 12; i++)
+            {
+                Vector3Int index = _part.OccupiedIndexes[i];
+
+                sensor.AddObservation(index.x);
+                sensor.AddObservation(index.z);
+            }
+
+            //Add the target space's centre [2 OBSERVATIONS]
+            var spaceCenter = _activeRequest.GetTargetSpaceCenter();
+
+            sensor.AddObservation(spaceCenter.x);
+            sensor.AddObservation(spaceCenter.z);
+
+            //Add the updated distance to the target space's centre [1 OBSERVATION]
+            var distance = (int) Vector3.Distance(_part.Center, spaceCenter);
+            sensor.AddObservation(distance);
+
+            //Add the difference in X and Z between the part and space centre (signilized) [2 OBSERVATIONS]
+            int x = ((int) _part.Center.x) - spaceCenter.x;
+            int y = ((int)_part.Center.z) - spaceCenter.z;
+
+            sensor.AddObservation(x);
+            sensor.AddObservation(y);
+
+            //Add a representation of the current state (based on 64x64 grid) [4096 OBSERVATIONS]
+            //for (int i = 0; i < 64; i++)
+            //{
+            //    for (int j = 0; j < 64; j++)
+            //    {
+            //        //Value for voxels out of the current grid size
+            //        int val = -1;
+            //        if (i < _part.Grid.Size.x && j < _part.Grid.Size.z) 
+            //        {
+            //            //Value for voxels in the grid size (it's always a rectangle)
+            //            val = 0;
+
+            //            var voxel = _part.Grid.Voxels[i, 0, j];
+
+            //            if (voxel.IsActive)
+            //            {
+            //                //Values for voxels that are active
+            //                val = 1;
+
+            //                if (voxel.IsOccupied)
+            //                {
+            //                    //Values for voxels that are occupied by any part
+            //                    val = 2;
+            //                    if (voxel.Part == _part)
+            //                    {
+            //                        //Value for voxels that are occupied by this part
+            //                        val = 3;
+            //                    }
+            //                }
+            //            }
+            //        }
+            //        //Add the observation to the sensor
+            //        sensor.AddObservation(val);
+            //    }
+            //}
         }
     }
 
@@ -221,7 +287,7 @@ public class ConfigurablePartAgent : Agent
     /// <param name="vectorAction"></param>
     public override void OnActionReceived(float[] vectorAction)
     {
-        if (!_manualAnimation)
+        if (!_manualAnimation && !Frozen)
         {
             _stepsTaken++;
             //Parse the vectorAction to int
@@ -483,18 +549,26 @@ public class ConfigurablePartAgent : Agent
         Anim = GetComponent<Animator>();
     }
 
+    //private void Start()
+    //{
+    //    //_rtSensor = GetComponent<RenderTextureSensorComponent>();
+    //    //_rtSensor.SensorName = "testing";
+    //    //_currentTexture = _part.Grid.CurrentRenderTexture;
+    //    //_rtSensor.RenderTexture = _currentTexture;
+    //}
+
     private void Update()
     {
         ManualAnimationMovement();
     }
 
-    private void FixedUpdate()
-    {
-        if (!Frozen && !_manualAnimation)
-        {
-            //RequestDecision();
-        }
-    }
+    //private void FixedUpdate()
+    //{
+    //    if (!Frozen && !_manualAnimation)
+    //    {
+
+    //    }
+    //}
 
     #endregion
 

@@ -1204,12 +1204,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_BrainParameters:
-    VectorObservationSize: 9
+    VectorObservationSize: 37
     NumStackedVectorObservations: 1
     VectorActionSize: 07000000
     VectorActionDescriptions: []
     VectorActionSpaceType: 0
-  m_Model: {fileID: 0}
+  m_Model: {fileID: 5022602860645237092, guid: 00b08226819db7c41824057b26b59cfe, type: 3}
   m_InferenceDevice: 0
   m_BehaviorType: 0
   m_BehaviorName: ConfigurablePart
@@ -1231,10 +1231,11 @@ MonoBehaviour:
   agentParameters:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
-  MaxStep: 5000
+  MaxStep: 5000000
   IsMoving: 0
   IsRotating: 0
   Frozen: 0
+  _stepsTaken: 0
   StepsEnded: 0
 --- !u!65 &1455778188928867484
 BoxCollider:
